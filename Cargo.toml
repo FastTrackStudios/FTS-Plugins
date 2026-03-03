@@ -1,0 +1,80 @@
+[workspace]
+members = [
+    "crates/*",
+    "apps/*",
+    "xtask",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["FastTrack Studio"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# Internal crates
+fts-plugin-core = { path = "crates/fts-plugin-core" }
+
+# NIH-plug audio plugin framework (FTS fork with Dioxus UI + REAPER embed support)
+nih_plug = { path = "../forks/nih-plug" }
+nih_plug_dioxus = { path = "../forks/nih-plug/nih_plug_dioxus" }
+
+# Audio loading
+symphonium = { version = "0.6", default-features = false, features = ["wav", "pcm", "fft-resampler"] }
+
+# REAPER bindings
+reaper-low = { git = "https://github.com/helgoboss/reaper-rs.git", branch = "master" }
+reaper-medium = { git = "https://github.com/helgoboss/reaper-rs.git", branch = "master" }
+reaper-high = { git = "https://github.com/helgoboss/reaper-rs.git", branch = "master" }
+
+# Atomics
+atomic_float = "1.1"
+
+# Async / threading
+once_cell = "1.19"
+
+# Tracing
+tracing = { version = "0.1", features = ["std"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Override blitz crates from upstream git to use our local fork with post-processing support
+[patch."https://github.com/DioxusLabs/blitz.git"]
+dioxus-native = { path = "../forks/vendor/blitz/packages/dioxus-native" }
+dioxus-native-dom = { path = "../forks/vendor/blitz/packages/dioxus-native-dom" }
+blitz-dom = { path = "../forks/vendor/blitz/packages/blitz-dom" }
+blitz-html = { path = "../forks/vendor/blitz/packages/blitz-html" }
+blitz-net = { path = "../forks/vendor/blitz/packages/blitz-net" }
+blitz-paint = { path = "../forks/vendor/blitz/packages/blitz-paint" }
+blitz-traits = { path = "../forks/vendor/blitz/packages/blitz-traits" }
+blitz-shell = { path = "../forks/vendor/blitz/packages/blitz-shell" }
+stylo_taffy = { path = "../forks/vendor/blitz/packages/stylo_taffy" }
+
+[patch.crates-io]
+# Blitz crates - local fork
+dioxus-native = { path = "../forks/vendor/blitz/packages/dioxus-native" }
+dioxus-native-dom = { path = "../forks/vendor/blitz/packages/dioxus-native-dom" }
+blitz-dom = { path = "../forks/vendor/blitz/packages/blitz-dom" }
+blitz-html = { path = "../forks/vendor/blitz/packages/blitz-html" }
+blitz-net = { path = "../forks/vendor/blitz/packages/blitz-net" }
+blitz-paint = { path = "../forks/vendor/blitz/packages/blitz-paint" }
+blitz-traits = { path = "../forks/vendor/blitz/packages/blitz-traits" }
+blitz-shell = { path = "../forks/vendor/blitz/packages/blitz-shell" }
+stylo_taffy = { path = "../forks/vendor/blitz/packages/stylo_taffy" }
+# Stylo crates - local vendor with derive_more v1 fix
+stylo = { path = "../forks/vendor/stylo/style" }
+selectors = { path = "../forks/vendor/stylo/selectors" }
+# Anyrender crates - local fork
+anyrender = { path = "../forks/vendor/anyrender/crates/anyrender" }
+anyrender_vello = { path = "../forks/vendor/anyrender/crates/anyrender_vello" }
+anyrender_vello_cpu = { path = "../forks/vendor/anyrender/crates/anyrender_vello_cpu" }
+anyrender_vello_hybrid = { path = "../forks/vendor/anyrender/crates/anyrender_vello_hybrid" }
+anyrender_svg = { path = "../forks/vendor/anyrender/crates/anyrender_svg" }
+wgpu_context = { path = "../forks/vendor/anyrender/crates/wgpu_context" }

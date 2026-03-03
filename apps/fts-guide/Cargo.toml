@@ -1,0 +1,70 @@
+[package]
+name = "fts-guide"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "FTS Guide - Click track, count-in, and section guide plugin for REAPER"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = []
+# Logging feature flags - enable specific areas for detailed logging
+log-count-in = []
+log-transport = []
+log-regions = []
+log-samples = []
+log-audio = []
+log-guide = []
+log-midi = []
+log-general = []
+# Enable all logging features for full debugging
+log-all = [
+    "log-count-in",
+    "log-transport",
+    "log-regions",
+    "log-samples",
+    "log-audio",
+    "log-guide",
+    "log-midi",
+    "log-general",
+]
+
+[dependencies]
+fts-plugin-core = { workspace = true }
+nih_plug = { workspace = true }
+
+# Audio loading
+symphonium = { workspace = true }
+
+# REAPER integration
+reaper-high = { workspace = true }
+reaper-medium = { workspace = true }
+reaper-low = { workspace = true }
+
+# Atomics
+atomic_float = { workspace = true }
+
+# Async/threading
+once_cell = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nih_plug_dioxus = { workspace = true, features = ["softbuffer-blit"] }
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+nih_plug_dioxus = { workspace = true }
+
+# Override unsafe_code lint for this crate - REAPER integration requires unsafe
+[lints.rust]
+unsafe_code = "allow"
+unused = { level = "allow", priority = -1 }
