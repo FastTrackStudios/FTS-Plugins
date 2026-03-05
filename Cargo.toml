@@ -45,36 +45,37 @@ serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 anyhow = "1.0"
 
-# Override blitz crates from upstream git to use our local fork with post-processing support
+# Override blitz crates from upstream git to use our FTS fork with post-processing support
+# Fork: https://github.com/FastTrackStudios/blitz (branch: post-processing)
 [patch."https://github.com/DioxusLabs/blitz.git"]
-dioxus-native = { path = "../forks/vendor/blitz/packages/dioxus-native" }
-dioxus-native-dom = { path = "../forks/vendor/blitz/packages/dioxus-native-dom" }
-blitz-dom = { path = "../forks/vendor/blitz/packages/blitz-dom" }
-blitz-html = { path = "../forks/vendor/blitz/packages/blitz-html" }
-blitz-net = { path = "../forks/vendor/blitz/packages/blitz-net" }
-blitz-paint = { path = "../forks/vendor/blitz/packages/blitz-paint" }
-blitz-traits = { path = "../forks/vendor/blitz/packages/blitz-traits" }
-blitz-shell = { path = "../forks/vendor/blitz/packages/blitz-shell" }
-stylo_taffy = { path = "../forks/vendor/blitz/packages/stylo_taffy" }
+dioxus-native = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+dioxus-native-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-html = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-net = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-paint = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-traits = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-shell = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+stylo_taffy = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
 
 [patch.crates-io]
-# Blitz crates - local fork
-dioxus-native = { path = "../forks/vendor/blitz/packages/dioxus-native" }
-dioxus-native-dom = { path = "../forks/vendor/blitz/packages/dioxus-native-dom" }
-blitz-dom = { path = "../forks/vendor/blitz/packages/blitz-dom" }
-blitz-html = { path = "../forks/vendor/blitz/packages/blitz-html" }
-blitz-net = { path = "../forks/vendor/blitz/packages/blitz-net" }
-blitz-paint = { path = "../forks/vendor/blitz/packages/blitz-paint" }
-blitz-traits = { path = "../forks/vendor/blitz/packages/blitz-traits" }
-blitz-shell = { path = "../forks/vendor/blitz/packages/blitz-shell" }
-stylo_taffy = { path = "../forks/vendor/blitz/packages/stylo_taffy" }
-# Stylo crates - local vendor with derive_more v1 fix
-stylo = { path = "../forks/vendor/stylo/style" }
-selectors = { path = "../forks/vendor/stylo/selectors" }
-# Anyrender crates - local fork
-anyrender = { path = "../forks/vendor/anyrender/crates/anyrender" }
-anyrender_vello = { path = "../forks/vendor/anyrender/crates/anyrender_vello" }
-anyrender_vello_cpu = { path = "../forks/vendor/anyrender/crates/anyrender_vello_cpu" }
-anyrender_vello_hybrid = { path = "../forks/vendor/anyrender/crates/anyrender_vello_hybrid" }
-anyrender_svg = { path = "../forks/vendor/anyrender/crates/anyrender_svg" }
-wgpu_context = { path = "../forks/vendor/anyrender/crates/wgpu_context" }
+# Blitz crates - FTS fork with post-processing support
+dioxus-native = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+dioxus-native-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-html = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-net = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-paint = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-traits = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+blitz-shell = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+stylo_taffy = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+# Stylo crates - FTS fork with derive_more v1 fix
+stylo = { git = "https://github.com/FastTrackStudios/stylo.git", rev = "8bb8c3b" }
+selectors = { git = "https://github.com/FastTrackStudios/stylo.git", rev = "8bb8c3b" }
+# Anyrender crates - FTS fork with post-processing support
+anyrender = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+anyrender_vello = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+anyrender_vello_cpu = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+anyrender_vello_hybrid = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+anyrender_svg = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+wgpu_context = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
