@@ -15,6 +15,7 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 # Internal crates
 fts-plugin-core = { path = "crates/fts-plugin-core" }
+macromod = { path = "../FastTrackStudio/crates/macromod/macromod" }
 
 # NIH-plug audio plugin framework (FTS fork with Dioxus UI + REAPER embed support)
 nih_plug = { path = "../forks/nih-plug" }

@@ -1,0 +1,13 @@
+[package]
+name = "fts-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+fts-plugin-core = { workspace = true, default-features = false }
+nih_plug = { workspace = true }
+macromod = { workspace = true }
+atomic_float = { workspace = true }
