@@ -1,14 +1,25 @@
 //! FTS Macros - Parameter surface plugin for macro control
 //!
 //! This plugin exposes 8 macro parameters that can be automated via REAPER's
-//! automation system. The parameter values are read by fts-control to drive
-//! target plugins through the macro registry.
+//! automation system. The mapping system enables each macro to control any FX
+//! parameter on any track with sample-accurate real-time processing.
+//!
+//! Architecture:
+//! - **Source:** Macro parameters (0-7), each 0.0–1.0
+//! - **Mapping:** Virtual→actual track/FX resolution at runtime
+//! - **Mode:** Value transformation (passthrough, scale, relative, toggle)
+//! - **Target:** Any FX parameter on any track
+//! - **Persistence:** Mappings stored in plugin state (JSONL format)
+//! - **Sample-accuracy:** Mappings applied within audio processing loop
 //!
 //! Design:
 //! - No audio I/O (utility plugin)
 //! - 8 fixed macro slots (matches macromod MAX_KNOBS)
 //! - Each slot is a FloatParam with range 0.0–1.0
 //! - CLAP export for REAPER automation compatibility
+//! - Self-contained (works without fts-control extension)
+
+pub mod mapping;
 
 use fts_plugin_core::prelude::*;
 use std::sync::Arc;

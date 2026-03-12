@@ -2429,6 +2429,8 @@ dependencies = [
  "fts-plugin-core",
  "macromod",
  "nih_plug",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
