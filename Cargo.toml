@@ -17,7 +17,12 @@ license = "MIT OR Apache-2.0"
 fts-plugin-core = { path = "crates/fts-plugin-core" }
 macromod = { path = "../FastTrackStudio/crates/macromod/macromod" }
 daw-control = { path = "../daw/crates/daw-control" }
+daw-control-sync = { path = "../daw/crates/daw-control-sync" }
 daw-proto = { path = "../daw/crates/daw-proto" }
+
+# Dependencies shared with daw workspace
+roam = { git = "https://github.com/bearcove/roam.git", rev = "30a8e10" }
+roam-session = { git = "https://github.com/bearcove/roam.git", rev = "30a8e10" }
 
 # NIH-plug audio plugin framework (FTS fork with Dioxus UI + REAPER embed support)
 nih_plug = { path = "../forks/nih-plug" }
@@ -47,6 +52,10 @@ serde = { version = "1.0", features = ["derive"] }
 # Error handling
 thiserror = "2.0"
 anyhow = "1.0"
+eyre = "0.6"
+
+# Async runtime (for fts-macros)
+tokio = { version = "1", features = ["sync", "rt"] }
 
 # Override blitz crates from upstream git to use our FTS fork with post-processing support
 # Fork: https://github.com/FastTrackStudios/blitz (branch: post-processing)

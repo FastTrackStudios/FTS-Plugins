@@ -7,15 +7,16 @@ edition = "2021"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
+daw-control-sync = { workspace = true }
+roam = { workspace = true }
+tokio = { workspace = true, features = ["sync", "rt"] }
+tracing = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = "1.0"
+eyre = { workspace = true }
 fts-plugin-core = { workspace = true, default-features = false }
 nih_plug = { workspace = true }
 macromod = { workspace = true }
 atomic_float = { workspace = true }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-# TODO: Add synchronous DAW API for setting FX parameters from audio processing loop
-# Once available, will use: daw-control for setting macro target FX parameters
 
 [dev-dependencies]
-# REAPER integration testing utilities
-eyre = "0.6"

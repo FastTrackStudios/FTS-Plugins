@@ -24,6 +24,8 @@ pub mod resolver;
 
 use fts_plugin_core::prelude::*;
 use std::sync::Arc;
+use daw_control_sync::DawSync;
+use std::sync::Mutex;
 
 const CLAP_ID: &str = "com.fasttrackstudio.fts-macros";
 const PLUGIN_NAME: &str = "FTS Macros";
@@ -76,6 +78,9 @@ pub struct FtsMacros {
     mapping_bank: Arc<mapping::MacroMappingBank>,
     /// Per-buffer resolution cache to minimize API calls
     resolution_cache: resolver::ResolutionCache,
+    /// Synchronous DAW control for setting target FX parameters
+    /// Wrapped in Mutex since it's initialized after plugin creation
+    daw_sync: Arc<Mutex<Option<DawSync>>>,
 }
 
 impl Default for FtsMacros {
@@ -84,7 +89,20 @@ impl Default for FtsMacros {
             params: Arc::new(MacroParams::default()),
             mapping_bank: Arc::new(mapping::MacroMappingBank::new()),
             resolution_cache: resolver::ResolutionCache::new(),
+            daw_sync: Arc::new(Mutex::new(None)),
         }
+    }
+}
+
+impl FtsMacros {
+    /// Initialize DAW sync with a connection handle
+    /// This should be called from the plugin's init hook when the DAW connection is available
+    pub fn init_daw_sync(&self, handle: roam::session::ConnectionHandle) -> eyre::Result<()> {
+        let daw_sync = DawSync::new(handle)?;
+        let mut sync = self.daw_sync.lock().map_err(|_| eyre::eyre!("Failed to acquire lock"))?;
+        *sync = Some(daw_sync);
+        tracing::info!("FTS Macros: DAW sync initialized");
+        Ok(())
     }
 }
 
@@ -146,18 +164,24 @@ impl Plugin for FtsMacros {
                         mapping.target_param_index,
                     ),
                 ) {
-                    (Ok(_track_idx), Ok(_fx_idx), Ok(())) => {
-                        // Phase 3: Set the target FX parameter via DAW API
+                    (Ok(track_idx), Ok(fx_idx), Ok(())) => {
+                        // Phase 3: Set the target FX parameter via DawSync (non-blocking)
                         let transformed_value = mapping.mode.apply(*value);
 
-                        // TODO: Use DAW crate synchronous API to set the FX parameter
-                        // Once daw-control provides sync API:
-                        // let daw = Daw::new(handle);
-                        // daw.track(track_idx).fx_chain().fx(fx_idx).param(param_idx).set(transformed_value).now_sync()?;
-                        //
-                        // This will set the target FX parameter in real-time during audio processing.
-
-                        let _ = transformed_value; // Suppress unused for now
+                        // Queue the parameter change via DawSync
+                        // This is non-blocking and real-time safe - the actual parameter
+                        // change happens asynchronously on the background tokio runtime
+                        if let Ok(mut daw_opt) = self.daw_sync.lock() {
+                            if let Some(daw) = daw_opt.as_ref() {
+                                // Fire and forget - queue the parameter change
+                                let _ = daw.queue_set_param(
+                                    track_idx,
+                                    fx_idx,
+                                    mapping.target_param_index,
+                                    transformed_value,
+                                );
+                            }
+                        }
                     }
                     (Err(_e), _, _) => {
                         // Track resolution failed - mapping will be skipped
