@@ -72,7 +72,7 @@ impl Default for FtsMacros {
 
 impl Plugin for FtsMacros {
     const NAME: &'static str = PLUGIN_NAME;
-    const VENDOR: &'static str = "FastTrack Studio";
+    const VENDOR: &'static str = "FastTrackStudio";
     const URL: &'static str = "https://fasttrackstudio.com";
     const EMAIL: &'static str = "";
     const VERSION: &'static str = PLUGIN_VERSION;
