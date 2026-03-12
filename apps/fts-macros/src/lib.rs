@@ -20,6 +20,7 @@
 //! - Self-contained (works without fts-control extension)
 
 pub mod mapping;
+pub mod resolver;
 
 use fts_plugin_core::prelude::*;
 use std::sync::Arc;
