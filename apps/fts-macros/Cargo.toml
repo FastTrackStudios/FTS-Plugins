@@ -11,3 +11,7 @@ fts-plugin-core = { workspace = true, default-features = false }
 nih_plug = { workspace = true }
 macromod = { workspace = true }
 atomic_float = { workspace = true }
+
+[dev-dependencies]
+# REAPER integration testing utilities
+eyre = "0.6"

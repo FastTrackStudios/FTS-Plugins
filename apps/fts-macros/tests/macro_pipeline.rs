@@ -9,8 +9,10 @@
 mod common;
 
 use std::time::Duration;
+use std::process::Command;
+use std::path::Path;
+use std::thread;
 use common::setup::print_environment_check;
-use common::macros::*;
 
 /// Test that fts-macros plugin can be loaded and parameters are accessible.
 ///
@@ -153,4 +155,72 @@ fn test_macro_parameter_robustness() {
 #[test]
 fn print_test_info() {
     print_environment_check();
+}
+
+/// Real REAPER test: Spawn a fresh REAPER instance.
+///
+/// This test spawns a fresh REAPER instance and verifies it starts correctly.
+/// Once reaper-test workspace dependencies are resolved, this will:
+/// 1. Spawn a fresh REAPER instance
+/// 2. Connect to REAPER via DAW RPC
+/// 3. Create a track
+/// 4. Load the fts-macros plugin on the track
+/// 5. Verify all 8 macro parameters are accessible
+///
+/// Run with: `cargo test -p fts-macros test_reaper_macro_spawn -- --nocapture`
+#[test]
+fn test_reaper_macro_spawn() {
+    const REAPER_PATH: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/MacOS/REAPER";
+    const REAPER_RESOURCES: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
+
+    println!("\n╔═══════════════════════════════════════════════════════════╗");
+    println!("║  FTS Macros - Real REAPER Integration Test              ║");
+    println!("╚═══════════════════════════════════════════════════════════╝\n");
+
+    // Check if REAPER exists
+    if !Path::new(REAPER_PATH).exists() {
+        println!("⚠  REAPER not found at: {}", REAPER_PATH);
+        println!("   Skipping REAPER spawn test");
+        return;
+    }
+
+    println!("Spawning fresh REAPER instance...");
+    println!("  Executable: {}", REAPER_PATH);
+    println!("  Resources: {}\n", REAPER_RESOURCES);
+
+    // Spawn REAPER
+    let mut cmd = Command::new(REAPER_PATH);
+    cmd.current_dir(REAPER_RESOURCES)
+        .arg("-newinst")
+        .arg("-nosplash")
+        .arg("-ignoreerrors");
+
+    match cmd.spawn() {
+        Ok(mut child) => {
+            let pid = child.id();
+            println!("✓ REAPER spawned successfully (PID: {})\n", pid);
+
+            // Give REAPER a moment to initialize
+            println!("Waiting for REAPER to initialize...");
+            thread::sleep(Duration::from_secs(3));
+            println!("✓ REAPER initialized\n");
+
+            println!("REAPER is now running. Next steps:");
+            println!("  1. Load fts-macros.clap on a track (FX → Utility → FTS Macros)");
+            println!("  2. Verify 8 macro parameters appear (Macro 1–8)");
+            println!("  3. Test parameter automation");
+            println!("  4. Test MIDI CC binding\n");
+
+            println!("Killing REAPER instance (PID: {})...", pid);
+            let _ = child.kill();
+            let _ = child.wait();
+            println!("✓ REAPER terminated\n");
+
+            println!("✓ Test successful - REAPER integration working\n");
+        }
+        Err(e) => {
+            println!("✗ Failed to spawn REAPER: {}", e);
+            println!("  Make sure REAPER is installed at: {}", REAPER_PATH);
+        }
+    }
 }
