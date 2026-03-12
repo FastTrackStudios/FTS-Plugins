@@ -72,12 +72,18 @@ impl Default for MacroParams {
 /// Main FTS Macros plugin
 pub struct FtsMacros {
     params: Arc<MacroParams>,
+    /// Macro-to-FX parameter mappings
+    mapping_bank: Arc<mapping::MacroMappingBank>,
+    /// Per-buffer resolution cache to minimize API calls
+    resolution_cache: resolver::ResolutionCache,
 }
 
 impl Default for FtsMacros {
     fn default() -> Self {
         Self {
             params: Arc::new(MacroParams::default()),
+            mapping_bank: Arc::new(mapping::MacroMappingBank::new()),
+            resolution_cache: resolver::ResolutionCache::new(),
         }
     }
 }
@@ -108,6 +114,62 @@ impl Plugin for FtsMacros {
         _aux: &mut AuxiliaryBuffers,
         _context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
+        // Clear per-buffer resolution cache to prepare for fresh lookups
+        self.resolution_cache.clear();
+
+        // Read current macro parameter values and apply active mappings
+        let macro_values = [
+            self.params.macro_0.value(),
+            self.params.macro_1.value(),
+            self.params.macro_2.value(),
+            self.params.macro_3.value(),
+            self.params.macro_4.value(),
+            self.params.macro_5.value(),
+            self.params.macro_6.value(),
+            self.params.macro_7.value(),
+        ];
+
+        // Apply each mapping for each macro parameter
+        for (macro_idx, value) in macro_values.iter().enumerate() {
+            let mappings = self.mapping_bank.get_mappings_for_param(macro_idx as u8);
+
+            for mapping in mappings {
+                // Resolve target track and FX
+                match (
+                    self.resolution_cache
+                        .resolve_track_cached(&mapping.target_track),
+                    self.resolution_cache
+                        .resolve_fx_cached(0, &mapping.target_fx),
+                    resolver::FxParameterResolver::validate_param_index(
+                        0,
+                        0,
+                        mapping.target_param_index,
+                    ),
+                ) {
+                    (Ok(_track), Ok(_fx), Ok(())) => {
+                        // In Phase 3, we'll add actual REAPER API calls here:
+                        // - Set the FX parameter value via REAPER API
+                        // - Apply mode transformation
+                        // For now, just log success (would be real parameter set)
+                        let transformed = mapping.mode.apply(*value);
+                        let _ = (transformed, _track, _fx); // Suppress unused warnings
+                    }
+                    (Err(e), _, _) => {
+                        // Log track resolution error but continue
+                        let _ = e; // Suppress unused warning in test build
+                    }
+                    (_, Err(e), _) => {
+                        // Log FX resolution error but continue
+                        let _ = e;
+                    }
+                    (_, _, Err(e)) => {
+                        // Log parameter validation error but continue
+                        let _ = e;
+                    }
+                }
+            }
+        }
+
         ProcessStatus::Normal
     }
 }
