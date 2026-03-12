@@ -205,18 +205,48 @@ fn test_reaper_macro_spawn() {
             thread::sleep(Duration::from_secs(3));
             println!("✓ REAPER initialized\n");
 
-            println!("REAPER is now running. Next steps:");
-            println!("  1. Load fts-macros.clap on a track (FX → Utility → FTS Macros)");
-            println!("  2. Verify 8 macro parameters appear (Macro 1–8)");
-            println!("  3. Test parameter automation");
-            println!("  4. Test MIDI CC binding\n");
+            println!("╔═══════════════════════════════════════════════════════════╗");
+            println!("║  REAPER is now RUNNING (PID: {:<37}║", pid);
+            println!("╚═══════════════════════════════════════════════════════════╝\n");
 
-            println!("Killing REAPER instance (PID: {})...", pid);
-            let _ = child.kill();
-            let _ = child.wait();
-            println!("✓ REAPER terminated\n");
+            println!("📋 Setup Instructions:\n");
+            println!("  1. Create tracks and load fts-macros.clap:");
+            println!("     • Insert → New Track (x3 for testing)");
+            println!("     • On Track 1: FX → Utility → FTS Macros (fts-macros.clap)");
+            println!("     • On Track 2: FX → Saturation/Distortion or similar FX");
+            println!("     • On Track 3: FX → Compressor or similar FX\n");
 
-            println!("✓ Test successful - REAPER integration working\n");
+            println!("  2. Set up macro control:");
+            println!("     • Click on a Macro parameter in fts-macros (e.g., Macro 1)");
+            println!("     • Right-click → Automation mode → Trim/Read");
+            println!("     • Draw automation lanes on different macros\n");
+
+            println!("  3. Test real-time control:");
+            println!("     • Drag the macro faders in FTS Macros plugin");
+            println!("     • Watch the values change in REAPER's parameter list");
+            println!("     • Test MIDI learn: right-click macro param → MIDI Learn");
+            println!("     • Bind MIDI CC to a macro parameter\n");
+
+            println!("  4. Test target FX:");
+            println!("     • Map macro values to control target plugin parameters");
+            println!("     • e.g., Macro 1 → Track 2 Saturation level\n");
+
+            println!("═══════════════════════════════════════════════════════════\n");
+            println!("Press Ctrl+C in REAPER to exit, or close the window\n");
+            println!("Waiting for REAPER to close...\n");
+
+            // Keep REAPER alive - wait for it to terminate
+            let wait_result = child.wait();
+            match wait_result {
+                Ok(status) => {
+                    println!("\n✓ REAPER terminated (status: {})", status);
+                }
+                Err(e) => {
+                    println!("\n✗ Error waiting for REAPER: {}", e);
+                }
+            }
+
+            println!("✓ Test session complete\n");
         }
         Err(e) => {
             println!("✗ Failed to spawn REAPER: {}", e);
