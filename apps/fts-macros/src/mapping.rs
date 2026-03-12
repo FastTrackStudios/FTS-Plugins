@@ -191,6 +191,124 @@ impl MacroMappingBank {
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(json)
     }
+
+    /// Serialize to base64-encoded JSON string for plugin state storage
+    ///
+    /// This format is used for persistence in CLAP plugin state chunks.
+    /// The base64 encoding ensures safe storage without special character issues.
+    pub fn to_state_string(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let json = self.to_json()?;
+        Ok(base64_encode(&json))
+    }
+
+    /// Deserialize from base64-encoded JSON string
+    ///
+    /// Handles graceful degradation - if decoding fails, returns empty bank
+    /// so the plugin continues to function without saved mappings.
+    pub fn from_state_string(state_str: &str) -> Self {
+        // Try to decode and parse
+        match base64_decode(state_str) {
+            Ok(json) => match Self::from_json(&json) {
+                Ok(bank) => bank,
+                Err(_) => {
+                    // Invalid JSON - return empty bank
+                    Self::new()
+                }
+            },
+            Err(_) => {
+                // Invalid base64 - return empty bank
+                Self::new()
+            }
+        }
+    }
+}
+
+/// Encode string to base64
+fn base64_encode(s: &str) -> String {
+    // Simple base64 implementation using standard algorithm
+    const BASE64_CHARS: &[u8] =
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let bytes = s.as_bytes();
+    let mut result = String::new();
+
+    let mut i = 0;
+    while i < bytes.len() {
+        let b1 = bytes[i];
+        let b2 = if i + 1 < bytes.len() { bytes[i + 1] } else { 0 };
+        let b3 = if i + 2 < bytes.len() { bytes[i + 2] } else { 0 };
+
+        let n = ((b1 as u32) << 16) | ((b2 as u32) << 8) | (b3 as u32);
+
+        result.push(BASE64_CHARS[((n >> 18) & 63) as usize] as char);
+        result.push(BASE64_CHARS[((n >> 12) & 63) as usize] as char);
+        result.push(if i + 1 < bytes.len() {
+            BASE64_CHARS[((n >> 6) & 63) as usize] as char
+        } else {
+            '='
+        });
+        result.push(if i + 2 < bytes.len() {
+            BASE64_CHARS[(n & 63) as usize] as char
+        } else {
+            '='
+        });
+
+        i += 3;
+    }
+
+    result
+}
+
+/// Decode base64 string
+fn base64_decode(s: &str) -> Result<String, String> {
+    let bytes = s.as_bytes();
+    let mut result = Vec::new();
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let c1 = base64_char_value(bytes[i])?;
+        let c2 = if i + 1 < bytes.len() {
+            base64_char_value(bytes[i + 1])?
+        } else {
+            return Err("incomplete base64".to_string());
+        };
+
+        let c3 = if i + 2 < bytes.len() && bytes[i + 2] != b'=' {
+            base64_char_value(bytes[i + 2])?
+        } else {
+            0
+        };
+
+        let c4 = if i + 3 < bytes.len() && bytes[i + 3] != b'=' {
+            base64_char_value(bytes[i + 3])?
+        } else {
+            0
+        };
+
+        let n = ((c1 as u32) << 18) | ((c2 as u32) << 12) | ((c3 as u32) << 6) | (c4 as u32);
+
+        result.push((n >> 16) as u8);
+        if i + 2 < bytes.len() && bytes[i + 2] != b'=' {
+            result.push((n >> 8) as u8);
+        }
+        if i + 3 < bytes.len() && bytes[i + 3] != b'=' {
+            result.push(n as u8);
+        }
+
+        i += 4;
+    }
+
+    String::from_utf8(result).map_err(|_| "invalid utf8".to_string())
+}
+
+fn base64_char_value(c: u8) -> Result<u8, String> {
+    match c {
+        b'A'..=b'Z' => Ok(c - b'A'),
+        b'a'..=b'z' => Ok(c - b'a' + 26),
+        b'0'..=b'9' => Ok(c - b'0' + 52),
+        b'+' => Ok(62),
+        b'/' => Ok(63),
+        _ => Err(format!("invalid base64 char: {}", c as char)),
+    }
 }
 
 #[cfg(test)]
@@ -293,5 +411,66 @@ mod tests {
 
         let param_1_mappings = bank.get_mappings_for_param(1);
         assert_eq!(param_1_mappings.len(), 1);
+    }
+
+    #[test]
+    fn test_base64_encode_decode() {
+        let original = "Hello, World!";
+        let encoded = base64_encode(original);
+        let decoded = base64_decode(&encoded).expect("decode failed");
+        assert_eq!(original, decoded);
+    }
+
+    #[test]
+    fn test_base64_round_trip_json() {
+        let json = r#"{"version":"0.1","mappings":[]}"#;
+        let encoded = base64_encode(json);
+        let decoded = base64_decode(&encoded).expect("decode failed");
+        assert_eq!(json, decoded);
+    }
+
+    #[test]
+    fn test_mapping_bank_state_string_round_trip() {
+        let mut bank = MacroMappingBank::new();
+        bank.add_mapping(MacroMapping {
+            source_param: 0,
+            target_track: TrackDescriptor::ByIndex(1),
+            target_fx: FxDescriptor::ByPluginName("ReaEQ".to_string()),
+            target_param_index: 3,
+            mode: MapMode::ScaleRange {
+                min: 0.5,
+                max: 1.0,
+            },
+        })
+        .unwrap();
+
+        // Serialize to state string
+        let state_string = bank
+            .to_state_string()
+            .expect("to_state_string failed");
+
+        // Deserialize from state string
+        let restored = MacroMappingBank::from_state_string(&state_string);
+
+        // Verify
+        assert_eq!(bank.mappings.len(), restored.mappings.len());
+        assert_eq!(bank.mappings[0].source_param, restored.mappings[0].source_param);
+        assert_eq!(
+            bank.mappings[0].target_param_index,
+            restored.mappings[0].target_param_index
+        );
+    }
+
+    #[test]
+    fn test_mapping_bank_graceful_degradation() {
+        // Invalid base64
+        let bank = MacroMappingBank::from_state_string("!!!invalid base64!!!");
+        assert_eq!(bank.mappings.len(), 0); // Returns empty bank, not error
+
+        // Invalid JSON
+        let bank = MacroMappingBank::from_state_string(
+            &base64_encode("not valid json"),
+        );
+        assert_eq!(bank.mappings.len(), 0); // Returns empty bank, not error
     }
 }
