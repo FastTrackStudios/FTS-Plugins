@@ -13,6 +13,8 @@ macromod = { workspace = true }
 atomic_float = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+# TODO: Add synchronous DAW API for setting FX parameters from audio processing loop
+# Once available, will use: daw-control for setting macro target FX parameters
 
 [dev-dependencies]
 # REAPER integration testing utilities

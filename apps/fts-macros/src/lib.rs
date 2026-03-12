@@ -146,25 +146,27 @@ impl Plugin for FtsMacros {
                         mapping.target_param_index,
                     ),
                 ) {
-                    (Ok(_track), Ok(_fx), Ok(())) => {
-                        // In Phase 3, we'll add actual REAPER API calls here:
-                        // - Set the FX parameter value via REAPER API
-                        // - Apply mode transformation
-                        // For now, just log success (would be real parameter set)
-                        let transformed = mapping.mode.apply(*value);
-                        let _ = (transformed, _track, _fx); // Suppress unused warnings
+                    (Ok(_track_idx), Ok(_fx_idx), Ok(())) => {
+                        // Phase 3: Set the target FX parameter via DAW API
+                        let transformed_value = mapping.mode.apply(*value);
+
+                        // TODO: Use DAW crate synchronous API to set the FX parameter
+                        // Once daw-control provides sync API:
+                        // let daw = Daw::new(handle);
+                        // daw.track(track_idx).fx_chain().fx(fx_idx).param(param_idx).set(transformed_value).now_sync()?;
+                        //
+                        // This will set the target FX parameter in real-time during audio processing.
+
+                        let _ = transformed_value; // Suppress unused for now
                     }
-                    (Err(e), _, _) => {
-                        // Log track resolution error but continue
-                        let _ = e; // Suppress unused warning in test build
+                    (Err(_e), _, _) => {
+                        // Track resolution failed - mapping will be skipped
                     }
-                    (_, Err(e), _) => {
-                        // Log FX resolution error but continue
-                        let _ = e;
+                    (_, Err(_e), _) => {
+                        // FX resolution failed - mapping will be skipped
                     }
-                    (_, _, Err(e)) => {
-                        // Log parameter validation error but continue
-                        let _ = e;
+                    (_, _, Err(_e)) => {
+                        // Parameter index validation failed - mapping will be skipped
                     }
                 }
             }
