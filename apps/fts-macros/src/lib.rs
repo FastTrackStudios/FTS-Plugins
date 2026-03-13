@@ -20,7 +20,9 @@
 //! - Self-contained (works without fts-control extension)
 
 pub mod mapping;
+pub mod reaper_bootstrap;
 pub mod resolver;
+mod routed_handler;
 
 use fts_plugin_core::prelude::*;
 use std::sync::Arc;
@@ -95,14 +97,18 @@ impl Default for FtsMacros {
 }
 
 impl FtsMacros {
-    /// Initialize DAW sync with a connection handle
-    /// This should be called from the plugin's init hook when the DAW connection is available
-    pub fn init_daw_sync(&self, handle: roam::session::ConnectionHandle) -> eyre::Result<()> {
-        let daw_sync = DawSync::new(handle)?;
-        let mut sync = self.daw_sync.lock().map_err(|_| eyre::eyre!("Failed to acquire lock"))?;
-        *sync = Some(daw_sync);
-        tracing::info!("FTS Macros: DAW sync initialized");
-        Ok(())
+    /// Pick up DawSync from the REAPER bootstrap static.
+    ///
+    /// Called during plugin initialization. If the extension eagerly loaded us
+    /// and called `ReaperPluginEntry`, the bootstrap static will have a DawSync.
+    fn pick_up_daw_sync(&self) {
+        if let Some(daw) = reaper_bootstrap::daw_sync() {
+            let mut sync = self.daw_sync.lock().expect("lock poisoned");
+            *sync = Some(daw.clone());
+            tracing::info!("FTS Macros: DawSync acquired from REAPER bootstrap");
+        } else {
+            tracing::info!("FTS Macros: No REAPER bootstrap — running without DAW control");
+        }
     }
 }
 
@@ -124,6 +130,32 @@ impl Plugin for FtsMacros {
 
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
+    }
+
+    fn initialize(
+        &mut self,
+        _audio_io_layout: &AudioIOLayout,
+        _buffer_config: &BufferConfig,
+        _context: &mut impl InitContext<Self>,
+    ) -> bool {
+        // Pick up DawSync from the REAPER bootstrap (if available)
+        self.pick_up_daw_sync();
+
+        // Verify REAPER API access
+        if let Some(daw) = reaper_bootstrap::daw_sync() {
+            match daw.block_on(async {
+                let d = daw.daw();
+                let project = d.current_project().await?;
+                let track_count = project.tracks().count().await?;
+                tracing::info!("FTS Macros: REAPER API verified — {} tracks", track_count);
+                Ok::<_, eyre::Report>(())
+            }) {
+                Ok(_) => tracing::info!("FTS Macros: REAPER API access verified!"),
+                Err(e) => tracing::warn!("FTS Macros: REAPER API test failed: {}", e),
+            }
+        }
+
+        true
     }
 
     fn process(
@@ -165,20 +197,18 @@ impl Plugin for FtsMacros {
                     ),
                 ) {
                     (Ok(track_idx), Ok(fx_idx), Ok(())) => {
-                        // Phase 3: Set the target FX parameter via DawSync (non-blocking)
+                        // Set the target FX parameter via DawSync (non-blocking)
                         let transformed_value = mapping.mode.apply(*value);
 
-                        // Queue the parameter change via DawSync
-                        // This is non-blocking and real-time safe - the actual parameter
-                        // change happens asynchronously on the background tokio runtime
-                        if let Ok(mut daw_opt) = self.daw_sync.lock() {
+                        // Fire-and-forget via DawSync — the actual parameter change
+                        // is spawned on the DawSync's tokio runtime worker thread
+                        if let Ok(daw_opt) = self.daw_sync.lock() {
                             if let Some(daw) = daw_opt.as_ref() {
-                                // Fire and forget - queue the parameter change
-                                let _ = daw.queue_set_param(
+                                daw.set_param(
                                     track_idx,
                                     fx_idx,
                                     mapping.target_param_index,
-                                    transformed_value,
+                                    transformed_value as f64,
                                 );
                             }
                         }
