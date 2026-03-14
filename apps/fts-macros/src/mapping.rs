@@ -120,11 +120,7 @@ impl MapMode {
         let clamped = source_value.clamp(0.0, 1.0);
         match self {
             MapMode::PassThrough => clamped,
-            MapMode::ScaleRange { min, max } => {
-                let range = (max - min).abs();
-                let start = if min < max { *min } else { *max };
-                start + clamped * range
-            }
+            MapMode::ScaleRange { min, max } => min + clamped * (max - min),
             MapMode::Relative { step } => {
                 // In relative mode, we'd need state tracking (not implemented here)
                 // For now, return step scaled by source value
@@ -347,6 +343,18 @@ mod tests {
         };
         assert_eq!(mode.apply(0.0), 0.5);
         assert_eq!(mode.apply(1.0), 1.0);
+    }
+
+    #[test]
+    fn test_map_mode_scale_range_inverted() {
+        // Inverted range: macro 0→0.8, macro 1→0.1 (threshold-style)
+        let mode = MapMode::ScaleRange {
+            min: 0.8,
+            max: 0.1,
+        };
+        assert!((mode.apply(0.0) - 0.8).abs() < f32::EPSILON);
+        assert!((mode.apply(1.0) - 0.1).abs() < f32::EPSILON);
+        assert!((mode.apply(0.5) - 0.45).abs() < f32::EPSILON);
     }
 
     #[test]

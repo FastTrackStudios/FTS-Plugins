@@ -2,7 +2,7 @@
 //!
 //! This plugin exposes 8 macro parameters that can be automated via REAPER's
 //! automation system. The mapping system enables each macro to control any FX
-//! parameter on any track with sample-accurate real-time processing.
+//! parameter on any track.
 //!
 //! Architecture:
 //! - **Source:** Macro parameters (0-7), each 0.0–1.0
@@ -10,10 +10,10 @@
 //! - **Mode:** Value transformation (passthrough, scale, relative, toggle)
 //! - **Target:** Any FX parameter on any track
 //! - **Persistence:** Mappings stored in plugin state (JSONL format)
-//! - **Sample-accuracy:** Mappings applied within audio processing loop
+//! - **Timer-driven:** Macro values polled at ~30Hz via REAPER timer callback
 //!
 //! Design:
-//! - No audio I/O (utility plugin)
+//! - Stereo passthrough (no audio modification)
 //! - 8 fixed macro slots (matches macromod MAX_KNOBS)
 //! - Each slot is a FloatParam with range 0.0–1.0
 //! - CLAP export for REAPER automation compatibility
@@ -25,6 +25,7 @@ pub mod resolver;
 mod routed_handler;
 
 use fts_plugin_core::prelude::*;
+use std::num::NonZeroU32;
 use std::sync::Arc;
 use daw_control_sync::DawSync;
 use std::sync::Mutex;
@@ -35,7 +36,7 @@ const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Macro parameters
 #[derive(Params)]
-struct MacroParams {
+pub struct MacroParams {
     #[id = "macro_0"]
     pub macro_0: FloatParam,
     #[id = "macro_1"]
@@ -52,6 +53,11 @@ struct MacroParams {
     pub macro_6: FloatParam,
     #[id = "macro_7"]
     pub macro_7: FloatParam,
+
+    /// Macro-to-FX parameter mappings, persisted in the plugin's CLAP state chunk.
+    /// Updated at runtime via ExtState IPC; survives project save/load.
+    #[persist = "mappings"]
+    pub mapping_bank: Arc<Mutex<mapping::MacroMappingBank>>,
 }
 
 impl Default for MacroParams {
@@ -69,29 +75,30 @@ impl Default for MacroParams {
             macro_5: mk("Macro 6"),
             macro_6: mk("Macro 7"),
             macro_7: mk("Macro 8"),
+            mapping_bank: Arc::new(Mutex::new(mapping::MacroMappingBank::new())),
         }
     }
 }
 
+/// Number of macro parameters.
+pub const NUM_MACROS: usize = 8;
+
 /// Main FTS Macros plugin
 pub struct FtsMacros {
     params: Arc<MacroParams>,
-    /// Macro-to-FX parameter mappings
-    mapping_bank: Arc<mapping::MacroMappingBank>,
-    /// Per-buffer resolution cache to minimize API calls
-    resolution_cache: resolver::ResolutionCache,
     /// Synchronous DAW control for setting target FX parameters
     /// Wrapped in Mutex since it's initialized after plugin creation
     daw_sync: Arc<Mutex<Option<DawSync>>>,
+    /// Previous macro values for change detection in process().
+    prev_values: [f32; NUM_MACROS],
 }
 
 impl Default for FtsMacros {
     fn default() -> Self {
         Self {
             params: Arc::new(MacroParams::default()),
-            mapping_bank: Arc::new(mapping::MacroMappingBank::new()),
-            resolution_cache: resolver::ResolutionCache::new(),
             daw_sync: Arc::new(Mutex::new(None)),
+            prev_values: [f32::NAN; NUM_MACROS],
         }
     }
 }
@@ -119,9 +126,18 @@ impl Plugin for FtsMacros {
     const EMAIL: &'static str = "";
     const VERSION: &'static str = PLUGIN_VERSION;
 
-    const AUDIO_IO_LAYOUTS: &'static [AudioIOLayout] = &[];
+    // Stereo passthrough — FTS Macros doesn't modify audio, but REAPER
+    // requires at least one audio port for the plugin to appear in the chain.
+    const AUDIO_IO_LAYOUTS: &'static [AudioIOLayout] = &[AudioIOLayout {
+        main_input_channels: NonZeroU32::new(2),
+        main_output_channels: NonZeroU32::new(2),
+        ..AudioIOLayout::const_default()
+    }];
 
-    const MIDI_INPUT: MidiConfig = MidiConfig::None;
+    // MIDI input is required for REAPER to call process() on this plugin.
+    // Without it, REAPER skips process() for utility plugins without audio routing.
+    // This enables audio-rate parameter polling in process().
+    const MIDI_INPUT: MidiConfig = MidiConfig::Basic;
     const MIDI_OUTPUT: MidiConfig = MidiConfig::None;
     const SAMPLE_ACCURATE_AUTOMATION: bool = true;
 
@@ -138,22 +154,27 @@ impl Plugin for FtsMacros {
         _buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
-        // Pick up DawSync from the REAPER bootstrap (if available)
+        // Pick up DawSync from the REAPER bootstrap (if available).
         self.pick_up_daw_sync();
 
-        // Verify REAPER API access
-        if let Some(daw) = reaper_bootstrap::daw_sync() {
-            match daw.block_on(async {
-                let d = daw.daw();
-                let project = d.current_project().await?;
-                let track_count = project.tracks().count().await?;
-                tracing::info!("FTS Macros: REAPER API verified — {} tracks", track_count);
-                Ok::<_, eyre::Report>(())
-            }) {
-                Ok(_) => tracing::info!("FTS Macros: REAPER API access verified!"),
-                Err(e) => tracing::warn!("FTS Macros: REAPER API test failed: {}", e),
-            }
+        // Log current mapping state (may have been restored from plugin chunk).
+        if let Ok(bank) = self.params.mapping_bank.lock() {
+            tracing::info!(
+                "FTS Macros: initialize() with {} persisted mappings",
+                bank.mappings.len()
+            );
         }
+
+        // Register the shared mapping bank with the timer-based macro poller.
+        // The timer callback (running at ~30Hz on the main thread) reads param
+        // values and applies mappings via REAPER API — this works even when
+        // REAPER doesn't call process() (e.g., no audio routing).
+        // The same Arc<Mutex<>> is shared so ExtState IPC updates are visible
+        // to both the timer and process().
+        reaper_bootstrap::register_macro_state(
+            self.params.clone(),
+            self.params.mapping_bank.clone(),
+        );
 
         true
     }
@@ -164,10 +185,14 @@ impl Plugin for FtsMacros {
         _aux: &mut AuxiliaryBuffers,
         _context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        // Clear per-buffer resolution cache to prepare for fresh lookups
-        self.resolution_cache.clear();
+        // try_lock() to avoid blocking the audio thread — if the main thread
+        // is updating mappings via ExtState IPC, we skip this buffer (rare).
+        let Ok(bank) = self.params.mapping_bank.try_lock() else {
+            return ProcessStatus::Normal;
+        };
 
-        // Read current macro parameter values and apply active mappings
+        // Read current macro values from nih_plug's atomic params.
+        // These are updated by the CLAP host when the user moves faders.
         let macro_values = [
             self.params.macro_0.value(),
             self.params.macro_1.value(),
@@ -179,50 +204,36 @@ impl Plugin for FtsMacros {
             self.params.macro_7.value(),
         ];
 
-        // Apply each mapping for each macro parameter
-        for (macro_idx, value) in macro_values.iter().enumerate() {
-            let mappings = self.mapping_bank.get_mappings_for_param(macro_idx as u8);
+        // Change detection — only queue when a value actually changes.
+        for (macro_idx, &value) in macro_values.iter().enumerate() {
+            let prev = self.prev_values[macro_idx];
+            // NaN != NaN, so first buffer always fires
+            if prev == value {
+                continue;
+            }
+            self.prev_values[macro_idx] = value;
+
+            let mappings = bank.get_mappings_for_param(macro_idx as u8);
 
             for mapping in mappings {
-                // Resolve target track and FX
-                match (
-                    self.resolution_cache
-                        .resolve_track_cached(&mapping.target_track),
-                    self.resolution_cache
-                        .resolve_fx_cached(0, &mapping.target_fx),
-                    resolver::FxParameterResolver::validate_param_index(
-                        0,
-                        0,
-                        mapping.target_param_index,
-                    ),
-                ) {
-                    (Ok(track_idx), Ok(fx_idx), Ok(())) => {
-                        // Set the target FX parameter via DawSync (non-blocking)
-                        let transformed_value = mapping.mode.apply(*value);
+                let track_idx = match &mapping.target_track {
+                    mapping::TrackDescriptor::ByIndex(idx) => *idx,
+                    _ => continue,
+                };
+                let fx_idx = match &mapping.target_fx {
+                    mapping::FxDescriptor::ByIndex(idx) => *idx,
+                    _ => continue,
+                };
 
-                        // Fire-and-forget via DawSync — the actual parameter change
-                        // is spawned on the DawSync's tokio runtime worker thread
-                        if let Ok(daw_opt) = self.daw_sync.lock() {
-                            if let Some(daw) = daw_opt.as_ref() {
-                                daw.set_param(
-                                    track_idx,
-                                    fx_idx,
-                                    mapping.target_param_index,
-                                    transformed_value as f64,
-                                );
-                            }
-                        }
-                    }
-                    (Err(_e), _, _) => {
-                        // Track resolution failed - mapping will be skipped
-                    }
-                    (_, Err(_e), _) => {
-                        // FX resolution failed - mapping will be skipped
-                    }
-                    (_, _, Err(_e)) => {
-                        // Parameter index validation failed - mapping will be skipped
-                    }
-                }
+                let transformed = mapping.mode.apply(value);
+
+                // Queue for the main-thread timer to apply via REAPER API.
+                reaper_bootstrap::queue_param_change(
+                    track_idx,
+                    fx_idx,
+                    mapping.target_param_index,
+                    transformed as f64,
+                );
             }
         }
 
