@@ -110,14 +110,12 @@ fn apply_pending_changes() {
     }
 }
 
-// ── Timer-based macro poller (ExtState source for tests) ─────────────────
+// ── Timer-based macro poller ──────────────────────────────────────────────
 
-/// ExtState section name for macro value overrides.
-/// External tools/tests write macro values here; the timer reads them.
+/// P_EXT section name for track-scoped macro config.
 const EXT_STATE_SECTION: &str = "FTS_MACROS";
 
-/// ExtState key for injecting mapping configuration at runtime.
-/// Tests and future UI write mapping JSON here; the timer picks it up.
+/// P_EXT key for mapping configuration stored on the track.
 const EXT_STATE_MAPPING_KEY: &str = "mapping_config";
 
 /// State for the timer-based macro poller.
@@ -135,12 +133,11 @@ static MACRO_POLLER: Mutex<Option<MacroPollerState>> = Mutex::new(None);
 /// Register the shared mapping bank for timer-based polling.
 ///
 /// Called from `FtsMacros::initialize()`. The timer callback reads
-/// macro values from two sources:
-/// 1. REAPER FX params (for UI slider changes)
-/// 2. ExtState (for programmatic/test control)
+/// macro values from the REAPER FX parameter API and mapping config
+/// from the track's P_EXT (`P_EXT:FTS_MACROS:mapping_config`).
 ///
 /// The `mapping_bank` is the same `Arc<Mutex<>>` stored in `MacroParams`
-/// via `#[persist]`, so ExtState updates are visible to both timer and process().
+/// via `#[persist]`, so P_EXT updates are visible to both timer and process().
 pub fn register_macro_state(
     _params: Arc<MacroParams>,
     mapping_bank: Arc<Mutex<mapping::MacroMappingBank>>,
@@ -160,33 +157,6 @@ pub fn register_macro_state(
             cached_location: None,
         });
     }
-}
-
-/// Read macro values from REAPER ExtState.
-///
-/// Keys: "macro_0" through "macro_7", values: float strings "0.0" to "1.0".
-/// Returns NaN for missing/unparseable keys (no change detected).
-fn read_macro_values_from_ext_state() -> [f32; NUM_MACROS] {
-    use std::ffi::CString;
-
-    let reaper = HighReaper::get();
-    let low = reaper.medium_reaper().low();
-    let section = CString::new(EXT_STATE_SECTION).unwrap();
-
-    let mut values = [f32::NAN; NUM_MACROS];
-    for i in 0..NUM_MACROS {
-        let key = CString::new(format!("macro_{}", i)).unwrap();
-        let ptr = unsafe { low.GetExtState(section.as_ptr(), key.as_ptr()) };
-        if !ptr.is_null() {
-            let cstr = unsafe { std::ffi::CStr::from_ptr(ptr) };
-            if let Ok(s) = cstr.to_str() {
-                if let Ok(v) = s.parse::<f32>() {
-                    values[i] = v;
-                }
-            }
-        }
-    }
-    values
 }
 
 /// Find the FTS Macros FX instance by scanning tracks for its name.
@@ -253,62 +223,91 @@ fn read_macro_values_from_fx(
     values
 }
 
-/// Check ExtState for a mapping configuration update.
+/// Check the plugin's own track for a mapping configuration in P_EXT.
 ///
-/// If the key `FTS_MACROS/mapping_config` contains valid JSON, parse it,
-/// update the shared mapping bank, and delete the key. Returns true if
-/// mappings were updated (caller should reset prev_values to force
-/// re-evaluation of all macros against the new mappings).
-fn check_mapping_config(mapping_bank: &Arc<Mutex<mapping::MacroMappingBank>>) -> bool {
+/// Reads `P_EXT:FTS_MACROS:mapping_config` from the track this plugin lives on.
+/// If valid JSON is found, parses it and updates the shared mapping bank.
+/// Returns true if mappings were updated (caller should reset prev_values
+/// to force re-evaluation of all macros against the new mappings).
+fn check_mapping_config(
+    mapping_bank: &Arc<Mutex<mapping::MacroMappingBank>>,
+    track_idx: u32,
+) -> bool {
     use std::ffi::CString;
 
     let reaper = HighReaper::get();
-    let low = reaper.medium_reaper().low();
-    let section = CString::new(EXT_STATE_SECTION).unwrap();
-    let key = CString::new(EXT_STATE_MAPPING_KEY).unwrap();
+    let project = reaper.current_project();
 
-    let ptr = unsafe { low.GetExtState(section.as_ptr(), key.as_ptr()) };
-    if ptr.is_null() {
+    let Some(track) = project.track_by_index(track_idx) else {
+        return false;
+    };
+
+    let raw = match track.raw() {
+        Ok(r) => r,
+        Err(_) => return false,
+    };
+
+    let low = reaper.medium_reaper().low();
+    let attr = match CString::new(format!(
+        "P_EXT:{}:{}",
+        EXT_STATE_SECTION, EXT_STATE_MAPPING_KEY
+    )) {
+        Ok(s) => s,
+        Err(_) => return false,
+    };
+
+    let mut buf = vec![0u8; 65536];
+    let ok = unsafe {
+        low.GetSetMediaTrackInfo_String(
+            raw.as_ptr(),
+            attr.as_ptr(),
+            buf.as_mut_ptr() as *mut i8,
+            false,
+        )
+    };
+    if !ok {
         return false;
     }
-    let cstr = unsafe { std::ffi::CStr::from_ptr(ptr) };
-    let Ok(json_str) = cstr.to_str() else {
-        return false;
+
+    let json_str = {
+        let nul_pos = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+        match std::str::from_utf8(&buf[..nul_pos]) {
+            Ok(s) => s.to_string(),
+            Err(_) => return false,
+        }
     };
     if json_str.is_empty() {
         return false;
     }
 
-    match mapping::MacroMappingBank::from_json(json_str) {
+    // Check if this is the same config we already loaded (avoid re-processing
+    // the same P_EXT value every tick).
+    let current_count = mapping_bank
+        .lock()
+        .map(|b| b.mappings.len())
+        .unwrap_or(0);
+
+    match mapping::MacroMappingBank::from_json(&json_str) {
         Ok(bank) => {
             let count = bank.mappings.len();
+            // Skip if we already have the same number of mappings and the
+            // bank is non-empty (simple dedup — P_EXT is persistent, unlike
+            // the old global ExtState which was deleted after reading).
+            if count == current_count && count > 0 {
+                return false;
+            }
             if let Ok(mut current) = mapping_bank.lock() {
                 *current = bank;
             }
             info!(
-                "FTS Macros: loaded {} mappings from ExtState mapping_config",
+                "FTS Macros: loaded {} mappings from track P_EXT",
                 count
             );
-            // Delete the key so we don't re-process it every tick
-            unsafe {
-                low.DeleteExtState(section.as_ptr(), key.as_ptr(), true);
-            }
-            // Write ack so callers can poll for completion instead of sleeping
-            let ack_key = CString::new("mapping_config_ack").unwrap();
-            let ack_val = CString::new(count.to_string()).unwrap();
-            unsafe {
-                low.SetExtState(
-                    section.as_ptr(),
-                    ack_key.as_ptr(),
-                    ack_val.as_ptr(),
-                    false,
-                );
-            }
             true
         }
         Err(e) => {
             warn!(
-                "FTS Macros: failed to parse mapping_config from ExtState: {}",
+                "FTS Macros: failed to parse mapping_config from track P_EXT: {}",
                 e
             );
             false
@@ -319,11 +318,8 @@ fn check_mapping_config(mapping_bank: &Arc<Mutex<mapping::MacroMappingBank>>) ->
 /// Poll macro parameter values and apply mappings.
 /// Called from the timer callback on REAPER's main thread at ~30Hz.
 ///
-/// Reads macro values from two sources:
-/// 1. REAPER FX params — picks up UI slider changes (user moves fader)
-/// 2. ExtState — picks up programmatic changes (tests, scripts)
-///
-/// ExtState takes priority when set, allowing tests to override UI values.
+/// Reads macro values from the FX parameter API (the actual plugin knobs).
+/// Mapping config is read from track P_EXT (`P_EXT:FTS_MACROS:mapping_config`).
 fn poll_macros() {
     let Ok(mut poller_guard) = MACRO_POLLER.lock() else {
         return;
@@ -332,23 +328,14 @@ fn poll_macros() {
         return;
     };
 
-    // Check for mapping config updates via ExtState IPC.
-    // If mappings changed, reset prev_values to force re-evaluation of all
-    // macros against the new mappings (otherwise change detection would skip
-    // values that haven't changed since before the new mappings were loaded).
-    if check_mapping_config(&state.mapping_bank) {
-        state.prev_values = [f32::NAN; NUM_MACROS];
-    }
+    // Read macro values from the FX parameter API.
+    let values = read_macro_values_from_fx(&mut state.cached_location);
 
-    // Read from both sources
-    let fx_values = read_macro_values_from_fx(&mut state.cached_location);
-    let ext_values = read_macro_values_from_ext_state();
-
-    // Merge: ExtState overrides FX params when set (non-NaN)
-    let mut values = fx_values;
-    for i in 0..NUM_MACROS {
-        if !ext_values[i].is_nan() {
-            values[i] = ext_values[i];
+    // Check for mapping config updates from track P_EXT.
+    // We need the track index from cached_location to read P_EXT.
+    if let Some((track_idx, _)) = state.cached_location {
+        if check_mapping_config(&state.mapping_bank, track_idx) {
+            state.prev_values = [f32::NAN; NUM_MACROS];
         }
     }
 
@@ -437,7 +424,7 @@ extern "C" fn plugin_timer_callback() {
     // 1. Apply parameter changes queued by process() (audio-rate source)
     apply_pending_changes();
 
-    // 2. Poll ExtState for programmatic/test macro values (30Hz source)
+    // 2. Poll FX param values and apply macro mappings (30Hz source)
     poll_macros();
 
     // 3. Drain roam/DawSync main-thread tasks
