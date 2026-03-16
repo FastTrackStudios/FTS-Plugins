@@ -1914,9 +1914,9 @@ dependencies = [
  "enumflags2",
  "keyflow",
  "moire 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
- "reaper-high 0.1.0 (git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes)",
- "reaper-low 0.1.0 (git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes)",
- "reaper-medium 0.1.0 (git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes)",
+ "reaper-high",
+ "reaper-low",
+ "reaper-medium",
  "roam",
  "tokio",
  "tracing",
@@ -3251,15 +3251,16 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "atomic_float 1.1.0",
+ "daw-proto",
  "eyre",
  "fts-plugin-core",
  "fts-ui",
  "nih_plug",
  "nih_plug_dioxus",
  "once_cell",
- "reaper-high 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
- "reaper-low 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
- "reaper-medium 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
+ "reaper-high",
+ "reaper-low",
+ "reaper-medium",
  "reaper-test",
  "symphonium",
  "thiserror 2.0.18",
@@ -3281,9 +3282,9 @@ dependencies = [
  "fts-plugin-core",
  "macromod",
  "nih_plug",
- "reaper-high 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
- "reaper-low 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
- "reaper-medium 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
+ "reaper-high",
+ "reaper-low",
+ "reaper-medium",
  "roam",
  "serde",
  "serde_json",
@@ -7050,15 +7051,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "reaper-common-types"
-version = "0.1.0"
-source = "git+https://github.com/helgoboss/reaper-rs.git?branch=master#218ff0806fcdc90c73d10dc82f062cec04957e6c"
-dependencies = [
- "nutype",
- "serde",
-]
-
-[[package]]
 name = "reaper-high"
 version = "0.1.0"
 source = "git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes#fc79668ffe86fbd8b6ba3e6db513d58e9b6717b0"
@@ -7077,35 +7069,8 @@ dependencies = [
  "helgoboss-midi",
  "once_cell",
  "pathdiff",
- "reaper-low 0.1.0 (git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes)",
- "reaper-medium 0.1.0 (git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes)",
- "ref-cast",
- "regex",
- "tracing",
- "winapi",
-]
-
-[[package]]
-name = "reaper-high"
-version = "0.1.0"
-source = "git+https://github.com/helgoboss/reaper-rs.git?branch=master#218ff0806fcdc90c73d10dc82f062cec04957e6c"
-dependencies = [
- "backtrace",
- "base64 0.13.1",
- "c_str_macro",
- "camino",
- "crossbeam-channel",
- "csv",
- "derivative",
- "either",
- "enumflags2",
- "fragile",
- "futures",
- "helgoboss-midi",
- "once_cell",
- "pathdiff",
- "reaper-low 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
- "reaper-medium 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
+ "reaper-low",
+ "reaper-medium",
  "ref-cast",
  "regex",
  "tracing",
@@ -7129,22 +7094,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "reaper-low"
-version = "0.1.0"
-source = "git+https://github.com/helgoboss/reaper-rs.git?branch=master#218ff0806fcdc90c73d10dc82f062cec04957e6c"
-dependencies = [
- "c_str_macro",
- "cc",
- "derive_more 0.99.20",
- "downcast-rs",
- "fragile",
- "libc",
- "tracing",
- "vst",
- "winapi",
-]
-
-[[package]]
 name = "reaper-medium"
 version = "0.1.0"
 source = "git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes#fc79668ffe86fbd8b6ba3e6db513d58e9b6717b0"
@@ -7154,26 +7103,8 @@ dependencies = [
  "enumflags2",
  "helgoboss-midi",
  "libc",
- "reaper-common-types 0.1.0 (git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes)",
- "reaper-low 0.1.0 (git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes)",
- "ref-cast",
- "tracing",
- "vst",
- "winapi",
-]
-
-[[package]]
-name = "reaper-medium"
-version = "0.1.0"
-source = "git+https://github.com/helgoboss/reaper-rs.git?branch=master#218ff0806fcdc90c73d10dc82f062cec04957e6c"
-dependencies = [
- "camino",
- "derive_more 0.99.20",
- "enumflags2",
- "helgoboss-midi",
- "libc",
- "reaper-common-types 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
- "reaper-low 0.1.0 (git+https://github.com/helgoboss/reaper-rs.git?branch=master)",
+ "reaper-common-types",
+ "reaper-low",
  "ref-cast",
  "tracing",
  "vst",

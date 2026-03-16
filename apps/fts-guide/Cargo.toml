@@ -67,6 +67,7 @@ nih_plug_dioxus = { workspace = true }
 
 [dev-dependencies]
 reaper-test = { workspace = true }
+daw-proto = { workspace = true }
 eyre = { workspace = true }
 tokio = { workspace = true }
 
