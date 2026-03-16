@@ -149,17 +149,29 @@ pub struct FtsGuide {
 
     /// Currently loaded click sound
     current_click_sound: ClickSound,
+
+    /// Flag: editor requested MIDI guide track generation
+    request_generate_midi: Arc<AtomicBool>,
 }
 
 /// Plugin parameters
 #[derive(Params)]
 pub struct GuideParams {
     /// Editor state
-    #[persist = "editor-state"]
+    #[persist = "editor-state-v2"]
     pub editor_state: Arc<DioxusState>,
 
     #[id = "gain"]
     pub gain: FloatParam,
+
+    #[id = "click_volume"]
+    pub click_volume: FloatParam,
+
+    #[id = "count_volume"]
+    pub count_volume: FloatParam,
+
+    #[id = "guide_volume"]
+    pub guide_volume: FloatParam,
 
     #[id = "enable_beat"]
     pub enable_beat: BoolParam,
@@ -196,6 +208,11 @@ pub struct GuideParams {
 
     #[id = "full_count_odd_time"]
     pub full_count_odd_time: BoolParam,
+
+    /// When enabled, auto-trigger clicks synced to DAW transport.
+    /// When disabled, clicks are only triggered by MIDI input.
+    #[id = "sync_to_transport"]
+    pub sync_to_transport: BoolParam,
 }
 
 impl Default for FtsGuide {
@@ -244,6 +261,7 @@ impl Default for FtsGuide {
             transport_playing: Arc::new(AtomicBool::new(false)),
             plugin_sample_rate: Arc::new(AtomicF32::new(44100.0)),
             current_click_sound: ClickSound::default(),
+            request_generate_midi: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -251,10 +269,54 @@ impl Default for FtsGuide {
 impl Default for GuideParams {
     fn default() -> Self {
         Self {
-            editor_state: fts_plugin_core::default_editor_state(),
+            // Note: persisted state overrides this default. Delete plugin state
+            // in REAPER to reset: right-click FX → "Delete all data for plugin"
+            editor_state: DioxusState::new(|| (560, 700)),
 
             gain: FloatParam::new(
                 "Gain",
+                util::db_to_gain(0.0),
+                FloatRange::Skewed {
+                    min: util::db_to_gain(-60.0),
+                    max: util::db_to_gain(12.0),
+                    factor: FloatRange::skew_factor(-2.0),
+                },
+            )
+            .with_smoother(SmoothingStyle::Logarithmic(50.0))
+            .with_unit(" dB")
+            .with_value_to_string(formatters::v2s_f32_gain_to_db(2))
+            .with_string_to_value(formatters::s2v_f32_gain_to_db()),
+
+            click_volume: FloatParam::new(
+                "Click Volume",
+                util::db_to_gain(0.0),
+                FloatRange::Skewed {
+                    min: util::db_to_gain(-60.0),
+                    max: util::db_to_gain(12.0),
+                    factor: FloatRange::skew_factor(-2.0),
+                },
+            )
+            .with_smoother(SmoothingStyle::Logarithmic(50.0))
+            .with_unit(" dB")
+            .with_value_to_string(formatters::v2s_f32_gain_to_db(2))
+            .with_string_to_value(formatters::s2v_f32_gain_to_db()),
+
+            count_volume: FloatParam::new(
+                "Count Volume",
+                util::db_to_gain(0.0),
+                FloatRange::Skewed {
+                    min: util::db_to_gain(-60.0),
+                    max: util::db_to_gain(12.0),
+                    factor: FloatRange::skew_factor(-2.0),
+                },
+            )
+            .with_smoother(SmoothingStyle::Logarithmic(50.0))
+            .with_unit(" dB")
+            .with_value_to_string(formatters::v2s_f32_gain_to_db(2))
+            .with_string_to_value(formatters::s2v_f32_gain_to_db()),
+
+            guide_volume: FloatParam::new(
+                "Guide Volume",
                 util::db_to_gain(0.0),
                 FloatRange::Skewed {
                     min: util::db_to_gain(-60.0),
@@ -279,6 +341,7 @@ impl Default for GuideParams {
             offset_count_by_one: BoolParam::new("Offset Count By One", true),
             extend_songend_count: BoolParam::new("Extend SONGEND Count", true),
             full_count_odd_time: BoolParam::new("Full Count for Odd Time", true),
+            sync_to_transport: BoolParam::new("Sync to Transport", true),
         }
     }
 }
@@ -316,6 +379,7 @@ impl Plugin for FtsGuide {
             self.transport_bar_number.clone(),
             self.transport_beat_position.clone(),
             self.transport_playing.clone(),
+            self.request_generate_midi.clone(),
         )
     }
 
@@ -404,7 +468,10 @@ impl Plugin for FtsGuide {
         }
         self.transport_playing.store(is_playing, Ordering::Relaxed);
 
-        let gain = self.params.gain.smoothed.next();
+        let master_gain = self.params.gain.smoothed.next();
+        let click_gain = self.params.click_volume.smoothed.next() * master_gain;
+        let count_gain = self.params.count_volume.smoothed.next() * master_gain;
+        let guide_gain = self.params.guide_volume.smoothed.next() * master_gain;
 
         // Process each sample
         for (_sample_idx, channel_samples) in buffer.iter_samples().enumerate() {
@@ -426,7 +493,7 @@ impl Plugin for FtsGuide {
                 &self.sample_data_sixteenth,
                 &self.sample_data_triplet,
                 &self.sample_data_measure_accent,
-                gain,
+                click_gain,
                 &mut click_left,
                 &mut click_right,
             );
@@ -435,7 +502,7 @@ impl Plugin for FtsGuide {
             CountPlayer::play_all(
                 &mut self.count_state,
                 &self.sample_data_count,
-                gain,
+                count_gain,
                 &mut count_left,
                 &mut count_right,
             );
@@ -445,7 +512,7 @@ impl Plugin for FtsGuide {
                 &mut self.guide_state,
                 &self.current_guide_key,
                 &self.guide_samples,
-                gain,
+                guide_gain,
                 &mut guide_left,
                 &mut guide_right,
             );

@@ -34,6 +34,7 @@ log-all = [
 
 [dependencies]
 fts-plugin-core = { workspace = true }
+fts-ui = { workspace = true }
 nih_plug = { workspace = true }
 
 # Audio loading
@@ -63,6 +64,11 @@ nih_plug_dioxus = { workspace = true, features = ["softbuffer-blit"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 nih_plug_dioxus = { workspace = true }
+
+[dev-dependencies]
+reaper-test = { workspace = true }
+eyre = { workspace = true }
+tokio = { workspace = true }
 
 # Override unsafe_code lint for this crate - REAPER integration requires unsafe
 [lints.rust]
