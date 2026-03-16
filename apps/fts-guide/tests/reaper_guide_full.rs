@@ -28,8 +28,18 @@ async fn guide_full(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()> {
         Ok(fx) => fx,
         Err(e) => return Err(eyre::eyre!("Failed to add FX: {:?}", e)),
     };
+    // Set track to 8 channels via chunk edit
+    let mut chunk = click_track.get_chunk().await?;
+    if let Some(pos) = chunk.find("NCHAN ") {
+        let end = chunk[pos..].find('\n').unwrap_or(chunk.len() - pos);
+        chunk.replace_range(pos..pos + end, "NCHAN 8");
+    } else if let Some(pos) = chunk.find('\n') {
+        chunk.insert_str(pos + 1, "NCHAN 8\n");
+    }
+    click_track.set_chunk(chunk).await?;
     click_track.set_parent_send(false).await?;
-    ctx.log("Created Click track with FTS Guide");
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    ctx.log("Created Click track with FTS Guide (8ch)");
 
     let loop_track = tracks.add("Loop", None).await?;
     let count_track = tracks.add("Count", None).await?;

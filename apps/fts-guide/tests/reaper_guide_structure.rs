@@ -36,10 +36,19 @@ async fn guide_structure(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<(
             return Err(eyre::eyre!("Failed to add FX: {:?}", e));
         }
     };
-    // Disable parent send — we route channels via sends.
-    // FTS Guide declares 8 output channels so the track auto-expands.
+    // Set track to 8 channels for multi-out plugin (via chunk edit since
+    // set_num_channels requires extension rebuild)
+    let mut chunk = click_track.get_chunk().await?;
+    if let Some(pos) = chunk.find("NCHAN ") {
+        let end = chunk[pos..].find('\n').unwrap_or(chunk.len() - pos);
+        chunk.replace_range(pos..pos + end, "NCHAN 8");
+    } else if let Some(pos) = chunk.find('\n') {
+        chunk.insert_str(pos + 1, "NCHAN 8\n");
+    }
+    click_track.set_chunk(chunk).await?;
     click_track.set_parent_send(false).await?;
-    ctx.log("Created Click track with FTS Guide, parent send disabled");
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    ctx.log("Created Click track with FTS Guide (8ch, parent send disabled)");
 
     // ── Create Loop track (receives ch 3/4) ──────────────────
     let loop_track = tracks.add("Loop", None).await?;
