@@ -14,7 +14,7 @@ use crate::SectionInfo;
 fn get_guide_base_path() -> String {
     std::env::var("FTS_GUIDE_SECTION_PATH").unwrap_or_else(|_| {
         // Default path - user should set FTS_GUIDE_SECTION_PATH environment variable
-        "/Users/codywright/Music/Audiohaven/Sample Libraries/FTS-GUIDE/Section Guide/".to_string()
+        format!("{}/Music/FastTrackStudio/Library/FTS-GUIDE/Section Guide/", std::env::var("HOME").unwrap_or_else(|_| "/Users/codywright".into()))
     })
 }
 
