@@ -199,13 +199,22 @@ async fn guide_midi_gen(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()
 
         // Create a MIDI item spanning the full section
         let section_duration = region.end_seconds() - region.start_seconds();
-        let item = click_track
+        ctx.log(&format!("  Creating item for '{}' at {:.1}s len={:.1}s on track {}",
+            region.name, region.start_seconds(), section_duration, click_track.guid()));
+        let item = match click_track
             .items()
             .add(
                 PositionInSeconds::from_seconds(region.start_seconds()),
                 DawDuration::from_seconds(section_duration),
             )
-            .await?;
+            .await
+        {
+            Ok(item) => item,
+            Err(e) => {
+                ctx.log(&format!("  FAILED to create item: {:?}", e));
+                return Err(eyre::eyre!("Failed to create item for '{}': {:?}", region.name, e));
+            }
+        };
 
         // Add a take (the item starts empty) then use its MIDI editor
         let take = match item.takes().active().await {
