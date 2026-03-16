@@ -51,10 +51,10 @@ nih_plug_dioxus = { path = "../forks/nih-plug/nih_plug_dioxus" }
 # Audio loading
 symphonium = { version = "0.6", default-features = false, features = ["wav", "pcm", "fft-resampler"] }
 
-# REAPER bindings
-reaper-low = { git = "https://github.com/helgoboss/reaper-rs.git", branch = "master" }
-reaper-medium = { git = "https://github.com/helgoboss/reaper-rs.git", branch = "master" }
-reaper-high = { git = "https://github.com/helgoboss/reaper-rs.git", branch = "master" }
+# REAPER bindings (FTS fork — must match daw workspace)
+reaper-low = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
+reaper-medium = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
+reaper-high = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
 
 # Atomics
 atomic_float = "1.1"

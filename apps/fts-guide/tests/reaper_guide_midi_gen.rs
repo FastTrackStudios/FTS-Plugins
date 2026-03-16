@@ -207,7 +207,14 @@ async fn guide_midi_gen(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()
             )
             .await?;
 
-        let take = item.takes().active().await?;
+        // Add a take (the item starts empty) then use its MIDI editor
+        let take = match item.takes().active().await {
+            Ok(t) => t,
+            Err(_) => {
+                // No active take — add one
+                item.takes().add().await?
+            }
+        };
         let midi = take.midi();
 
         // Add the guide trigger note at the start (short duration)
