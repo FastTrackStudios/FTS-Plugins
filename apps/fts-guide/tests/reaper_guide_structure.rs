@@ -36,7 +36,8 @@ async fn guide_structure(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<(
             return Err(eyre::eyre!("Failed to add FX: {:?}", e));
         }
     };
-    // Disable parent send — we route channels manually via sends
+    // Disable parent send — we route channels via sends.
+    // FTS Guide declares 8 output channels so the track auto-expands.
     click_track.set_parent_send(false).await?;
     ctx.log("Created Click track with FTS Guide, parent send disabled");
 
