@@ -5,7 +5,7 @@
 mod cache;
 mod click_loader;
 mod guide_loader;
-mod loader;
+pub mod loader;
 
 pub use cache::SampleCache;
 pub use click_loader::ClickSampleLoader;

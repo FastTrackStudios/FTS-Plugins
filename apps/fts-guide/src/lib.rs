@@ -408,6 +408,28 @@ impl Plugin for FtsGuide {
         );
         self.current_click_sound = click_sound;
 
+        // Load count samples (1-7)
+        let count_base = std::env::var("FTS_GUIDE_COUNT_PATH").unwrap_or_else(|_| {
+            format!(
+                "{}/Music/FastTrackStudio/Library/FTS-GUIDE/Counts/",
+                std::env::var("HOME").unwrap_or_else(|_| "/Users/codywright".into())
+            )
+        });
+        for i in 0..7 {
+            let path = format!("{}English Female - {}.wav", count_base, i + 1);
+            match samples::loader::SampleLoader::load_file(&path, self.sample_rate) {
+                Ok(audio) => {
+                    *self.sample_data_count[i].lock().unwrap() = Some(audio);
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to load count sample {}: {}", i + 1, e);
+                }
+            }
+        }
+
+        // Load guide samples (section announcements)
+        samples::GuideSampleLoader::load_all_samples(self.sample_rate, &self.guide_samples);
+
         true
     }
 
@@ -502,6 +524,16 @@ impl Plugin for FtsGuide {
                             if beat_in_measure < 0.5 {
                                 self.click_state.is_playing_measure_accent = true;
                                 self.click_state.playback_position_measure_accent = 0;
+                            }
+                        }
+
+                        // Count voice — speak the beat number on each beat
+                        if self.params.enable_count.value() {
+                            let beat_in_measure = (curr_beat_floor % time_sig_num) as usize;
+                            // Count samples are 0-indexed (0="1", 1="2", etc.), max 7
+                            if beat_in_measure < 7 {
+                                self.count_state.is_playing_count[beat_in_measure] = true;
+                                self.count_state.playback_position_count[beat_in_measure] = 0;
                             }
                         }
                     }
