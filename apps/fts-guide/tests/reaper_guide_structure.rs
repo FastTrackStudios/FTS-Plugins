@@ -46,7 +46,7 @@ async fn guide_structure(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<(
         chunk.insert_str(pos + 1, "NCHAN 8\n");
     }
     click_track.set_chunk(chunk).await?;
-    click_track.set_parent_send(false).await?;
+    // Keep parent send enabled — ch 1/2 (click) goes to folder parent
     tokio::time::sleep(Duration::from_millis(200)).await;
     ctx.log("Created Click track with FTS Guide (8ch, parent send disabled)");
 
