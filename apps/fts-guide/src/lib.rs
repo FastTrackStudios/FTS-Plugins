@@ -468,6 +468,75 @@ impl Plugin for FtsGuide {
         }
         self.transport_playing.store(is_playing, Ordering::Relaxed);
 
+        // Beat boundary detection — trigger click samples when synced to transport
+        if is_playing && self.params.sync_to_transport.value() {
+            if let Some(pos_beats) = transport.pos_beats() {
+                let beat_pos = pos_beats;
+                let prev_pos = self.previous_beat_position;
+
+                if prev_pos >= 0.0 && beat_pos > prev_pos {
+                    // Get time signature for measure detection
+                    let time_sig_num = transport
+                        .time_sig_numerator
+                        .unwrap_or(4) as f64;
+
+                    // Check beat boundary (integer quarter-note crossings)
+                    let prev_beat_floor = prev_pos.floor();
+                    let curr_beat_floor = beat_pos.floor();
+                    if curr_beat_floor > prev_beat_floor {
+                        // Trigger beat click
+                        if self.params.enable_beat.value() {
+                            self.click_state.is_playing_beat = true;
+                            self.click_state.playback_position_beat = 0;
+                        }
+
+                        // Measure accent — beat 1 of each measure
+                        if self.params.enable_measure_accent.value() {
+                            let beat_in_measure = curr_beat_floor % time_sig_num;
+                            if beat_in_measure < 0.5 {
+                                self.click_state.is_playing_measure_accent = true;
+                                self.click_state.playback_position_measure_accent = 0;
+                            }
+                        }
+                    }
+
+                    // Eighth note boundaries (every 0.5 quarter notes)
+                    if self.params.enable_eighth.value() {
+                        let prev_eighth = (prev_pos * 2.0).floor();
+                        let curr_eighth = (beat_pos * 2.0).floor();
+                        if curr_eighth > prev_eighth {
+                            self.click_state.is_playing_eighth = true;
+                            self.click_state.playback_position_eighth = 0;
+                        }
+                    }
+
+                    // Sixteenth note boundaries (every 0.25 quarter notes)
+                    if self.params.enable_sixteenth.value() {
+                        let prev_sixteenth = (prev_pos * 4.0).floor();
+                        let curr_sixteenth = (beat_pos * 4.0).floor();
+                        if curr_sixteenth > prev_sixteenth {
+                            self.click_state.is_playing_sixteenth = true;
+                            self.click_state.playback_position_sixteenth = 0;
+                        }
+                    }
+
+                    // Triplet boundaries (every 1/3 quarter note)
+                    if self.params.enable_triplet.value() {
+                        let prev_triplet = (prev_pos * 3.0).floor();
+                        let curr_triplet = (beat_pos * 3.0).floor();
+                        if curr_triplet > prev_triplet {
+                            self.click_state.is_playing_triplet = true;
+                            self.click_state.playback_position_triplet = 0;
+                        }
+                    }
+                }
+
+                self.previous_beat_position = beat_pos;
+            }
+        } else if !is_playing {
+            self.previous_beat_position = -1.0;
+        }
+
         let master_gain = self.params.gain.smoothed.next();
         let click_gain = self.params.click_volume.smoothed.next() * master_gain;
         let count_gain = self.params.count_volume.smoothed.next() * master_gain;
