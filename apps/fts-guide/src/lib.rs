@@ -334,7 +334,7 @@ impl Default for GuideParams {
             enable_sixteenth: BoolParam::new("Enable Sixteenth", false),
             enable_triplet: BoolParam::new("Enable Triplet", false),
             enable_measure_accent: BoolParam::new("Measure Accent", true),
-            enable_count: BoolParam::new("Enable Count", true),
+            enable_count: BoolParam::new("Enable Count", false),
             enable_guide: BoolParam::new("Enable Guide", true),
             click_sound: EnumParam::new("Click Sound", ClickSound::Blip),
             guide_replace_beat1: BoolParam::new("Guide Replaces Beat 1", true),
