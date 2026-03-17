@@ -68,18 +68,21 @@ async fn guide_midi_gen(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()
 
     let folder = ctx.track_by_name("Click + Guide").await;
     let click = ctx.track_by_name("Click").await;
+    let click_native = ctx.track_by_name("Click Native").await;
     let loop_track = ctx.track_by_name("Loop").await;
     let count = ctx.track_by_name("Count").await;
     let guide = ctx.track_by_name("Guide").await;
 
-    ctx.log(&format!("  Folder: {}", if folder.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Click:  {}", if click.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Loop:   {}", if loop_track.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Count:  {}", if count.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Guide:  {}", if guide.is_ok() { "OK" } else { "MISSING" }));
+    ctx.log(&format!("  Folder:       {}", if folder.is_ok() { "OK" } else { "MISSING" }));
+    ctx.log(&format!("  Click:        {}", if click.is_ok() { "OK" } else { "MISSING" }));
+    ctx.log(&format!("  Click Native: {}", if click_native.is_ok() { "OK" } else { "MISSING" }));
+    ctx.log(&format!("  Loop:         {}", if loop_track.is_ok() { "OK" } else { "MISSING" }));
+    ctx.log(&format!("  Count:        {}", if count.is_ok() { "OK" } else { "MISSING" }));
+    ctx.log(&format!("  Guide:        {}", if guide.is_ok() { "OK" } else { "MISSING" }));
 
     assert!(folder.is_ok(), "Click + Guide folder should exist");
     assert!(click.is_ok(), "Click track should exist");
+    assert!(click_native.is_ok(), "Click Native track should exist");
     assert!(loop_track.is_ok(), "Loop track should exist");
     assert!(count.is_ok(), "Count track should exist");
     assert!(guide.is_ok(), "Guide track should exist");
@@ -88,25 +91,32 @@ async fn guide_midi_gen(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()
     ctx.log("=== Verifying MIDI items ===");
 
     let click = click.unwrap();
+    let click_native = click_native.unwrap();
     let count = count.unwrap();
     let guide = guide.unwrap();
 
     let click_items = click.items().count().await?;
+    let click_native_items = click_native.items().count().await?;
     let count_items = count.items().count().await?;
     let guide_items = guide.items().count().await?;
 
-    ctx.log(&format!("  Click items: {}", click_items));
-    ctx.log(&format!("  Count items: {}", count_items));
-    ctx.log(&format!("  Guide items: {}", guide_items));
+    ctx.log(&format!("  Click items:        {}", click_items));
+    ctx.log(&format!("  Click Native items: {}", click_native_items));
+    ctx.log(&format!("  Count items:        {}", count_items));
+    ctx.log(&format!("  Guide items:        {}", guide_items));
 
-    // Each section should produce at least one item per track
-    assert!(click_items >= 1, "Click track should have items (got {})", click_items);
+    // Click folder track: MIDI click items (1 per section)
+    assert!(click_items >= 1, "Click track should have MIDI items (got {})", click_items);
+    // Click Native: 1 REAPER click source item
+    assert_eq!(click_native_items, 1, "Click Native should have 1 click source item (got {})", click_native_items);
+    // Count: short items (1 measure each, at least 1 per section that has a count-in)
     assert!(count_items >= 1, "Count track should have items (got {})", count_items);
+    // Guide: short items (1 per section)
     assert!(guide_items >= 1, "Guide track should have items (got {})", guide_items);
 
     ctx.log(&format!(
-        "guide_midi_gen: PASSED — {} regions → {}+{}+{} items",
-        region_count, click_items, count_items, guide_items
+        "guide_midi_gen: PASSED — {} regions → click={} native={} count={} guide={}",
+        region_count, click_items, click_native_items, count_items, guide_items
     ));
     Ok(())
 }
