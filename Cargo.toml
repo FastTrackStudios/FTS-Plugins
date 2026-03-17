@@ -78,6 +78,27 @@ eyre = "0.6"
 # Async runtime (for fts-macros)
 tokio = { version = "1", features = ["sync", "rt"] }
 
+# ── Local development overrides ──────────────────────────────────────
+# Uncomment to use local checkouts instead of GitHub.
+#
+# [patch."https://github.com/FastTrackStudios/fts-ui.git"]
+# fts-ui = { path = "../../fts-ui/crates/fts-ui" }
+#
+# [patch."https://github.com/FastTrackStudios/FastTrackStudio.git"]
+# macromod = { path = "../FastTrackStudio/crates/macromod/macromod" }
+#
+# [patch."https://github.com/FastTrackStudios/daw.git"]
+# daw = { path = "../daw/crates/daw" }
+# daw-control = { path = "../daw/crates/daw-control" }
+# daw-control-sync = { path = "../daw/crates/daw-control-sync" }
+# daw-proto = { path = "../daw/crates/daw-proto" }
+# daw-reaper = { path = "../daw/crates/daw-reaper" }
+# reaper-test = { path = "../daw/crates/reaper-test" }
+#
+# [patch."https://github.com/FastTrackStudios/nih-plug.git"]
+# nih_plug = { path = "../forks/nih-plug" }
+# nih_plug_dioxus = { path = "../forks/nih-plug/nih_plug_dioxus" }
+
 # Override blitz crates from upstream git to use our FTS fork with post-processing support
 # Fork: https://github.com/FastTrackStudios/blitz (branch: post-processing)
 [patch."https://github.com/DioxusLabs/blitz.git"]
