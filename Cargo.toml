@@ -15,12 +15,12 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 # Internal crates
 fts-plugin-core = { path = "crates/fts-plugin-core" }
-fts-ui = { path = "../../fts-ui/crates/fts-ui" }
-macromod = { path = "../FastTrackStudio/crates/macromod/macromod" }
-daw-control = { path = "../daw/crates/daw-control" }
-daw-control-sync = { path = "../daw/crates/daw-control-sync" }
-daw-proto = { path = "../daw/crates/daw-proto" }
-daw-reaper = { path = "../daw/crates/daw-reaper" }
+fts-ui = { git = "https://github.com/FastTrackStudios/fts-ui.git", branch = "main" }
+macromod = { git = "https://github.com/FastTrackStudios/FastTrackStudio.git", branch = "main" }
+daw-control = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
+daw-control-sync = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
+daw-proto = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
+daw-reaper = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 
 # Dependencies shared with daw workspace
 # Use crates.io facet 0.43.x to match roam's requirement
@@ -39,14 +39,14 @@ roam-inprocess = { git = "https://github.com/bearcove/roam.git", branch = "main"
 roam-stream = { git = "https://github.com/bearcove/roam.git", branch = "main" }
 
 # DAW facade crate (for reaper-test)
-daw = { path = "../daw/crates/daw" }
+daw = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 
 # REAPER integration testing
-reaper-test = { path = "../daw/crates/reaper-test" }
+reaper-test = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 
 # NIH-plug audio plugin framework (FTS fork with Dioxus UI + REAPER embed support)
-nih_plug = { path = "../forks/nih-plug" }
-nih_plug_dioxus = { path = "../forks/nih-plug/nih_plug_dioxus" }
+nih_plug = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
+nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
 
 # Audio loading
 symphonium = { version = "0.6", default-features = false, features = ["wav", "pcm", "fft-resampler"] }
