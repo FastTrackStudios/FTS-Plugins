@@ -410,10 +410,7 @@ impl Plugin for FtsGuide {
 
         // Load count samples (1-7)
         let count_base = std::env::var("FTS_GUIDE_COUNT_PATH").unwrap_or_else(|_| {
-            format!(
-                "{}/Music/FastTrackStudio/Library/FTS-GUIDE/Counts/",
-                std::env::var("HOME").unwrap_or_else(|_| "/Users/codywright".into())
-            )
+            format!("{}/Library/FTS-GUIDE/Counts/", samples::fts_home())
         });
         for i in 0..7 {
             let path = format!("{}English Female - {}.wav", count_base, i + 1);

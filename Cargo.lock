@@ -4502,6 +4502,7 @@ dependencies = [
  "daw-proto",
  "facet",
  "helgoboss-midi",
+ "music-catalog",
  "roam",
  "serde",
  "thiserror 2.0.18",
@@ -5348,6 +5349,13 @@ dependencies = [
  "facet-json",
  "moire-trace-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
  "moire-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+]
+
+[[package]]
+name = "music-catalog"
+version = "0.1.0"
+dependencies = [
+ "color-palette",
 ]
 
 [[package]]

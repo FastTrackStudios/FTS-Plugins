@@ -11,8 +11,7 @@ use crate::ClickSound;
 /// Get the base path for click samples from environment or use default
 fn get_click_base_path() -> String {
     std::env::var("FTS_GUIDE_CLICK_PATH").unwrap_or_else(|_| {
-        // Default path - user should set FTS_GUIDE_CLICK_PATH environment variable
-        format!("{}/Music/FastTrackStudio/Library/FTS-GUIDE/Click/", std::env::var("HOME").unwrap_or_else(|_| "/Users/codywright".into()))
+        format!("{}/Library/FTS-GUIDE/Click/", super::fts_home())
     })
 }
 
