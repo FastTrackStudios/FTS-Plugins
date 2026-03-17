@@ -66,20 +66,23 @@ async fn guide_midi_gen(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()
     // ── 3. Verify track structure ────────────────────────────
     ctx.log("=== Verifying tracks ===");
 
-    let folder = ctx.track_by_name("FTS Guide Tracks").await;
-    let click = ctx.track_by_name("FTS Click").await;
-    let count = ctx.track_by_name("FTS Count").await;
-    let guide = ctx.track_by_name("FTS Guide").await;
+    let folder = ctx.track_by_name("Click + Guide").await;
+    let click = ctx.track_by_name("Click").await;
+    let loop_track = ctx.track_by_name("Loop").await;
+    let count = ctx.track_by_name("Count").await;
+    let guide = ctx.track_by_name("Guide").await;
 
     ctx.log(&format!("  Folder: {}", if folder.is_ok() { "OK" } else { "MISSING" }));
     ctx.log(&format!("  Click:  {}", if click.is_ok() { "OK" } else { "MISSING" }));
+    ctx.log(&format!("  Loop:   {}", if loop_track.is_ok() { "OK" } else { "MISSING" }));
     ctx.log(&format!("  Count:  {}", if count.is_ok() { "OK" } else { "MISSING" }));
     ctx.log(&format!("  Guide:  {}", if guide.is_ok() { "OK" } else { "MISSING" }));
 
-    assert!(folder.is_ok(), "FTS Guide Tracks folder should exist");
-    assert!(click.is_ok(), "FTS Click track should exist");
-    assert!(count.is_ok(), "FTS Count track should exist");
-    assert!(guide.is_ok(), "FTS Guide track should exist");
+    assert!(folder.is_ok(), "Click + Guide folder should exist");
+    assert!(click.is_ok(), "Click track should exist");
+    assert!(loop_track.is_ok(), "Loop track should exist");
+    assert!(count.is_ok(), "Count track should exist");
+    assert!(guide.is_ok(), "Guide track should exist");
 
     // ── 4. Verify MIDI items ─────────────────────────────────
     ctx.log("=== Verifying MIDI items ===");
