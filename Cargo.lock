@@ -113,6 +113,7 @@ dependencies = [
 [[package]]
 name = "actions-proto"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/input_actions.git?branch=main#e85f2dfe0fb8aa6820c93e501119e136ef0fc019"
 dependencies = [
  "convert_case 0.6.0",
  "facet",
@@ -288,6 +289,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "anes"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
+
+[[package]]
+name = "anstyle"
+version = "1.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000"
+
+[[package]]
 name = "anyhow"
 version = "1.0.102"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -312,7 +325,7 @@ dependencies = [
 [[package]]
 name = "anyrender"
 version = "0.7.0"
-source = "git+https://github.com/DioxusLabs/anyrender.git?branch=main#0691c2d4168aae1db6507465faafda30978442c7"
+source = "git+https://github.com/DioxusLabs/anyrender.git?branch=main#df7d0948b5f13fad52f2012b6b67f6e0d35e7b0a"
 dependencies = [
  "kurbo 0.13.0",
  "peniko 0.6.0",
@@ -763,6 +776,7 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 [[package]]
 name = "baseview"
 version = "0.1.0"
+source = "git+https://github.com/Codys-Wright/baseview.git?branch=upgrade_rwh#00e438ff34f7e282776284e75b490a6fc36b16a7"
 dependencies = [
  "cocoa",
  "core-foundation 0.9.4",
@@ -1153,6 +1167,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cast"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
+
+[[package]]
 name = "cbc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1209,6 +1229,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "chorus-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1217,6 +1244,33 @@ dependencies = [
  "iana-time-zone",
  "num-traits",
  "windows-link",
+]
+
+[[package]]
+name = "ciborium"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42e69ffd6f0917f5c029256a24d0161db17cea3997d185db0d35926308770f0e"
+dependencies = [
+ "ciborium-io",
+ "ciborium-ll",
+ "serde",
+]
+
+[[package]]
+name = "ciborium-io"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05afea1e0a06c9be33d539b876f1ce3692f4afea2cb41f740e7743225ed1c757"
+
+[[package]]
+name = "ciborium-ll"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57663b653d948a338bfb3eeba9bb2fd5fcfaecb9e199e87e1eda4d9e8b240fd9"
+dependencies = [
+ "ciborium-io",
+ "half",
 ]
 
 [[package]]
@@ -1230,9 +1284,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap"
+version = "4.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b193af5b67834b676abd72466a96c1024e6a6ad978a1f484bd90b85c94041351"
+dependencies = [
+ "clap_builder",
+]
+
+[[package]]
 name = "clap-sys"
 version = "0.5.0"
 source = "git+https://github.com/micahrj/clap-sys.git?rev=25d7f53fdb6363ad63fbd80049cb7a42a97ac156#25d7f53fdb6363ad63fbd80049cb7a42a97ac156"
+
+[[package]]
+name = "clap_builder"
+version = "4.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "714a53001bf66416adb0e2ef5ac857140e7dc3a0c48fb28b2f10762fc4b5069f"
+dependencies = [
+ "anstyle",
+ "clap_lex",
+]
+
+[[package]]
+name = "clap_lex"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "clipboard-win"
@@ -1280,7 +1359,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3538270d33cc669650c4b093848450d380def10c331d38c768e34cac80576e6e"
 dependencies = [
  "termcolor",
- "unicode-width 0.1.14",
+ "unicode-width",
 ]
 
 [[package]]
@@ -1291,7 +1370,7 @@ checksum = "fe6d2e5af09e8c8ad56c969f2157a3d4238cebc7c55f0a517728c38f7b200f81"
 dependencies = [
  "serde",
  "termcolor",
- "unicode-width 0.2.2",
+ "unicode-width",
 ]
 
 [[package]]
@@ -1321,6 +1400,7 @@ dependencies = [
 [[package]]
 name = "color-palette"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/dynamic-template.git?branch=main#3942238eeaa6532d43cf59686540c743c7d0c855"
 dependencies = [
  "facet",
  "thiserror 2.0.18",
@@ -1392,6 +1472,41 @@ checksum = "ba5a308b75df32fe02788e748662718f03fde005016435c444eea572398219fd"
 dependencies = [
  "bytes",
  "memchr",
+]
+
+[[package]]
+name = "comp-dsp"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp",
+ "fts-dsp",
+]
+
+[[package]]
+name = "comp-plugin"
+version = "0.1.0"
+dependencies = [
+ "comp-dsp",
+ "comp-profiles",
+ "comp-ui",
+ "fts-plugin-core",
+ "nih_plug",
+]
+
+[[package]]
+name = "comp-profiles"
+version = "0.1.0"
+dependencies = [
+ "comp-dsp",
+]
+
+[[package]]
+name = "comp-ui"
+version = "0.1.0"
+dependencies = [
+ "comp-dsp",
+ "comp-profiles",
+ "fts-plugin-core",
 ]
 
 [[package]]
@@ -1612,6 +1727,42 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "criterion"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b12d017a929603d80db1831cd3a24082f8137ce19c69e6447f54f5fc8d692f"
+dependencies = [
+ "anes",
+ "cast",
+ "ciborium",
+ "clap",
+ "criterion-plot",
+ "is-terminal",
+ "itertools 0.10.5",
+ "num-traits",
+ "once_cell",
+ "oorandom",
+ "plotters",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "tinytemplate",
+ "walkdir",
+]
+
+[[package]]
+name = "criterion-plot"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
+dependencies = [
+ "cast",
+ "itertools 0.10.5",
 ]
 
 [[package]]
@@ -1850,6 +2001,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dasp_frame"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2a3937f5fe2135702897535c8d4a5553f8b116f76c1529088797f2eee7c5cd6"
+dependencies = [
+ "dasp_sample",
+]
+
+[[package]]
+name = "dasp_sample"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
+
+[[package]]
 name = "data-encoding"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1864,6 +2030,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 [[package]]
 name = "daw"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
 dependencies = [
  "daw-control",
  "daw-proto",
@@ -1872,6 +2039,7 @@ dependencies = [
 [[package]]
 name = "daw-control"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
 dependencies = [
  "daw-proto",
  "eyre",
@@ -1885,9 +2053,11 @@ dependencies = [
 [[package]]
 name = "daw-control-sync"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
 dependencies = [
  "daw-control",
  "eyre",
+ "moire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "roam",
  "roam-stream",
  "tokio",
@@ -1897,6 +2067,7 @@ dependencies = [
 [[package]]
 name = "daw-proto"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
 dependencies = [
  "actions-proto",
  "facet",
@@ -1907,13 +2078,15 @@ dependencies = [
 [[package]]
 name = "daw-reaper"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
 dependencies = [
  "camino",
  "daw-proto",
  "dawfile-reaper",
  "enumflags2",
  "keyflow",
- "moire 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+ "libloading 0.8.9",
+ "moire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "reaper-high",
  "reaper-low",
  "reaper-medium",
@@ -1925,8 +2098,10 @@ dependencies = [
 [[package]]
 name = "dawfile-reaper"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "daw-proto",
  "libc",
  "nom 8.0.0",
@@ -1945,6 +2120,41 @@ checksum = "da220af51a1a335e9a930beaaef53d261e41ea9eecfb3d973a3ddae1a7284b9c"
 name = "debug_timer"
 version = "0.1.3"
 source = "git+https://github.com/FastTrackStudios/blitz.git?rev=a72a6bd#a72a6bda786f2c5d9c7157b8f0dfe75e8b0a2c46"
+
+[[package]]
+name = "delay-dsp"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp",
+ "fts-dsp",
+]
+
+[[package]]
+name = "delay-plugin"
+version = "0.1.0"
+dependencies = [
+ "delay-dsp",
+ "delay-profiles",
+ "delay-ui",
+ "fts-plugin-core",
+ "nih_plug",
+]
+
+[[package]]
+name = "delay-profiles"
+version = "0.1.0"
+dependencies = [
+ "delay-dsp",
+]
+
+[[package]]
+name = "delay-ui"
+version = "0.1.0"
+dependencies = [
+ "delay-dsp",
+ "delay-profiles",
+ "fts-plugin-core",
+]
 
 [[package]]
 name = "deranged"
@@ -2597,6 +2807,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
+name = "ebur128"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e227cc62d64d6fe01abbef48134b9c1f17d470cef1e7a56337ad05b1f81df7f9"
+dependencies = [
+ "bitflags 1.3.2",
+ "dasp_frame",
+ "dasp_sample",
+ "smallvec 1.15.1",
+]
+
+[[package]]
 name = "ecb"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2629,6 +2851,7 @@ checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 [[package]]
 name = "engraver"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/keyflow.git?branch=main#00c81abf2a8488273b28857e7d6b8c748cec49aa"
 dependencies = [
  "engraver-proto",
 ]
@@ -2636,6 +2859,7 @@ dependencies = [
 [[package]]
 name = "engraver-proto"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/keyflow.git?branch=main#00c81abf2a8488273b28857e7d6b8c748cec49aa"
 dependencies = [
  "anyrender 0.7.0",
  "bitflags 2.11.0",
@@ -2710,6 +2934,44 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "eq-dsp"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "eq-dsp",
+ "fts-dsp",
+ "hound",
+ "rustfft",
+]
+
+[[package]]
+name = "eq-plugin"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp",
+ "eq-profiles",
+ "eq-ui",
+ "fts-plugin-core",
+ "nih_plug",
+]
+
+[[package]]
+name = "eq-profiles"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp",
+]
+
+[[package]]
+name = "eq-ui"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp",
+ "eq-profiles",
+ "fts-plugin-core",
 ]
 
 [[package]]
@@ -2806,6 +3068,16 @@ dependencies = [
  "facet-reflect",
  "facet-toml",
  "facet-value",
+]
+
+[[package]]
+name = "facet-cbor"
+version = "7.3.0"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+dependencies = [
+ "facet",
+ "facet-core",
+ "facet-reflect",
 ]
 
 [[package]]
@@ -3246,6 +3518,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dd6caf6059519a65843af8fe2a3ae298b14b80179855aeb4adc2c1934ee619"
 
 [[package]]
+name = "fts-audio"
+version = "0.1.0"
+dependencies = [
+ "fts-audio-proto",
+ "nih_plug",
+]
+
+[[package]]
+name = "fts-audio-proto"
+version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+
+[[package]]
+name = "fts-dsp"
+version = "0.1.0"
+dependencies = [
+ "ebur128",
+]
+
+[[package]]
 name = "fts-guide"
 version = "0.1.0"
 dependencies = [
@@ -3294,6 +3586,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "fts-modulation"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+]
+
+[[package]]
 name = "fts-plugin-core"
 version = "0.1.0"
 dependencies = [
@@ -3306,8 +3605,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fts-themes"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+]
+
+[[package]]
 name = "fts-ui"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/fts-ui.git?branch=main#67b09858b8cd1bd9fc41769f6a97d1423c80c0c9"
 dependencies = [
  "dioxus",
  "dioxus-primitives",
@@ -3445,6 +3752,51 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
 dependencies = [
  "byteorder",
+]
+
+[[package]]
+name = "gate-analysis"
+version = "0.1.0"
+dependencies = [
+ "daw",
+ "daw-control-sync",
+ "fts-dsp",
+ "gate-dsp",
+]
+
+[[package]]
+name = "gate-dsp"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp",
+ "fts-dsp",
+]
+
+[[package]]
+name = "gate-plugin"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "gate-dsp",
+ "gate-profiles",
+ "gate-ui",
+ "nih_plug",
+]
+
+[[package]]
+name = "gate-profiles"
+version = "0.1.0"
+dependencies = [
+ "gate-dsp",
+]
+
+[[package]]
+name = "gate-ui"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "gate-dsp",
+ "gate-profiles",
 ]
 
 [[package]]
@@ -3878,6 +4230,12 @@ name = "highway"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1489f81ead4b71a09ddeab6850c0356c0932587637d753f21ee1010ab875b013"
+
+[[package]]
+name = "hound"
+version = "3.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62adaabb884c94955b19907d60019f4e145d091c75345379e70d1ee696f7854f"
 
 [[package]]
 name = "html-escape"
@@ -4341,6 +4699,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "is-terminal"
+version = "0.4.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
+dependencies = [
+ "hermit-abi 0.5.2",
+ "libc",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4478,6 +4847,7 @@ dependencies = [
 [[package]]
 name = "keyflow"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/keyflow.git?branch=main#00c81abf2a8488273b28857e7d6b8c748cec49aa"
 dependencies = [
  "color-eyre",
  "colored",
@@ -4497,6 +4867,7 @@ dependencies = [
 [[package]]
 name = "keyflow-proto"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/keyflow.git?branch=main#00c81abf2a8488273b28857e7d6b8c748cec49aa"
 dependencies = [
  "color-palette",
  "daw-proto",
@@ -4513,6 +4884,7 @@ dependencies = [
 [[package]]
 name = "keyflow-text"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/keyflow.git?branch=main#00c81abf2a8488273b28857e7d6b8c748cec49aa"
 dependencies = [
  "keyflow-proto",
  "tracing",
@@ -4667,6 +5039,40 @@ dependencies = [
  "libc",
  "plain",
  "redox_syscall 0.7.3",
+]
+
+[[package]]
+name = "limiter-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+]
+
+[[package]]
+name = "limiter-plugin"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "limiter-dsp",
+ "limiter-profiles",
+ "limiter-ui",
+ "nih_plug",
+]
+
+[[package]]
+name = "limiter-profiles"
+version = "0.1.0"
+dependencies = [
+ "limiter-dsp",
+]
+
+[[package]]
+name = "limiter-ui"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "limiter-dsp",
+ "limiter-profiles",
 ]
 
 [[package]]
@@ -4893,6 +5299,7 @@ checksum = "670fdfda89751bc4a84ac13eaa63e205cf0fd22b4c9a5fbfa085b63c1f1d3a30"
 [[package]]
 name = "macromod"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/FastTrackStudio.git?branch=main#8484949024ae84f5c721f0998965543110afc2b6"
 dependencies = [
  "facet",
  "serde",
@@ -5145,6 +5552,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac52dcc0ff5b4710a66626370b1bf85ba3d924fd8019e8cfa100e8dafffda4ad"
 dependencies = [
+ "moire-macros",
  "moire-macros-noop 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "moire-tokio 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "moire-wasm 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5153,18 +5561,18 @@ dependencies = [
 [[package]]
 name = "moire"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 dependencies = [
- "moire-macros",
- "moire-macros-noop 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
- "moire-tokio 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
- "moire-wasm 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+ "moire-macros-noop 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-tokio 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-wasm 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
 ]
 
 [[package]]
 name = "moire-macros"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c494331faed7953b795b7769a84e9272e6f59e34ddceebadba4715b245957bc2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5180,7 +5588,7 @@ checksum = "92ccdc0bf403f5ecf29c09e8e9f178caed89a914ea032e0c2d99d3824b78892d"
 [[package]]
 name = "moire-macros-noop"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 
 [[package]]
 name = "moire-runtime"
@@ -5202,16 +5610,16 @@ dependencies = [
 [[package]]
 name = "moire-runtime"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 dependencies = [
  "ctor",
  "facet",
  "facet-json",
  "facet-value",
- "moire-trace-capture 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
- "moire-trace-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
- "moire-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
- "moire-wire 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+ "moire-trace-capture 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-trace-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-wire 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
  "tokio",
 ]
 
@@ -5231,11 +5639,10 @@ dependencies = [
 [[package]]
 name = "moire-tokio"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 dependencies = [
- "ctor",
- "moire-runtime 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
- "moire-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+ "moire-runtime 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
  "parking_lot",
  "tokio",
 ]
@@ -5253,10 +5660,10 @@ dependencies = [
 [[package]]
 name = "moire-trace-capture"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 dependencies = [
  "libc",
- "moire-trace-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+ "moire-trace-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
 ]
 
 [[package]]
@@ -5271,7 +5678,7 @@ dependencies = [
 [[package]]
 name = "moire-trace-types"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 dependencies = [
  "facet",
 ]
@@ -5290,11 +5697,11 @@ dependencies = [
 [[package]]
 name = "moire-types"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 dependencies = [
  "facet",
  "facet-value",
- "moire-trace-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+ "moire-trace-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
 ]
 
 [[package]]
@@ -5316,7 +5723,7 @@ dependencies = [
 [[package]]
 name = "moire-wasm"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 dependencies = [
  "async-channel",
  "async-lock",
@@ -5324,7 +5731,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "gloo-timers",
- "moire-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+ "moire-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
  "wasm-bindgen-futures",
 ]
 
@@ -5343,17 +5750,18 @@ dependencies = [
 [[package]]
 name = "moire-wire"
 version = "1.0.0"
-source = "git+https://github.com/bearcove/peeps?branch=main#156ecf2aa166d6304d371d17ea0f09820dcdf29f"
+source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
 dependencies = [
  "facet",
  "facet-json",
- "moire-trace-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
- "moire-types 1.0.0 (git+https://github.com/bearcove/peeps?branch=main)",
+ "moire-trace-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
 ]
 
 [[package]]
 name = "music-catalog"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/dynamic-template.git?branch=main#3942238eeaa6532d43cf59686540c743c7d0c855"
 dependencies = [
  "color-palette",
 ]
@@ -6125,6 +6533,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
+name = "oorandom"
+version = "11.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
+
+[[package]]
 name = "openssl"
 version = "0.10.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6584,6 +6998,34 @@ name = "plain"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
+
+[[package]]
+name = "plotters"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5aeb6f403d7a4911efb1e33402027fc44f29b5bf6def3effcc22d7bb75f2b747"
+dependencies = [
+ "num-traits",
+ "plotters-backend",
+ "plotters-svg",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "plotters-backend"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df42e13c12958a16b3f7f4386b9ab1f3e7933914ecea48da7139435263a4172a"
+
+[[package]]
+name = "plotters-svg"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51bae2ac328883f7acdfea3d66a7c35751187f870bc81f94563733a154d7a670"
+dependencies = [
+ "plotters-backend",
+]
 
 [[package]]
 name = "png"
@@ -7122,9 +7564,11 @@ dependencies = [
 [[package]]
 name = "reaper-test"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
 dependencies = [
  "daw",
  "eyre",
+ "moire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "reaper-test-macro",
  "roam",
  "roam-stream",
@@ -7135,6 +7579,7 @@ dependencies = [
 [[package]]
 name = "reaper-test-macro"
 version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7290,6 +7735,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "reverb-dsp"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp",
+ "fts-dsp",
+]
+
+[[package]]
+name = "reverb-plugin"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "nih_plug",
+ "reverb-dsp",
+ "reverb-profiles",
+ "reverb-ui",
+]
+
+[[package]]
+name = "reverb-profiles"
+version = "0.1.0"
+dependencies = [
+ "reverb-dsp",
+]
+
+[[package]]
+name = "reverb-ui"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "reverb-dsp",
+ "reverb-profiles",
+]
+
+[[package]]
 name = "rfd"
 version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7323,6 +7803,53 @@ dependencies = [
 ]
 
 [[package]]
+name = "rider-analysis"
+version = "0.1.0"
+dependencies = [
+ "daw",
+ "daw-control-sync",
+ "fts-dsp",
+ "rider-dsp",
+]
+
+[[package]]
+name = "rider-dsp"
+version = "0.1.0"
+dependencies = [
+ "comp-dsp",
+ "eq-dsp",
+ "fts-dsp",
+ "symphonia",
+]
+
+[[package]]
+name = "rider-plugin"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "nih_plug",
+ "rider-dsp",
+ "rider-profiles",
+ "rider-ui",
+]
+
+[[package]]
+name = "rider-profiles"
+version = "0.1.0"
+dependencies = [
+ "rider-dsp",
+]
+
+[[package]]
+name = "rider-ui"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "rider-dsp",
+ "rider-profiles",
+]
+
+[[package]]
 name = "ring"
 version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7339,12 +7866,11 @@ dependencies = [
 [[package]]
 name = "roam"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#cb6ed614d385b854f8f8ed77b737bcace4575678"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
 dependencies = [
  "facet",
- "facet-postcard",
  "roam-core",
- "roam-hash",
+ "roam-postcard",
  "roam-service-macros",
  "roam-types",
  "tracing",
@@ -7353,16 +7879,16 @@ dependencies = [
 [[package]]
 name = "roam-core"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#cb6ed614d385b854f8f8ed77b737bcace4575678"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
 dependencies = [
  "facet",
+ "facet-cbor",
  "facet-core",
  "facet-error",
- "facet-format",
- "facet-postcard",
  "facet-reflect",
  "getrandom 0.3.4",
- "moire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "moire 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "roam-postcard",
  "roam-types",
  "smallvec 1.15.1",
  "tokio",
@@ -7372,20 +7898,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "roam-hash"
-version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#cb6ed614d385b854f8f8ed77b737bcace4575678"
-dependencies = [
- "blake3",
- "facet-core",
- "heck 0.5.0",
- "roam-types",
-]
-
-[[package]]
 name = "roam-macros-core"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#cb6ed614d385b854f8f8ed77b737bcace4575678"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
 dependencies = [
  "facet-cargo-toml",
  "heck 0.5.0",
@@ -7397,16 +7912,27 @@ dependencies = [
 [[package]]
 name = "roam-macros-parse"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#cb6ed614d385b854f8f8ed77b737bcace4575678"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
 dependencies = [
  "proc-macro2",
  "unsynn",
 ]
 
 [[package]]
+name = "roam-postcard"
+version = "7.3.0"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+dependencies = [
+ "facet",
+ "facet-core",
+ "facet-reflect",
+ "roam-types",
+]
+
+[[package]]
 name = "roam-service-macros"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#cb6ed614d385b854f8f8ed77b737bcace4575678"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
 dependencies = [
  "proc-macro2",
  "roam-macros-core",
@@ -7415,9 +7941,10 @@ dependencies = [
 [[package]]
 name = "roam-stream"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#cb6ed614d385b854f8f8ed77b737bcace4575678"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
 dependencies = [
- "moire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "moire 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "roam-core",
  "roam-types",
  "tokio",
 ]
@@ -7425,14 +7952,17 @@ dependencies = [
 [[package]]
 name = "roam-types"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#cb6ed614d385b854f8f8ed77b737bcace4575678"
+source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
 dependencies = [
  "bitflags 2.11.0",
+ "blake3",
  "facet",
+ "facet-cbor",
  "facet-core",
  "facet-path",
  "facet-postcard",
  "futures-channel",
+ "heck 0.5.0",
  "smallvec 1.15.1",
  "structstruck",
  "tokio",
@@ -8522,10 +9052,50 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5773a4c030a19d9bfaa090f49746ff35c75dfddfa700df7a5939d5e076a57039"
 dependencies = [
  "lazy_static",
+ "symphonia-bundle-flac",
+ "symphonia-bundle-mp3",
+ "symphonia-codec-adpcm",
  "symphonia-codec-pcm",
+ "symphonia-codec-vorbis",
  "symphonia-core",
+ "symphonia-format-mkv",
+ "symphonia-format-ogg",
  "symphonia-format-riff",
  "symphonia-metadata",
+]
+
+[[package]]
+name = "symphonia-bundle-flac"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c91565e180aea25d9b80a910c546802526ffd0072d0b8974e3ebe59b686c9976"
+dependencies = [
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+ "symphonia-utils-xiph",
+]
+
+[[package]]
+name = "symphonia-bundle-mp3"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4872dd6bb56bf5eac799e3e957aa1981086c3e613b27e0ac23b176054f7c57ed"
+dependencies = [
+ "lazy_static",
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+]
+
+[[package]]
+name = "symphonia-codec-adpcm"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dddc50e2bbea4cfe027441eece77c46b9f319748605ab8f3443350129ddd07f"
+dependencies = [
+ "log",
+ "symphonia-core",
 ]
 
 [[package]]
@@ -8539,6 +9109,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "symphonia-codec-vorbis"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f025837c309cd69ffef572750b4a2257b59552c5399a5e49707cc5b1b85d1c73"
+dependencies = [
+ "log",
+ "symphonia-core",
+ "symphonia-utils-xiph",
+]
+
+[[package]]
 name = "symphonia-core"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8549,6 +9130,31 @@ dependencies = [
  "bytemuck",
  "lazy_static",
  "log",
+]
+
+[[package]]
+name = "symphonia-format-mkv"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "122d786d2c43a49beb6f397551b4a050d8229eaa54c7ddf9ee4b98899b8742d0"
+dependencies = [
+ "lazy_static",
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+ "symphonia-utils-xiph",
+]
+
+[[package]]
+name = "symphonia-format-ogg"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b4955c67c1ed3aa8ae8428d04ca8397fbef6a19b2b051e73b5da8b1435639cb"
+dependencies = [
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+ "symphonia-utils-xiph",
 ]
 
 [[package]]
@@ -8573,6 +9179,16 @@ dependencies = [
  "lazy_static",
  "log",
  "symphonia-core",
+]
+
+[[package]]
+name = "symphonia-utils-xiph"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee27c85ab799a338446b68eec77abf42e1a6f1bb490656e121c6e27bfbab9f16"
+dependencies = [
+ "symphonia-core",
+ "symphonia-metadata",
 ]
 
 [[package]]
@@ -8659,6 +9275,40 @@ dependencies = [
  "grid",
  "serde",
  "slotmap",
+]
+
+[[package]]
+name = "tape-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+]
+
+[[package]]
+name = "tape-plugin"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "nih_plug",
+ "tape-dsp",
+ "tape-profiles",
+ "tape-ui",
+]
+
+[[package]]
+name = "tape-profiles"
+version = "0.1.0"
+dependencies = [
+ "tape-dsp",
+]
+
+[[package]]
+name = "tape-ui"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "tape-dsp",
+ "tape-profiles",
 ]
 
 [[package]]
@@ -8845,6 +9495,16 @@ dependencies = [
  "displaydoc",
  "serde_core",
  "zerovec",
+]
+
+[[package]]
+name = "tinytemplate"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be4d6b5f19ff7664e8c98d03e2139cb510db9b0a60b55f8e8709b689d939b6bc"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -9153,6 +9813,59 @@ dependencies = [
 ]
 
 [[package]]
+name = "trem-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+ "fts-modulation",
+]
+
+[[package]]
+name = "trigger-analysis"
+version = "0.1.0"
+dependencies = [
+ "daw",
+ "daw-control-sync",
+ "fts-dsp",
+ "trigger-dsp",
+]
+
+[[package]]
+name = "trigger-dsp"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp",
+ "fts-dsp",
+]
+
+[[package]]
+name = "trigger-plugin"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "nih_plug",
+ "trigger-dsp",
+ "trigger-profiles",
+ "trigger-ui",
+]
+
+[[package]]
+name = "trigger-profiles"
+version = "0.1.0"
+dependencies = [
+ "trigger-dsp",
+]
+
+[[package]]
+name = "trigger-ui"
+version = "0.1.0"
+dependencies = [
+ "fts-plugin-core",
+ "trigger-dsp",
+ "trigger-profiles",
+]
+
+[[package]]
 name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9329,12 +10042,6 @@ name = "unicode-width"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
-
-[[package]]
-name = "unicode-width"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
 
 [[package]]
 name = "unicode-xid"
@@ -9642,6 +10349,14 @@ version = "0.1.0"
 source = "git+https://github.com/robbert-vdh/vst3-sys.git?branch=fix%2Fdrop-box-from-raw#b3ff4d775940f5b476b9d1cca02a90e07e1922a2"
 dependencies = [
  "vst3-com",
+]
+
+[[package]]
+name = "wah-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+ "fts-modulation",
 ]
 
 [[package]]

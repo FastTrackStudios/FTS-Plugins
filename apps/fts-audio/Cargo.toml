@@ -1,0 +1,12 @@
+[package]
+name = "fts-audio"
+version.workspace = true
+edition.workspace = true
+description = "Thin RT VST plugin — executes rule tables from shared memory on REAPER's audio thread"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+nih_plug = { workspace = true }
+fts-audio-proto = { workspace = true }

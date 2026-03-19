@@ -1,6 +1,76 @@
 [workspace]
 members = [
-    "crates/*",
+    "crates/fts-plugin-core",
+    "crates/fts-dsp",
+    "crates/fts-themes",
+    "crates/fts-modulation",
+
+    # EQ plugin
+    "crates/fts-eq/eq-dsp",
+    "crates/fts-eq/eq-profiles",
+    "crates/fts-eq/eq-ui",
+    "crates/fts-eq/eq-plugin",
+
+    # Compressor plugin
+    "crates/fts-comp/comp-dsp",
+    "crates/fts-comp/comp-profiles",
+    "crates/fts-comp/comp-ui",
+    "crates/fts-comp/comp-plugin",
+
+    # Limiter plugin
+    "crates/fts-limiter/limiter-dsp",
+    "crates/fts-limiter/limiter-profiles",
+    "crates/fts-limiter/limiter-ui",
+    "crates/fts-limiter/limiter-plugin",
+
+    # Tape Machine plugin
+    "crates/fts-tape/tape-dsp",
+    "crates/fts-tape/tape-profiles",
+    "crates/fts-tape/tape-ui",
+    "crates/fts-tape/tape-plugin",
+
+    # Delay plugin
+    "crates/fts-delay/delay-dsp",
+    "crates/fts-delay/delay-profiles",
+    "crates/fts-delay/delay-ui",
+    "crates/fts-delay/delay-plugin",
+
+    # Reverb plugin
+    "crates/fts-reverb/reverb-dsp",
+    "crates/fts-reverb/reverb-profiles",
+    "crates/fts-reverb/reverb-ui",
+    "crates/fts-reverb/reverb-plugin",
+
+    # Gate plugin
+    "crates/fts-gate/gate-dsp",
+    "crates/fts-gate/gate-profiles",
+    "crates/fts-gate/gate-ui",
+    "crates/fts-gate/gate-plugin",
+    "crates/fts-gate/gate-analysis",
+
+    # Trigger plugin (drum sample triggering)
+    "crates/fts-trigger/trigger-dsp",
+    "crates/fts-trigger/trigger-profiles",
+    "crates/fts-trigger/trigger-ui",
+    "crates/fts-trigger/trigger-plugin",
+    "crates/fts-trigger/trigger-analysis",
+
+    # Rider plugin (vocal rider)
+    "crates/fts-rider/rider-dsp",
+    "crates/fts-rider/rider-profiles",
+    "crates/fts-rider/rider-ui",
+    "crates/fts-rider/rider-plugin",
+    "crates/fts-rider/rider-analysis",
+
+    # Tremolo plugin
+    "crates/fts-trem/trem-dsp",
+
+    # Chorus plugin
+    "crates/fts-chorus/chorus-dsp",
+
+    # Wah plugin
+    "crates/fts-wah/wah-dsp",
+
     "apps/*",
     "xtask",
 ]
@@ -15,6 +85,14 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 # Internal crates
 fts-plugin-core = { path = "crates/fts-plugin-core" }
+fts-dsp = { path = "crates/fts-dsp" }
+fts-modulation = { path = "crates/fts-modulation" }
+fts-themes = { path = "crates/fts-themes" }
+
+# Plugin DSP crates (used cross-plugin: e.g., comp sidechain uses eq-dsp)
+eq-dsp = { path = "crates/fts-eq/eq-dsp" }
+eq-profiles = { path = "crates/fts-eq/eq-profiles" }
+comp-dsp = { path = "crates/fts-comp/comp-dsp" }
 fts-ui = { git = "https://github.com/FastTrackStudios/fts-ui.git", branch = "main" }
 macromod = { git = "https://github.com/FastTrackStudios/FastTrackStudio.git", branch = "main" }
 daw-control = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
@@ -40,6 +118,7 @@ roam-stream = { git = "https://github.com/bearcove/roam.git", branch = "main" }
 
 # DAW facade crate (for reaper-test)
 daw = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
+fts-audio-proto = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 
 # REAPER integration testing
 reaper-test = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
@@ -93,11 +172,12 @@ tokio = { version = "1", features = ["sync", "rt"] }
 # daw-control-sync = { path = "../daw/crates/daw-control-sync" }
 # daw-proto = { path = "../daw/crates/daw-proto" }
 # daw-reaper = { path = "../daw/crates/daw-reaper" }
+# fts-audio-proto = { path = "../daw/crates/fts-audio-proto" }
 # reaper-test = { path = "../daw/crates/reaper-test" }
 #
-# [patch."https://github.com/FastTrackStudios/nih-plug.git"]
-# nih_plug = { path = "../forks/nih-plug" }
-# nih_plug_dioxus = { path = "../forks/nih-plug/nih_plug_dioxus" }
+[patch."https://github.com/FastTrackStudios/nih-plug.git"]
+nih_plug = { path = "forks/nih-plug" }
+nih_plug_dioxus = { path = "forks/nih-plug/nih_plug_dioxus" }
 
 # Override blitz crates from upstream git to use our FTS fork with post-processing support
 # Fork: https://github.com/FastTrackStudios/blitz (branch: post-processing)
