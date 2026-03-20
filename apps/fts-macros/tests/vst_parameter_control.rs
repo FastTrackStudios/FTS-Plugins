@@ -9,12 +9,12 @@
 
 mod common;
 
+use common::setup::print_environment_check;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
-use common::setup::print_environment_check;
 
 /// Comprehensive VST parameter control test
 ///
@@ -31,7 +31,8 @@ use common::setup::print_environment_check;
 #[test]
 fn test_control_multiple_vst_parameters() {
     const REAPER_PATH: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/MacOS/REAPER";
-    const REAPER_RESOURCES: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
+    const REAPER_RESOURCES: &str =
+        "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
 
     println!("\n╔════════════════════════════════════════════════════════════════╗");
     println!("║  FTS Macros - VST Parameter Control Integration Test      ║");
@@ -56,7 +57,10 @@ fn test_control_multiple_vst_parameters() {
         println!("⚠  Failed to create test project: {}", e);
         println!("   Continuing with minimal project...\n");
     } else {
-        println!("✓ Created comprehensive test project at: {}\n", project_path.display());
+        println!(
+            "✓ Created comprehensive test project at: {}\n",
+            project_path.display()
+        );
     }
 
     println!("Spawning REAPER with multiple VST targets...");
@@ -125,7 +129,8 @@ fn test_control_multiple_vst_parameters() {
 #[test]
 fn test_vst_control_with_logging() {
     const REAPER_PATH: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/MacOS/REAPER";
-    const REAPER_RESOURCES: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
+    const REAPER_RESOURCES: &str =
+        "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
 
     println!("\n╔════════════════════════════════════════════════════════════════╗");
     println!("║  VST Parameter Control - Detailed Logging Test             ║");
@@ -223,7 +228,8 @@ fn test_vst_control_with_logging() {
 #[test]
 fn test_vst_toggle_control() {
     const REAPER_PATH: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/MacOS/REAPER";
-    const REAPER_RESOURCES: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
+    const REAPER_RESOURCES: &str =
+        "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
 
     println!("\n╔════════════════════════════════════════════════════════════════╗");
     println!("║  VST Toggle Control Test                                   ║");

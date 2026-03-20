@@ -1,0 +1,15 @@
+[package]
+name = "rider-dsp"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "Vocal rider processing engine — level detection, target riding, and music-reactive ducking"
+
+[dependencies]
+fts-dsp = { path = "../../fts-dsp" }
+eq-dsp = { path = "../../fts-eq/eq-dsp" }
+comp-dsp = { path = "../../fts-comp/comp-dsp" }
+
+[dev-dependencies]
+symphonia = { version = "0.5", features = ["mp3", "wav", "pcm"] }

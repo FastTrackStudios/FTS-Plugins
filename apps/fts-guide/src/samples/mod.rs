@@ -9,7 +9,7 @@ pub mod loader;
 
 pub use cache::SampleCache;
 pub use click_loader::ClickSampleLoader;
-pub use guide_loader::{GuideSampleLoader, get_guide_key, section_to_guide_filename};
+pub use guide_loader::{get_guide_key, section_to_guide_filename, GuideSampleLoader};
 pub use loader::SampleLoader;
 
 /// Resolve the FTS home directory.

@@ -1,0 +1,10 @@
+[package]
+name = "gate-profiles"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "Noise gate profiles — full parametric control and simplified NS-10 strip gate"
+
+[dependencies]
+gate-dsp = { path = "../gate-dsp" }

@@ -10,9 +10,8 @@ use crate::ClickSound;
 
 /// Get the base path for click samples from environment or use default
 fn get_click_base_path() -> String {
-    std::env::var("FTS_GUIDE_CLICK_PATH").unwrap_or_else(|_| {
-        format!("{}/Library/FTS-GUIDE/Click/", super::fts_home())
-    })
+    std::env::var("FTS_GUIDE_CLICK_PATH")
+        .unwrap_or_else(|_| format!("{}/Library/FTS-GUIDE/Click/", super::fts_home()))
 }
 
 /// Click sample file paths for a specific click sound

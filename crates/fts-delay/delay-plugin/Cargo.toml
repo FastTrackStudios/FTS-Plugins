@@ -1,0 +1,17 @@
+[package]
+name = "delay-plugin"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "FTS Delay — CLAP/VST3 audio plugin entry point"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+fts-plugin-core = { path = "../../fts-plugin-core" }
+delay-dsp = { path = "../delay-dsp" }
+delay-profiles = { path = "../delay-profiles" }
+delay-ui = { path = "../delay-ui" }
+nih_plug = { workspace = true }

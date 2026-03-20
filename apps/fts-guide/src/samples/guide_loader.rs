@@ -12,9 +12,8 @@ use crate::SectionInfo;
 
 /// Get the base path for guide samples from environment or use default
 fn get_guide_base_path() -> String {
-    std::env::var("FTS_GUIDE_SECTION_PATH").unwrap_or_else(|_| {
-        format!("{}/Library/FTS-GUIDE/Section Guide/", super::fts_home())
-    })
+    std::env::var("FTS_GUIDE_SECTION_PATH")
+        .unwrap_or_else(|_| format!("{}/Library/FTS-GUIDE/Section Guide/", super::fts_home()))
 }
 
 /// List of all guide sample filenames to load

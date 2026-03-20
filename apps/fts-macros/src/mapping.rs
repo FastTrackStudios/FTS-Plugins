@@ -222,8 +222,7 @@ impl MacroMappingBank {
 /// Encode string to base64
 fn base64_encode(s: &str) -> String {
     // Simple base64 implementation using standard algorithm
-    const BASE64_CHARS: &[u8] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const BASE64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let bytes = s.as_bytes();
     let mut result = String::new();
 
@@ -337,10 +336,7 @@ mod tests {
 
     #[test]
     fn test_map_mode_scale_range() {
-        let mode = MapMode::ScaleRange {
-            min: 0.5,
-            max: 1.0,
-        };
+        let mode = MapMode::ScaleRange { min: 0.5, max: 1.0 };
         assert_eq!(mode.apply(0.0), 0.5);
         assert_eq!(mode.apply(1.0), 1.0);
     }
@@ -348,10 +344,7 @@ mod tests {
     #[test]
     fn test_map_mode_scale_range_inverted() {
         // Inverted range: macro 0→0.8, macro 1→0.1 (threshold-style)
-        let mode = MapMode::ScaleRange {
-            min: 0.8,
-            max: 0.1,
-        };
+        let mode = MapMode::ScaleRange { min: 0.8, max: 0.1 };
         assert!((mode.apply(0.0) - 0.8).abs() < f32::EPSILON);
         assert!((mode.apply(1.0) - 0.1).abs() < f32::EPSILON);
         assert!((mode.apply(0.5) - 0.45).abs() < f32::EPSILON);
@@ -445,24 +438,22 @@ mod tests {
             target_track: TrackDescriptor::ByIndex(1),
             target_fx: FxDescriptor::ByPluginName("ReaEQ".to_string()),
             target_param_index: 3,
-            mode: MapMode::ScaleRange {
-                min: 0.5,
-                max: 1.0,
-            },
+            mode: MapMode::ScaleRange { min: 0.5, max: 1.0 },
         })
         .unwrap();
 
         // Serialize to state string
-        let state_string = bank
-            .to_state_string()
-            .expect("to_state_string failed");
+        let state_string = bank.to_state_string().expect("to_state_string failed");
 
         // Deserialize from state string
         let restored = MacroMappingBank::from_state_string(&state_string);
 
         // Verify
         assert_eq!(bank.mappings.len(), restored.mappings.len());
-        assert_eq!(bank.mappings[0].source_param, restored.mappings[0].source_param);
+        assert_eq!(
+            bank.mappings[0].source_param,
+            restored.mappings[0].source_param
+        );
         assert_eq!(
             bank.mappings[0].target_param_index,
             restored.mappings[0].target_param_index
@@ -476,9 +467,7 @@ mod tests {
         assert_eq!(bank.mappings.len(), 0); // Returns empty bank, not error
 
         // Invalid JSON
-        let bank = MacroMappingBank::from_state_string(
-            &base64_encode("not valid json"),
-        );
+        let bank = MacroMappingBank::from_state_string(&base64_encode("not valid json"));
         assert_eq!(bank.mappings.len(), 0); // Returns empty bank, not error
     }
 }

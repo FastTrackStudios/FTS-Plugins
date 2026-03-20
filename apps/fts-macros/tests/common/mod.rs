@@ -177,7 +177,7 @@ pub mod macros {
 
     /// Macro parameter ID by index (0-7).
     pub fn macro_param_id(index: usize) -> String {
-        format!("{}{}",MACRO_PARAM_PREFIX, index)
+        format!("{}{}", MACRO_PARAM_PREFIX, index)
     }
 
     /// Test macro parameter ID format.

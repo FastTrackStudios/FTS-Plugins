@@ -8,12 +8,12 @@
 
 mod common;
 
-use std::time::Duration;
-use std::process::Command;
-use std::path::Path;
-use std::thread;
-use std::fs;
 use common::setup::print_environment_check;
+use std::fs;
+use std::path::Path;
+use std::process::Command;
+use std::thread;
+use std::time::Duration;
 
 // Real REAPER test: Spawn instance and automate macro plugin testing.
 ///
@@ -27,7 +27,8 @@ use common::setup::print_environment_check;
 #[test]
 fn test_reaper_macro_automated() {
     const REAPER_PATH: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/MacOS/REAPER";
-    const REAPER_RESOURCES: &str = "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
+    const REAPER_RESOURCES: &str =
+        "/Users/codywright/Music/FastTrackStudio/Reaper/FTS-TRACKS/FTS-LIVE.app/Contents/Resources";
 
     println!("\n╔═══════════════════════════════════════════════════════════╗");
     println!("║  FTS Macros - Automated REAPER Integration Test        ║");

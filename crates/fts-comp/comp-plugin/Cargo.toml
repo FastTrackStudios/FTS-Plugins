@@ -1,0 +1,26 @@
+[package]
+name = "comp-plugin"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "FTS Compressor — CLAP/VST3 audio plugin entry point"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+audio-gui = { workspace = true }
+fts-plugin-core = { path = "../../fts-plugin-core" }
+fts-dsp = { workspace = true }
+comp-dsp = { path = "../comp-dsp" }
+comp-profiles = { path = "../comp-profiles" }
+comp-ui = { path = "../comp-ui" }
+nih_plug = { workspace = true }
+atomic_float = { workspace = true }
+
+[dev-dependencies]
+reaper-test = { workspace = true }
+daw-proto = { workspace = true }
+eyre = { workspace = true }
+tokio = { workspace = true }

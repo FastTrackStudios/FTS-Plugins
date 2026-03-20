@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/audio-gui",
     "crates/fts-plugin-core",
     "crates/fts-dsp",
     "crates/fts-themes",
@@ -71,6 +72,15 @@ members = [
     # Wah plugin
     "crates/fts-wah/wah-dsp",
 
+    # NAM plugin (Neural Amp Modeler)
+    "crates/fts-nam/nam-dsp",
+
+    # Pitch plugin (octave shifter)
+    "crates/fts-pitch/pitch-dsp",
+
+    # LiveTune plugin (auto-tune / pitch correction)
+    "crates/fts-livetune/livetune-dsp",
+
     "apps/*",
     "xtask",
 ]
@@ -79,11 +89,12 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["FastTrack Studio"]
+authors = ["FastTrackStudio"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 # Internal crates
+audio-gui = { path = "crates/audio-gui" }
 fts-plugin-core = { path = "crates/fts-plugin-core" }
 fts-dsp = { path = "crates/fts-dsp" }
 fts-modulation = { path = "crates/fts-modulation" }
@@ -122,10 +133,11 @@ fts-audio-proto = { git = "https://github.com/FastTrackStudios/daw.git", branch 
 
 # REAPER integration testing
 reaper-test = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
+reaper-launcher = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 
 # NIH-plug audio plugin framework (FTS fork with Dioxus UI + REAPER embed support)
 nih_plug = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
-nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
+nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui", features = ["softbuffer-blit"] }
 
 # Audio loading
 symphonium = { version = "0.6", default-features = false, features = ["wav", "pcm", "fft-resampler"] }
@@ -213,3 +225,7 @@ anyrender_vello_cpu = { git = "https://github.com/FastTrackStudios/anyrender.git
 anyrender_vello_hybrid = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 anyrender_svg = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 wgpu_context = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+# moire-trace-capture: tolerate broken frame-pointer chains (NixOS glibc
+# doesn't preserve frame pointers, so the upstream version panics; this fork
+# breaks gracefully). Remove once bearcove/moire accepts a fix upstream.
+moire-trace-capture = { path = "vendor/moire-trace-capture" }

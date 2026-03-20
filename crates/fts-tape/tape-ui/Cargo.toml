@@ -1,0 +1,13 @@
+[package]
+name = "tape-ui"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "Tape machine GUI — VU meters, transport controls, and profile theme rendering"
+
+[dependencies]
+audio-gui = { workspace = true }
+fts-plugin-core = { path = "../../fts-plugin-core" }
+tape-dsp = { path = "../tape-dsp" }
+tape-profiles = { path = "../tape-profiles" }

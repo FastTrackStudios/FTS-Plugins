@@ -1,0 +1,11 @@
+[package]
+name = "tape-profiles"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "Tape machine hardware profiles — Studer A800, Ampex ATR-102 parameter mappings"
+
+[dependencies]
+tape-dsp = { path = "../tape-dsp" }
+eq-profiles = { workspace = true }

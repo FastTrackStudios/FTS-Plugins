@@ -112,7 +112,10 @@ async fn guide_load(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()> {
         "Gain default should be ~0.71 (0 dB), got {}",
         gain.value
     );
-    ctx.log(&format!("Gain default: {:.4} (expected ~0.7078)", gain.value));
+    ctx.log(&format!(
+        "Gain default: {:.4} (expected ~0.7078)",
+        gain.value
+    ));
 
     ctx.log("guide_load: PASSED");
     Ok(())

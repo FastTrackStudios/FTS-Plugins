@@ -71,21 +71,21 @@ async fn guide_structure(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<(
     let loop_guid = loop_track.guid().to_string();
     let send_loop = click_track.sends().add_to(&loop_guid).await?;
     send_loop.set_source_channels(2, 2).await?; // src ch 3/4 (0-indexed: 2)
-    send_loop.set_dest_channels(0, 2).await?;   // dst ch 1/2
+    send_loop.set_dest_channels(0, 2).await?; // dst ch 1/2
     ctx.log("Created send: Click ch 3/4 → Loop ch 1/2");
 
     // Send 2: Click ch 5/6 → Count ch 1/2
     let count_guid = count_track.guid().to_string();
     let send_count = click_track.sends().add_to(&count_guid).await?;
     send_count.set_source_channels(4, 2).await?; // src ch 5/6
-    send_count.set_dest_channels(0, 2).await?;   // dst ch 1/2
+    send_count.set_dest_channels(0, 2).await?; // dst ch 1/2
     ctx.log("Created send: Click ch 5/6 → Count ch 1/2");
 
     // Send 3: Click ch 7/8 → Guide ch 1/2
     let guide_guid = guide_track.guid().to_string();
     let send_guide = click_track.sends().add_to(&guide_guid).await?;
     send_guide.set_source_channels(6, 2).await?; // src ch 7/8
-    send_guide.set_dest_channels(0, 2).await?;   // dst ch 1/2
+    send_guide.set_dest_channels(0, 2).await?; // dst ch 1/2
     ctx.log("Created send: Click ch 7/8 → Guide ch 1/2");
 
     tokio::time::sleep(Duration::from_millis(200)).await;

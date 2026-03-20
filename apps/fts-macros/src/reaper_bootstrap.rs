@@ -143,14 +143,8 @@ pub fn register_macro_state(
     mapping_bank: Arc<Mutex<mapping::MacroMappingBank>>,
 ) {
     if let Ok(mut poller) = MACRO_POLLER.lock() {
-        let count = mapping_bank
-            .lock()
-            .map(|b| b.mappings.len())
-            .unwrap_or(0);
-        info!(
-            "FTS Macros: registering macro poller ({} mappings)",
-            count
-        );
+        let count = mapping_bank.lock().map(|b| b.mappings.len()).unwrap_or(0);
+        info!("FTS Macros: registering macro poller ({} mappings)", count);
         *poller = Some(MacroPollerState {
             mapping_bank,
             prev_values: [f32::NAN; NUM_MACROS],
@@ -185,9 +179,7 @@ fn find_fts_macros_fx() -> Option<(u32, u32)> {
 
 /// Read macro values from REAPER's FX parameter API.
 /// Returns NaN for each param if the plugin FX can't be found.
-fn read_macro_values_from_fx(
-    cached_location: &mut Option<(u32, u32)>,
-) -> [f32; NUM_MACROS] {
+fn read_macro_values_from_fx(cached_location: &mut Option<(u32, u32)>) -> [f32; NUM_MACROS] {
     let reaper = HighReaper::get();
     let project = reaper.current_project();
 
@@ -282,10 +274,7 @@ fn check_mapping_config(
 
     // Check if this is the same config we already loaded (avoid re-processing
     // the same P_EXT value every tick).
-    let current_count = mapping_bank
-        .lock()
-        .map(|b| b.mappings.len())
-        .unwrap_or(0);
+    let current_count = mapping_bank.lock().map(|b| b.mappings.len()).unwrap_or(0);
 
     match mapping::MacroMappingBank::from_json(&json_str) {
         Ok(bank) => {
@@ -299,10 +288,7 @@ fn check_mapping_config(
             if let Ok(mut current) = mapping_bank.lock() {
                 *current = bank;
             }
-            info!(
-                "FTS Macros: loaded {} mappings from track P_EXT",
-                count
-            );
+            info!("FTS Macros: loaded {} mappings from track P_EXT", count);
             true
         }
         Err(e) => {
@@ -365,7 +351,10 @@ fn poll_macros() {
 
         info!(
             "FTS Macros: macro {} changed {:.4} → {:.4}, applying {} mappings",
-            macro_idx, prev, value, mappings.len()
+            macro_idx,
+            prev,
+            value,
+            mappings.len()
         );
 
         for mapping in mappings {

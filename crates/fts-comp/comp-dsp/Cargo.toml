@@ -1,0 +1,11 @@
+[package]
+name = "comp-dsp"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "Compressor processing engine — opto, FET/VCA, bass-aware, and bus compressors from fts-dsp"
+
+[dependencies]
+fts-dsp = { path = "../../fts-dsp" }
+eq-dsp = { path = "../../fts-eq/eq-dsp" }

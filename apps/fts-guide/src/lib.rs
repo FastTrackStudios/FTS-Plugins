@@ -409,9 +409,8 @@ impl Plugin for FtsGuide {
         self.current_click_sound = click_sound;
 
         // Load count samples (1-7)
-        let count_base = std::env::var("FTS_GUIDE_COUNT_PATH").unwrap_or_else(|_| {
-            format!("{}/Library/FTS-GUIDE/Counts/", samples::fts_home())
-        });
+        let count_base = std::env::var("FTS_GUIDE_COUNT_PATH")
+            .unwrap_or_else(|_| format!("{}/Library/FTS-GUIDE/Counts/", samples::fts_home()));
         for i in 0..7 {
             let path = format!("{}English Female - {}.wav", count_base, i + 1);
             match samples::loader::SampleLoader::load_file(&path, self.sample_rate) {
@@ -500,12 +499,14 @@ impl Plugin for FtsGuide {
 
                 if just_started || beat_pos > prev_pos {
                     // Get time signature for measure detection
-                    let time_sig_num = transport
-                        .time_sig_numerator
-                        .unwrap_or(4) as f64;
+                    let time_sig_num = transport.time_sig_numerator.unwrap_or(4) as f64;
 
                     // Check beat boundary (integer quarter-note crossings)
-                    let prev_beat_floor = if just_started { beat_pos.floor() - 1.0 } else { prev_pos.floor() };
+                    let prev_beat_floor = if just_started {
+                        beat_pos.floor() - 1.0
+                    } else {
+                        prev_pos.floor()
+                    };
                     let curr_beat_floor = beat_pos.floor();
                     let on_beat = (beat_pos - curr_beat_floor).abs() < 0.01;
                     if curr_beat_floor > prev_beat_floor || (just_started && on_beat) {
@@ -537,7 +538,11 @@ impl Plugin for FtsGuide {
 
                     // Eighth note boundaries (every 0.5 quarter notes)
                     if self.params.enable_eighth.value() {
-                        let prev_eighth = if just_started { (beat_pos * 2.0).floor() - 1.0 } else { (prev_pos * 2.0).floor() };
+                        let prev_eighth = if just_started {
+                            (beat_pos * 2.0).floor() - 1.0
+                        } else {
+                            (prev_pos * 2.0).floor()
+                        };
                         let curr_eighth = (beat_pos * 2.0).floor();
                         if curr_eighth > prev_eighth {
                             self.click_state.is_playing_eighth = true;
@@ -547,7 +552,11 @@ impl Plugin for FtsGuide {
 
                     // Sixteenth note boundaries (every 0.25 quarter notes)
                     if self.params.enable_sixteenth.value() {
-                        let prev_sixteenth = if just_started { (beat_pos * 4.0).floor() - 1.0 } else { (prev_pos * 4.0).floor() };
+                        let prev_sixteenth = if just_started {
+                            (beat_pos * 4.0).floor() - 1.0
+                        } else {
+                            (prev_pos * 4.0).floor()
+                        };
                         let curr_sixteenth = (beat_pos * 4.0).floor();
                         if curr_sixteenth > prev_sixteenth {
                             self.click_state.is_playing_sixteenth = true;
@@ -557,7 +566,11 @@ impl Plugin for FtsGuide {
 
                     // Triplet boundaries (every 1/3 quarter note)
                     if self.params.enable_triplet.value() {
-                        let prev_triplet = if just_started { (beat_pos * 3.0).floor() - 1.0 } else { (prev_pos * 3.0).floor() };
+                        let prev_triplet = if just_started {
+                            (beat_pos * 3.0).floor() - 1.0
+                        } else {
+                            (prev_pos * 3.0).floor()
+                        };
                         let curr_triplet = (beat_pos * 3.0).floor();
                         if curr_triplet > prev_triplet {
                             self.click_state.is_playing_triplet = true;

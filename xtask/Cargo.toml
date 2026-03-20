@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 nih_plug_xtask = { path = "../../forks/nih-plug/nih_plug_xtask" }
+reaper-test = { workspace = true, features = ["runner"] }

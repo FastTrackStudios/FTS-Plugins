@@ -1,0 +1,27 @@
+specs (
+    {
+        name fts
+        prefix r
+        include (docs/spec/**/*.md)
+        impls (
+            {
+                name rust
+                include (
+                    crates/**/*.rs
+                )
+                exclude (
+                    target/**
+                    **/tests/**
+                )
+            }
+            {
+                name tests
+                include (
+                    crates/**/tests/**/*.rs
+                    crates/**/*test*.rs
+                )
+                exclude (target/**)
+            }
+        )
+    }
+)

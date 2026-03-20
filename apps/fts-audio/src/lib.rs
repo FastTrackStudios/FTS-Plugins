@@ -72,7 +72,6 @@ pub struct FtsAudio {
 
     /// Sample rate from the host.
     sample_rate: f32,
-
     // TODO: SHM rule table pointer (set during initialization)
     // rule_table: Option<&'static RuleTable>,
 }
@@ -185,8 +184,9 @@ impl Plugin for FtsAudio {
 
 impl ClapPlugin for FtsAudio {
     const CLAP_ID: &'static str = "com.fasttrackstudio.fts-audio";
-    const CLAP_DESCRIPTION: Option<&'static str> =
-        Some("Programmable RT executor — applies rule tables from shared memory on the audio thread");
+    const CLAP_DESCRIPTION: Option<&'static str> = Some(
+        "Programmable RT executor — applies rule tables from shared memory on the audio thread",
+    );
     const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
     const CLAP_SUPPORT_URL: Option<&'static str> = None;
     const CLAP_FEATURES: &'static [ClapFeature] = &[

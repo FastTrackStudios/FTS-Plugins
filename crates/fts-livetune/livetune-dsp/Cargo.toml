@@ -1,0 +1,11 @@
+[package]
+name = "livetune-dsp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+fts-dsp = { path = "../../fts-dsp", default-features = false }
+pitch-dsp = { path = "../../fts-pitch/pitch-dsp" }
+serde = { workspace = true }

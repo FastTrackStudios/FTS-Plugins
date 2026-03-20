@@ -95,10 +95,22 @@ async fn guide_full(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()> {
     let count = params.iter().find(|p| p.name == "Enable Count");
     let accent = params.iter().find(|p| p.name == "Measure Accent");
 
-    assert!(sync.map(|p| p.value > 0.5).unwrap_or(false), "Sync should be on");
-    assert!(beat.map(|p| p.value > 0.5).unwrap_or(false), "Beat should be on");
-    assert!(count.map(|p| p.value > 0.5).unwrap_or(false), "Count should be on");
-    assert!(accent.map(|p| p.value > 0.5).unwrap_or(false), "Accent should be on");
+    assert!(
+        sync.map(|p| p.value > 0.5).unwrap_or(false),
+        "Sync should be on"
+    );
+    assert!(
+        beat.map(|p| p.value > 0.5).unwrap_or(false),
+        "Beat should be on"
+    );
+    assert!(
+        count.map(|p| p.value > 0.5).unwrap_or(false),
+        "Count should be on"
+    );
+    assert!(
+        accent.map(|p| p.value > 0.5).unwrap_or(false),
+        "Accent should be on"
+    );
     ctx.log("All default params verified");
 
     // ── Play and verify transport advances ───────────────────

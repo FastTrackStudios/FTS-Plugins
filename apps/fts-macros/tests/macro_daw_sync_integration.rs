@@ -10,8 +10,8 @@
 
 mod common;
 
-use common::mock::{MockTrack, MockFx, MockParam};
-use common::macros::{MACRO_COUNT, macro_name, macro_param_id};
+use common::macros::{macro_name, macro_param_id, MACRO_COUNT};
+use common::mock::{MockFx, MockParam, MockTrack};
 
 /// Simulated macro parameter source
 #[derive(Debug, Clone)]
@@ -47,10 +47,10 @@ struct MacroMapping {
 
 #[derive(Debug, Clone, Copy)]
 enum TransformMode {
-    PassThrough,                                    // value as-is
-    ScaleRange { min: f32, max: f32 },            // scale 0.0-1.0 to min-max
-    Relative { center: f32, amount: f32 },        // center ± (amount * value)
-    Toggle { threshold: f32 },                     // value >= threshold ? 1.0 : 0.0
+    PassThrough,                           // value as-is
+    ScaleRange { min: f32, max: f32 },     // scale 0.0-1.0 to min-max
+    Relative { center: f32, amount: f32 }, // center ± (amount * value)
+    Toggle { threshold: f32 },             // value >= threshold ? 1.0 : 0.0
 }
 
 impl TransformMode {
@@ -62,7 +62,13 @@ impl TransformMode {
                 let offset = (value - 0.5) * 2.0 * amount;
                 (center + offset).clamp(0.0, 1.0)
             }
-            Self::Toggle { threshold } => if value >= *threshold { 1.0 } else { 0.0 },
+            Self::Toggle { threshold } => {
+                if value >= *threshold {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
         }
     }
 }
@@ -99,8 +105,12 @@ fn test_macro_to_fx_passthrough() {
         let macro_val = macros.get_macro(mapping.macro_idx);
         let transformed = mapping.mode.apply(macro_val);
 
-        println!("  Macro {}: {:.2} → Parameter: {:.2}",
-                 macro_name(mapping.macro_idx), macro_val, transformed);
+        println!(
+            "  Macro {}: {:.2} → Parameter: {:.2}",
+            macro_name(mapping.macro_idx),
+            macro_val,
+            transformed
+        );
 
         assert_eq!(transformed, value, "PassThrough mode should preserve value");
     }
@@ -134,11 +144,20 @@ fn test_macro_to_fx_scale_range() {
         let macro_val = macros.get_macro(mapping.macro_idx);
         let transformed = mapping.mode.apply(macro_val);
 
-        println!("  Macro {}: {:.2} → {:.2} ({})",
-                 macro_name(mapping.macro_idx), input, transformed, label);
+        println!(
+            "  Macro {}: {:.2} → {:.2} ({})",
+            macro_name(mapping.macro_idx),
+            input,
+            transformed,
+            label
+        );
 
-        assert!((transformed - expected).abs() < 0.01,
-                "ScaleRange transformation incorrect: {} != {}", transformed, expected);
+        assert!(
+            (transformed - expected).abs() < 0.01,
+            "ScaleRange transformation incorrect: {} != {}",
+            transformed,
+            expected
+        );
     }
     println!("  ✓ ScaleRange mode works correctly\n");
 }
@@ -172,8 +191,13 @@ fn test_macro_to_fx_toggle() {
         let macro_val = macros.get_macro(mapping.macro_idx);
         let transformed = mapping.mode.apply(macro_val);
 
-        println!("  Macro {}: {:.2} → {:.2} ({})",
-                 macro_name(mapping.macro_idx), input, transformed, label);
+        println!(
+            "  Macro {}: {:.2} → {:.2} ({})",
+            macro_name(mapping.macro_idx),
+            input,
+            transformed,
+            label
+        );
 
         assert_eq!(transformed, expected, "Toggle transformation incorrect");
     }
@@ -193,7 +217,10 @@ fn test_macro_to_fx_relative() {
         target_track: 0,
         target_fx: 3,
         target_param: 7,
-        mode: TransformMode::Relative { center: 0.5, amount: 0.3 },
+        mode: TransformMode::Relative {
+            center: 0.5,
+            amount: 0.3,
+        },
     };
 
     let test_cases = vec![
@@ -207,11 +234,20 @@ fn test_macro_to_fx_relative() {
         let macro_val = macros.get_macro(mapping.macro_idx);
         let transformed = mapping.mode.apply(macro_val);
 
-        println!("  Macro {}: {:.2} → {:.2} ({})",
-                 macro_name(mapping.macro_idx), input, transformed, label);
+        println!(
+            "  Macro {}: {:.2} → {:.2} ({})",
+            macro_name(mapping.macro_idx),
+            input,
+            transformed,
+            label
+        );
 
-        assert!((transformed - expected).abs() < 0.01,
-                "Relative transformation incorrect: {} != {}", transformed, expected);
+        assert!(
+            (transformed - expected).abs() < 0.01,
+            "Relative transformation incorrect: {} != {}",
+            transformed,
+            expected
+        );
     }
     println!("  ✓ Relative mode works correctly\n");
 }
@@ -279,8 +315,10 @@ fn test_multiple_macros_multiple_fx() {
 
     println!("  Queued parameter changes:");
     for change in &changes {
-        println!("    Track {}, FX {}, Param {} = {:.2}",
-                 change.track_idx, change.fx_idx, change.param_idx, change.value);
+        println!(
+            "    Track {}, FX {}, Param {} = {:.2}",
+            change.track_idx, change.fx_idx, change.param_idx, change.value
+        );
     }
 
     // Verify the changes
@@ -361,7 +399,11 @@ fn test_resolution_cache() {
         }
 
         fn hit_rate(&self) -> f32 {
-            if self.lookups == 0 { 0.0 } else { self.hits as f32 / self.lookups as f32 }
+            if self.lookups == 0 {
+                0.0
+            } else {
+                self.hits as f32 / self.lookups as f32
+            }
         }
     }
 
@@ -374,7 +416,11 @@ fn test_resolution_cache() {
         cache.resolve(&key);
     }
     println!("    Lookups: {}, Hits: {}", cache.lookups, cache.hits);
-    assert_eq!(cache.hit_rate(), 0.0, "First buffer should have no cache hits");
+    assert_eq!(
+        cache.hit_rate(),
+        0.0,
+        "First buffer should have no cache hits"
+    );
 
     // Second buffer: all hits (before clear)
     println!("  Buffer 2 (before clear):");
@@ -383,9 +429,13 @@ fn test_resolution_cache() {
         let key = format!("track_{}", i);
         cache.resolve(&key);
     }
-    println!("    Lookups: {} (added {}), Hits: {} (added {})",
-             cache.lookups, cache.lookups - lookups_before,
-             cache.hits, cache.hits - (lookups_before - cache.lookups) as usize);
+    println!(
+        "    Lookups: {} (added {}), Hits: {} (added {})",
+        cache.lookups,
+        cache.lookups - lookups_before,
+        cache.hits,
+        cache.hits - (lookups_before - cache.lookups) as usize
+    );
 
     // Clear cache to simulate per-buffer behavior
     cache.clear();
@@ -398,8 +448,12 @@ fn test_resolution_cache() {
         let key = format!("track_{}", i);
         cache.resolve(&key);
     }
-    println!("    Lookups: {} (added {}), Hits: {}",
-             cache.lookups, cache.lookups - lookups_before, cache.hits);
+    println!(
+        "    Lookups: {} (added {}), Hits: {}",
+        cache.lookups,
+        cache.lookups - lookups_before,
+        cache.hits
+    );
 
     println!("  ✓ Resolution cache behavior verified\n");
 }
@@ -415,17 +469,39 @@ fn test_parameter_queue_simulation() {
 
     // Simulate queueing parameters from macro processing
     let changes = vec![
-        ParameterChange { track_idx: 0, fx_idx: 0, param_idx: 0, value: 0.3 },
-        ParameterChange { track_idx: 0, fx_idx: 1, param_idx: 5, value: 5.7 },
-        ParameterChange { track_idx: 0, fx_idx: 2, param_idx: 10, value: 1.0 },
-        ParameterChange { track_idx: 1, fx_idx: 0, param_idx: 2, value: 0.8 },
+        ParameterChange {
+            track_idx: 0,
+            fx_idx: 0,
+            param_idx: 0,
+            value: 0.3,
+        },
+        ParameterChange {
+            track_idx: 0,
+            fx_idx: 1,
+            param_idx: 5,
+            value: 5.7,
+        },
+        ParameterChange {
+            track_idx: 0,
+            fx_idx: 2,
+            param_idx: 10,
+            value: 1.0,
+        },
+        ParameterChange {
+            track_idx: 1,
+            fx_idx: 0,
+            param_idx: 2,
+            value: 0.8,
+        },
     ];
 
     println!("  Queuing {} parameter changes...", changes.len());
     for change in &changes {
         queue.push(change.clone());
-        println!("    Queued: Track {}, FX {}, Param {} = {:.2}",
-                 change.track_idx, change.fx_idx, change.param_idx, change.value);
+        println!(
+            "    Queued: Track {}, FX {}, Param {} = {:.2}",
+            change.track_idx, change.fx_idx, change.param_idx, change.value
+        );
     }
 
     assert_eq!(queue.len(), 4, "Queue should have 4 items");
@@ -435,8 +511,10 @@ fn test_parameter_queue_simulation() {
     println!("\n  Processing queue (simulating DawSync)...");
     let mut processed = 0;
     while let Some(change) = queue.pop() {
-        println!("    Processing: Track {}, FX {}, Param {} = {:.2}",
-                 change.track_idx, change.fx_idx, change.param_idx, change.value);
+        println!(
+            "    Processing: Track {}, FX {}, Param {} = {:.2}",
+            change.track_idx, change.fx_idx, change.param_idx, change.value
+        );
         processed += 1;
     }
     assert_eq!(processed, 4, "Should have processed all 4 changes");
@@ -457,27 +535,36 @@ fn test_end_to_end_macro_pipeline() {
 
     println!("  Step 2: Define mappings");
     let mappings = vec![
-        ("EQ Gain", MacroMapping {
-            macro_idx: 0,
-            target_track: 0,
-            target_fx: 0,
-            target_param: 0,
-            mode: TransformMode::PassThrough,
-        }),
-        ("Comp Ratio", MacroMapping {
-            macro_idx: 1,
-            target_track: 0,
-            target_fx: 1,
-            target_param: 5,
-            mode: TransformMode::ScaleRange { min: 1.5, max: 8.0 },
-        }),
-        ("Gate Toggle", MacroMapping {
-            macro_idx: 3,
-            target_track: 0,
-            target_fx: 2,
-            target_param: 10,
-            mode: TransformMode::Toggle { threshold: 0.5 },
-        }),
+        (
+            "EQ Gain",
+            MacroMapping {
+                macro_idx: 0,
+                target_track: 0,
+                target_fx: 0,
+                target_param: 0,
+                mode: TransformMode::PassThrough,
+            },
+        ),
+        (
+            "Comp Ratio",
+            MacroMapping {
+                macro_idx: 1,
+                target_track: 0,
+                target_fx: 1,
+                target_param: 5,
+                mode: TransformMode::ScaleRange { min: 1.5, max: 8.0 },
+            },
+        ),
+        (
+            "Gate Toggle",
+            MacroMapping {
+                macro_idx: 3,
+                target_track: 0,
+                target_fx: 2,
+                target_param: 10,
+                mode: TransformMode::Toggle { threshold: 0.5 },
+            },
+        ),
     ];
     println!("    ✓ {} mappings defined\n", mappings.len());
 
@@ -510,8 +597,10 @@ fn test_end_to_end_macro_pipeline() {
     println!("  Step 5: Queue parameter changes (DawSync)");
     println!("    ✓ {} changes in queue", queue.len());
     for change in &queue {
-        println!("      T{} F{} P{}={:.2}",
-                 change.track_idx, change.fx_idx, change.param_idx, change.value);
+        println!(
+            "      T{} F{} P{}={:.2}",
+            change.track_idx, change.fx_idx, change.param_idx, change.value
+        );
     }
     println!();
 

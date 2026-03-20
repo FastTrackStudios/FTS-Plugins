@@ -3,8 +3,8 @@
 use atomic_float::AtomicF32;
 use fts_plugin_core::prelude::*;
 use fts_plugin_core::ui::prelude::*;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
+use std::sync::Arc;
 
 use crate::GuideParams;
 
@@ -56,8 +56,12 @@ fn App() -> Element {
 
     // Read transport
     let tempo = ui_state.transport_tempo.load(Ordering::Relaxed);
-    let time_sig_num = ui_state.transport_time_sig_numerator.load(Ordering::Relaxed);
-    let time_sig_den = ui_state.transport_time_sig_denominator.load(Ordering::Relaxed);
+    let time_sig_num = ui_state
+        .transport_time_sig_numerator
+        .load(Ordering::Relaxed);
+    let time_sig_den = ui_state
+        .transport_time_sig_denominator
+        .load(Ordering::Relaxed);
     let beat_position = ui_state.transport_beat_position.load(Ordering::Relaxed);
     let is_playing = ui_state.transport_playing.load(Ordering::Relaxed);
 
@@ -65,7 +69,9 @@ fn App() -> Element {
 
     // Click sound enum → index
     let click_idx = (use_param_normalized(&params.click_sound) * 7.0).round() as usize;
-    let click_sounds = ["Blip", "Classic", "Cowbell", "Digital", "Gentle", "Perc", "Saw", "Wood"];
+    let click_sounds = [
+        "Blip", "Classic", "Cowbell", "Digital", "Gentle", "Perc", "Saw", "Wood",
+    ];
 
     let generate_flag = ui_state.request_generate_midi.clone();
 

@@ -6,9 +6,7 @@
 //! 3. Verify resolver caching works correctly
 //! 4. Test boundary cases (0.0, 1.0, 0.5)
 
-use fts_macros::mapping::{
-    FxDescriptor, MacroMapping, MacroMappingBank, MapMode, TrackDescriptor,
-};
+use fts_macros::mapping::{FxDescriptor, MacroMapping, MacroMappingBank, MapMode, TrackDescriptor};
 use fts_macros::resolver::ResolutionCache;
 
 #[test]
@@ -45,10 +43,7 @@ fn test_macro_to_fx_parameter_scaled_range() {
         target_track: TrackDescriptor::ByName("Drums".to_string()),
         target_fx: FxDescriptor::ByPluginName("ReaEQ".to_string()),
         target_param_index: 3,
-        mode: MapMode::ScaleRange {
-            min: 0.5,
-            max: 1.0,
-        },
+        mode: MapMode::ScaleRange { min: 0.5, max: 1.0 },
     })
     .expect("mapping validation failed");
 
@@ -104,10 +99,7 @@ fn test_multiple_mappings_per_macro() {
         target_track: TrackDescriptor::ByIndex(2),
         target_fx: FxDescriptor::ByIndex(1),
         target_param_index: 3,
-        mode: MapMode::ScaleRange {
-            min: 0.0,
-            max: 0.5,
-        },
+        mode: MapMode::ScaleRange { min: 0.0, max: 0.5 },
     })
     .expect("failed");
 
@@ -154,10 +146,7 @@ fn test_resolver_cache_performance() {
 fn test_boundary_values() {
     let modes = vec![
         MapMode::PassThrough,
-        MapMode::ScaleRange {
-            min: 0.1,
-            max: 0.9,
-        },
+        MapMode::ScaleRange { min: 0.1, max: 0.9 },
         MapMode::Toggle,
         MapMode::Relative { step: 0.2 },
     ];
@@ -185,10 +174,7 @@ fn test_serialization_preserves_mappings() {
             target_track: TrackDescriptor::ByNamePattern("*Drum*".to_string()),
             target_fx: FxDescriptor::ByPluginName("ReaEQ".to_string()),
             target_param_index: 4,
-            mode: MapMode::ScaleRange {
-                min: 0.2,
-                max: 0.8,
-            },
+            mode: MapMode::ScaleRange { min: 0.2, max: 0.8 },
         })
         .expect("failed");
 
@@ -210,12 +196,18 @@ fn test_serialization_preserves_mappings() {
 
     // Verify all mappings preserved
     assert_eq!(original.mappings.len(), restored.mappings.len());
-    assert_eq!(original.mappings[0].source_param, restored.mappings[0].source_param);
+    assert_eq!(
+        original.mappings[0].source_param,
+        restored.mappings[0].source_param
+    );
     assert_eq!(
         original.mappings[0].target_param_index,
         restored.mappings[0].target_param_index
     );
-    assert_eq!(original.mappings[1].source_param, restored.mappings[1].source_param);
+    assert_eq!(
+        original.mappings[1].source_param,
+        restored.mappings[1].source_param
+    );
 }
 
 #[test]
@@ -228,15 +220,14 @@ fn test_state_persistence_round_trip() {
             target_track: TrackDescriptor::ByIndex(2),
             target_fx: FxDescriptor::ByIndex(1),
             target_param_index: 5,
-            mode: MapMode::ScaleRange {
-                min: 0.3,
-                max: 0.7,
-            },
+            mode: MapMode::ScaleRange { min: 0.3, max: 0.7 },
         })
         .expect("failed");
 
     // Serialize to plugin state string
-    let state_string = original.to_state_string().expect("state serialization failed");
+    let state_string = original
+        .to_state_string()
+        .expect("state serialization failed");
 
     // Should be base64-encoded (non-JSON-like string)
     assert!(!state_string.contains('{'));

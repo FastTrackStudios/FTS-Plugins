@@ -24,10 +24,10 @@ pub mod reaper_bootstrap;
 pub mod resolver;
 mod routed_handler;
 
+use daw_control_sync::DawSync;
 use fts_plugin_core::prelude::*;
 use std::num::NonZeroU32;
 use std::sync::Arc;
-use daw_control_sync::DawSync;
 use std::sync::Mutex;
 
 const CLAP_ID: &str = "com.fasttrackstudio.fts-macros";

@@ -23,15 +23,51 @@ struct TestSection {
 
 fn test_song() -> Vec<TestSection> {
     vec![
-        TestSection { name: "Intro",       start: 0.0,  end: 8.0 },
-        TestSection { name: "Verse 1",     start: 8.0,  end: 24.0 },
-        TestSection { name: "Pre Chorus",  start: 24.0, end: 28.0 },
-        TestSection { name: "Chorus",      start: 28.0, end: 42.0 },
-        TestSection { name: "Verse 2",     start: 42.0, end: 58.0 },
-        TestSection { name: "Bridge",      start: 58.0, end: 66.0 },
-        TestSection { name: "Chorus 2",    start: 66.0, end: 80.0 },
-        TestSection { name: "Breakdown",   start: 80.0, end: 84.0 },
-        TestSection { name: "Outro",       start: 84.0, end: 92.0 },
+        TestSection {
+            name: "Intro",
+            start: 0.0,
+            end: 8.0,
+        },
+        TestSection {
+            name: "Verse 1",
+            start: 8.0,
+            end: 24.0,
+        },
+        TestSection {
+            name: "Pre Chorus",
+            start: 24.0,
+            end: 28.0,
+        },
+        TestSection {
+            name: "Chorus",
+            start: 28.0,
+            end: 42.0,
+        },
+        TestSection {
+            name: "Verse 2",
+            start: 42.0,
+            end: 58.0,
+        },
+        TestSection {
+            name: "Bridge",
+            start: 58.0,
+            end: 66.0,
+        },
+        TestSection {
+            name: "Chorus 2",
+            start: 66.0,
+            end: 80.0,
+        },
+        TestSection {
+            name: "Breakdown",
+            start: 80.0,
+            end: 84.0,
+        },
+        TestSection {
+            name: "Outro",
+            start: 84.0,
+            end: 92.0,
+        },
     ]
 }
 
@@ -54,7 +90,10 @@ async fn guide_midi_gen(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     let ok = project.run_command(GENERATE_GUIDE_TRACK).await?;
-    ctx.log(&format!("Action result: {}", if ok { "OK" } else { "FAILED" }));
+    ctx.log(&format!(
+        "Action result: {}",
+        if ok { "OK" } else { "FAILED" }
+    ));
 
     if !ok {
         ctx.log("Action failed — check if command is registered");
@@ -73,12 +112,34 @@ async fn guide_midi_gen(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()
     let count = ctx.track_by_name("Count").await;
     let guide = ctx.track_by_name("Guide").await;
 
-    ctx.log(&format!("  Folder:       {}", if folder.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Click:        {}", if click.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Click Native: {}", if click_native.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Loop:         {}", if loop_track.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Count:        {}", if count.is_ok() { "OK" } else { "MISSING" }));
-    ctx.log(&format!("  Guide:        {}", if guide.is_ok() { "OK" } else { "MISSING" }));
+    ctx.log(&format!(
+        "  Folder:       {}",
+        if folder.is_ok() { "OK" } else { "MISSING" }
+    ));
+    ctx.log(&format!(
+        "  Click:        {}",
+        if click.is_ok() { "OK" } else { "MISSING" }
+    ));
+    ctx.log(&format!(
+        "  Click Native: {}",
+        if click_native.is_ok() {
+            "OK"
+        } else {
+            "MISSING"
+        }
+    ));
+    ctx.log(&format!(
+        "  Loop:         {}",
+        if loop_track.is_ok() { "OK" } else { "MISSING" }
+    ));
+    ctx.log(&format!(
+        "  Count:        {}",
+        if count.is_ok() { "OK" } else { "MISSING" }
+    ));
+    ctx.log(&format!(
+        "  Guide:        {}",
+        if guide.is_ok() { "OK" } else { "MISSING" }
+    ));
 
     assert!(folder.is_ok(), "Click + Guide folder should exist");
     assert!(click.is_ok(), "Click track should exist");
@@ -106,13 +167,29 @@ async fn guide_midi_gen(ctx: &reaper_test::ReaperTestContext) -> eyre::Result<()
     ctx.log(&format!("  Guide items:        {}", guide_items));
 
     // Click folder track: MIDI click items (1 per section)
-    assert!(click_items >= 1, "Click track should have MIDI items (got {})", click_items);
+    assert!(
+        click_items >= 1,
+        "Click track should have MIDI items (got {})",
+        click_items
+    );
     // Click Native: 1 REAPER click source item
-    assert_eq!(click_native_items, 1, "Click Native should have 1 click source item (got {})", click_native_items);
+    assert_eq!(
+        click_native_items, 1,
+        "Click Native should have 1 click source item (got {})",
+        click_native_items
+    );
     // Count: short items (1 measure each, at least 1 per section that has a count-in)
-    assert!(count_items >= 1, "Count track should have items (got {})", count_items);
+    assert!(
+        count_items >= 1,
+        "Count track should have items (got {})",
+        count_items
+    );
     // Guide: short items (1 per section)
-    assert!(guide_items >= 1, "Guide track should have items (got {})", guide_items);
+    assert!(
+        guide_items >= 1,
+        "Guide track should have items (got {})",
+        guide_items
+    );
 
     ctx.log(&format!(
         "guide_midi_gen: PASSED — {} regions → click={} native={} count={} guide={}",

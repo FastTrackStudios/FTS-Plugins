@@ -21,7 +21,9 @@ impl fmt::Display for ResolveError {
         match self {
             ResolveError::TrackNotFound(desc) => write!(f, "Track not found: {}", desc),
             ResolveError::FxNotFound(desc) => write!(f, "FX not found: {}", desc),
-            ResolveError::ParamOutOfBounds(idx) => write!(f, "Parameter index {} out of bounds", idx),
+            ResolveError::ParamOutOfBounds(idx) => {
+                write!(f, "Parameter index {} out of bounds", idx)
+            }
             ResolveError::NoTracksAvailable => write!(f, "No tracks available in project"),
             ResolveError::MultipleMatches(desc) => {
                 write!(f, "Multiple matches found for: {}", desc)
@@ -54,10 +56,7 @@ impl FxParameterResolver {
             TrackDescriptor::ByName(name) => {
                 // Would search for exact name match
                 // For now, return error that would be overridden by real implementation
-                Err(ResolveError::TrackNotFound(format!(
-                    "Track '{}'",
-                    name
-                )))
+                Err(ResolveError::TrackNotFound(format!("Track '{}'", name)))
             }
             TrackDescriptor::ByNamePattern(pattern) => {
                 // Would search using wildcard matching
@@ -74,10 +73,7 @@ impl FxParameterResolver {
     /// Returns the FX index if found, or an error if:
     /// - FX not found
     /// - Multiple plugins match (pattern matching)
-    pub fn resolve_fx(
-        _track_idx: u32,
-        fx_desc: &FxDescriptor,
-    ) -> Result<u32, ResolveError> {
+    pub fn resolve_fx(_track_idx: u32, fx_desc: &FxDescriptor) -> Result<u32, ResolveError> {
         match fx_desc {
             FxDescriptor::ByIndex(idx) => {
                 // In real implementation, would validate FX exists
@@ -89,10 +85,7 @@ impl FxParameterResolver {
             }
             FxDescriptor::ByPluginName(plugin_id) => {
                 // Would search by plugin identifier
-                Err(ResolveError::FxNotFound(format!(
-                    "Plugin '{}'",
-                    plugin_id
-                )))
+                Err(ResolveError::FxNotFound(format!("Plugin '{}'", plugin_id)))
             }
         }
     }
@@ -202,10 +195,7 @@ mod tests {
     #[test]
     fn test_resolve_fx_by_index() {
         let desc = FxDescriptor::ByIndex(2);
-        assert_eq!(
-            FxParameterResolver::resolve_fx(0, &desc),
-            Ok(2)
-        );
+        assert_eq!(FxParameterResolver::resolve_fx(0, &desc), Ok(2));
     }
 
     #[test]

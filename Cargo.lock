@@ -397,7 +397,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
  "x11rb",
 ]
 
@@ -684,6 +684,14 @@ dependencies = [
  "hermit-abi 0.1.19",
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "audio-gui"
+version = "0.1.0"
+dependencies = [
+ "nih_plug",
+ "nih_plug_dioxus",
 ]
 
 [[package]]
@@ -1430,7 +1438,7 @@ version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf9468729b8cbcea668e36183cb69d317348c2e08e994829fb56ebfdfbaac34"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1486,11 +1494,18 @@ dependencies = [
 name = "comp-plugin"
 version = "0.1.0"
 dependencies = [
+ "atomic_float 1.1.0",
+ "audio-gui",
  "comp-dsp",
  "comp-profiles",
  "comp-ui",
+ "daw-proto",
+ "eyre",
+ "fts-dsp",
  "fts-plugin-core",
  "nih_plug",
+ "reaper-test",
+ "tokio",
 ]
 
 [[package]]
@@ -1498,12 +1513,14 @@ name = "comp-profiles"
 version = "0.1.0"
 dependencies = [
  "comp-dsp",
+ "eq-profiles",
 ]
 
 [[package]]
 name = "comp-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "comp-dsp",
  "comp-profiles",
  "fts-plugin-core",
@@ -2030,7 +2047,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 [[package]]
 name = "daw"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 dependencies = [
  "daw-control",
  "daw-proto",
@@ -2039,7 +2056,7 @@ dependencies = [
 [[package]]
 name = "daw-control"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 dependencies = [
  "daw-proto",
  "eyre",
@@ -2053,11 +2070,11 @@ dependencies = [
 [[package]]
 name = "daw-control-sync"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 dependencies = [
  "daw-control",
  "eyre",
- "moire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "moire",
  "roam",
  "roam-stream",
  "tokio",
@@ -2067,7 +2084,7 @@ dependencies = [
 [[package]]
 name = "daw-proto"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 dependencies = [
  "actions-proto",
  "facet",
@@ -2078,7 +2095,7 @@ dependencies = [
 [[package]]
 name = "daw-reaper"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 dependencies = [
  "camino",
  "daw-proto",
@@ -2086,7 +2103,7 @@ dependencies = [
  "enumflags2",
  "keyflow",
  "libloading 0.8.9",
- "moire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "moire",
  "reaper-high",
  "reaper-low",
  "reaper-medium",
@@ -2098,7 +2115,7 @@ dependencies = [
 [[package]]
 name = "dawfile-reaper"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2145,12 +2162,14 @@ name = "delay-profiles"
 version = "0.1.0"
 dependencies = [
  "delay-dsp",
+ "eq-profiles",
 ]
 
 [[package]]
 name = "delay-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "delay-dsp",
  "delay-profiles",
  "fts-plugin-core",
@@ -2969,6 +2988,7 @@ dependencies = [
 name = "eq-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "eq-dsp",
  "eq-profiles",
  "fts-plugin-core",
@@ -2987,7 +3007,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3068,16 +3088,6 @@ dependencies = [
  "facet-reflect",
  "facet-toml",
  "facet-value",
-]
-
-[[package]]
-name = "facet-cbor"
-version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
-dependencies = [
- "facet",
- "facet-core",
- "facet-reflect",
 ]
 
 [[package]]
@@ -3528,7 +3538,7 @@ dependencies = [
 [[package]]
 name = "fts-audio-proto"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 
 [[package]]
 name = "fts-dsp"
@@ -3598,6 +3608,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "atomic_float 1.1.0",
+ "audio-gui",
  "nih_plug",
  "nih_plug_dioxus",
  "thiserror 2.0.18",
@@ -3794,6 +3805,7 @@ dependencies = [
 name = "gate-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "fts-plugin-core",
  "gate-dsp",
  "gate-profiles",
@@ -4706,7 +4718,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi 0.5.2",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4751,7 +4763,7 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "serde_core",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5063,6 +5075,7 @@ dependencies = [
 name = "limiter-profiles"
 version = "0.1.0"
 dependencies = [
+ "eq-profiles",
  "limiter-dsp",
 ]
 
@@ -5070,6 +5083,7 @@ dependencies = [
 name = "limiter-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "fts-plugin-core",
  "limiter-dsp",
  "limiter-profiles",
@@ -5116,6 +5130,15 @@ name = "litrs"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
+
+[[package]]
+name = "livetune-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+ "pitch-dsp",
+ "serde",
+]
 
 [[package]]
 name = "lock_api"
@@ -5553,19 +5576,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac52dcc0ff5b4710a66626370b1bf85ba3d924fd8019e8cfa100e8dafffda4ad"
 dependencies = [
  "moire-macros",
- "moire-macros-noop 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "moire-tokio 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "moire-wasm 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "moire"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-dependencies = [
- "moire-macros-noop 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
- "moire-tokio 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
- "moire-wasm 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-macros-noop",
+ "moire-tokio",
+ "moire-wasm",
 ]
 
 [[package]]
@@ -5586,11 +5599,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ccdc0bf403f5ecf29c09e8e9f178caed89a914ea032e0c2d99d3824b78892d"
 
 [[package]]
-name = "moire-macros-noop"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-
-[[package]]
 name = "moire-runtime"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5600,26 +5608,10 @@ dependencies = [
  "facet",
  "facet-json",
  "facet-value",
- "moire-trace-capture 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "moire-trace-types 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "moire-types 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "moire-wire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio",
-]
-
-[[package]]
-name = "moire-runtime"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-dependencies = [
- "ctor",
- "facet",
- "facet-json",
- "facet-value",
- "moire-trace-capture 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
- "moire-trace-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
- "moire-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
- "moire-wire 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-trace-capture",
+ "moire-trace-types",
+ "moire-types",
+ "moire-wire",
  "tokio",
 ]
 
@@ -5630,19 +5622,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fdb30c43038ce71c727da5a4ff01d09dd4c823486cc17b3b08661420d0ceda43"
 dependencies = [
  "ctor",
- "moire-runtime 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "moire-types 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "parking_lot",
- "tokio",
-]
-
-[[package]]
-name = "moire-tokio"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-dependencies = [
- "moire-runtime 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
- "moire-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-runtime",
+ "moire-types",
  "parking_lot",
  "tokio",
 ]
@@ -5650,20 +5631,9 @@ dependencies = [
 [[package]]
 name = "moire-trace-capture"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6685ebbdee1253529c9074c41d8288504b640ffe8c21176ce464fef5c5c00c38"
 dependencies = [
  "libc",
- "moire-trace-types 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "moire-trace-capture"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-dependencies = [
- "libc",
- "moire-trace-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-trace-types",
 ]
 
 [[package]]
@@ -5676,14 +5646,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "moire-trace-types"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-dependencies = [
- "facet",
-]
-
-[[package]]
 name = "moire-types"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5691,17 +5653,7 @@ checksum = "667b2fc41e30d3b0f7d0d29e978d3f473afaf0e0be355202eead317e35ace200"
 dependencies = [
  "facet",
  "facet-value",
- "moire-trace-types 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "moire-types"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-dependencies = [
- "facet",
- "facet-value",
- "moire-trace-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-trace-types",
 ]
 
 [[package]]
@@ -5716,22 +5668,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "gloo-timers",
- "moire-types 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "moire-wasm"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-dependencies = [
- "async-channel",
- "async-lock",
- "event-listener",
- "futures-channel",
- "futures-util",
- "gloo-timers",
- "moire-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-types",
  "wasm-bindgen-futures",
 ]
 
@@ -5743,19 +5680,8 @@ checksum = "bf0ec84eeb2e23a83339cf5edc9d5a3a9ec5849416bd4051951fba416ea3e0f7"
 dependencies = [
  "facet",
  "facet-json",
- "moire-trace-types 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "moire-types 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "moire-wire"
-version = "1.0.0"
-source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
-dependencies = [
- "facet",
- "facet-json",
- "moire-trace-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
- "moire-types 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire-trace-types",
+ "moire-types",
 ]
 
 [[package]]
@@ -5845,6 +5771,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nam-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+ "neural-amp-modeler",
+ "realfft",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "native-tls"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5898,6 +5835,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee6cda3051665f1fb8d9e08fc35c96d5a244fb1be711a03b71118828afc9a873"
 dependencies = [
  "jni-sys",
+]
+
+[[package]]
+name = "neural-amp-modeler"
+version = "0.1.0"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -6074,7 +6018,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6964,6 +6908,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pitch-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+ "serde",
+]
+
+[[package]]
 name = "pixels"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7528,6 +7480,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "reaper-launcher"
+version = "0.1.0"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
+dependencies = [
+ "libc",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "reaper-low"
 version = "0.1.0"
 source = "git+https://github.com/FastTrackStudios/reaper-rs.git?branch=feat%2Freaper-763-ruler-lanes#fc79668ffe86fbd8b6ba3e6db513d58e9b6717b0"
@@ -7564,11 +7526,12 @@ dependencies = [
 [[package]]
 name = "reaper-test"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 dependencies = [
  "daw",
  "eyre",
- "moire 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "moire",
+ "reaper-launcher",
  "reaper-test-macro",
  "roam",
  "roam-stream",
@@ -7579,7 +7542,7 @@ dependencies = [
 [[package]]
 name = "reaper-test-macro"
 version = "0.1.0"
-source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#c2e20e8f89c94017aafb70169db2340f386a2335"
+source = "git+https://github.com/FastTrackStudios/daw.git?branch=main#a36e4d8ee082d9d7e50a150b08f54113b6ece9ca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7757,6 +7720,7 @@ dependencies = [
 name = "reverb-profiles"
 version = "0.1.0"
 dependencies = [
+ "eq-profiles",
  "reverb-dsp",
 ]
 
@@ -7764,6 +7728,7 @@ dependencies = [
 name = "reverb-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "fts-plugin-core",
  "reverb-dsp",
  "reverb-profiles",
@@ -7844,6 +7809,7 @@ dependencies = [
 name = "rider-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "fts-plugin-core",
  "rider-dsp",
  "rider-profiles",
@@ -7866,11 +7832,12 @@ dependencies = [
 [[package]]
 name = "roam"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+source = "git+https://github.com/bearcove/roam.git?branch=main#2f624f146c89fafe139770f5c2a6203a3a37e33e"
 dependencies = [
  "facet",
+ "facet-postcard",
  "roam-core",
- "roam-postcard",
+ "roam-hash",
  "roam-service-macros",
  "roam-types",
  "tracing",
@@ -7879,16 +7846,16 @@ dependencies = [
 [[package]]
 name = "roam-core"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+source = "git+https://github.com/bearcove/roam.git?branch=main#2f624f146c89fafe139770f5c2a6203a3a37e33e"
 dependencies = [
  "facet",
- "facet-cbor",
  "facet-core",
  "facet-error",
+ "facet-format",
+ "facet-postcard",
  "facet-reflect",
  "getrandom 0.3.4",
- "moire 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
- "roam-postcard",
+ "moire",
  "roam-types",
  "smallvec 1.15.1",
  "tokio",
@@ -7898,9 +7865,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "roam-hash"
+version = "7.3.0"
+source = "git+https://github.com/bearcove/roam.git?branch=main#2f624f146c89fafe139770f5c2a6203a3a37e33e"
+dependencies = [
+ "blake3",
+ "facet-core",
+ "heck 0.5.0",
+ "roam-types",
+]
+
+[[package]]
 name = "roam-macros-core"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+source = "git+https://github.com/bearcove/roam.git?branch=main#2f624f146c89fafe139770f5c2a6203a3a37e33e"
 dependencies = [
  "facet-cargo-toml",
  "heck 0.5.0",
@@ -7912,27 +7890,16 @@ dependencies = [
 [[package]]
 name = "roam-macros-parse"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+source = "git+https://github.com/bearcove/roam.git?branch=main#2f624f146c89fafe139770f5c2a6203a3a37e33e"
 dependencies = [
  "proc-macro2",
  "unsynn",
 ]
 
 [[package]]
-name = "roam-postcard"
-version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
-dependencies = [
- "facet",
- "facet-core",
- "facet-reflect",
- "roam-types",
-]
-
-[[package]]
 name = "roam-service-macros"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+source = "git+https://github.com/bearcove/roam.git?branch=main#2f624f146c89fafe139770f5c2a6203a3a37e33e"
 dependencies = [
  "proc-macro2",
  "roam-macros-core",
@@ -7941,9 +7908,9 @@ dependencies = [
 [[package]]
 name = "roam-stream"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+source = "git+https://github.com/bearcove/roam.git?branch=main#2f624f146c89fafe139770f5c2a6203a3a37e33e"
 dependencies = [
- "moire 1.0.0 (git+https://github.com/bearcove/moire?rev=13eac79)",
+ "moire",
  "roam-core",
  "roam-types",
  "tokio",
@@ -7952,17 +7919,14 @@ dependencies = [
 [[package]]
 name = "roam-types"
 version = "7.3.0"
-source = "git+https://github.com/bearcove/roam.git?branch=main#6d9ea5a5e29d86c596bbb13e86ec92c88751b458"
+source = "git+https://github.com/bearcove/roam.git?branch=main#2f624f146c89fafe139770f5c2a6203a3a37e33e"
 dependencies = [
  "bitflags 2.11.0",
- "blake3",
  "facet",
- "facet-cbor",
  "facet-core",
  "facet-path",
  "facet-postcard",
  "futures-channel",
- "heck 0.5.0",
  "smallvec 1.15.1",
  "structstruck",
  "tokio",
@@ -8086,7 +8050,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9299,6 +9263,7 @@ dependencies = [
 name = "tape-profiles"
 version = "0.1.0"
 dependencies = [
+ "eq-profiles",
  "tape-dsp",
 ]
 
@@ -9306,6 +9271,7 @@ dependencies = [
 name = "tape-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "fts-plugin-core",
  "tape-dsp",
  "tape-profiles",
@@ -9321,7 +9287,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9860,6 +9826,7 @@ dependencies = [
 name = "trigger-ui"
 version = "0.1.0"
 dependencies = [
+ "audio-gui",
  "fts-plugin-core",
  "trigger-dsp",
  "trigger-profiles",
@@ -11163,7 +11130,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -11837,6 +11804,7 @@ name = "xtask"
 version = "0.1.0"
 dependencies = [
  "nih_plug_xtask",
+ "reaper-test",
 ]
 
 [[package]]

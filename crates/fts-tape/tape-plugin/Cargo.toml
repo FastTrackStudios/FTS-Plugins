@@ -1,0 +1,17 @@
+[package]
+name = "tape-plugin"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "FTS Tape Machine — CLAP/VST3 audio plugin entry point"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+fts-plugin-core = { path = "../../fts-plugin-core" }
+tape-dsp = { path = "../tape-dsp" }
+tape-profiles = { path = "../tape-profiles" }
+tape-ui = { path = "../tape-ui" }
+nih_plug = { workspace = true }

@@ -1,162 +1,172 @@
 # Justfile for FTS Plugins
 # Usage: just <command> [args...]
+#
+# Build any plugin:  just bundle comp-plugin
+# Install any plugin: just install comp-plugin
 
-# Configuration
+# ── Configuration ─────────────────────────────────────────────────────
+
+# Default plugin to build (override with: just build comp-plugin)
 PLUGIN_NAME := "fts-macros"
-PLUGIN_CLAP := PLUGIN_NAME + ".clap"
-FX_DIR := env_var("HOME") / "Music/FastTrackStudio/Reaper/FTS-TRACKS/UserPlugins/FX"
-LOG_FILE := env_var("HOME") / "Library/Logs/REAPER/nih.log"
-REAPER_EXECUTABLE := "/Users/codywright/Music/FTS-REAPER/FTS-LIVE.app/Contents/MacOS/REAPER"
-REAPER_RESOURCES := "/Users/codywright/Music/FTS-REAPER/FTS-LIVE.app/Contents/Resources"
+
+# Platform-specific paths
+FX_DIR_LINUX := env_var("HOME") / ".config/REAPER/UserPlugins/FX"
+FX_DIR_MAC := env_var("HOME") / "Music/FastTrackStudio/Reaper/FTS-TRACKS/UserPlugins/FX"
+LOG_FILE_LINUX := env_var("HOME") / ".config/REAPER/Logs/nih.log"
+LOG_FILE_MAC := env_var("HOME") / "Library/Logs/REAPER/nih.log"
+
+# Use FTS_REAPER_CONFIG from nix shell if available, else default
+REAPER_CONFIG := env_var_or_default("FTS_REAPER_CONFIG", env_var("HOME") / ".config/REAPER")
 
 # Default recipe - show help
 default: help
 
-# ============================================================================
-# Build Commands
-# ============================================================================
+# ── Build Commands ────────────────────────────────────────────────────
 
-# Build the plugin in release mode
-build:
-    cargo run --package xtask -- bundle {{PLUGIN_NAME}} --release
+# Bundle a plugin (CLAP + VST3). Usage: just bundle comp-plugin
+bundle plugin=PLUGIN_NAME:
+    cargo run --package xtask -- bundle {{plugin}} --release
 
-# Build the plugin in debug mode
-build-debug:
-    cargo run --package xtask -- bundle {{PLUGIN_NAME}}
+# Bundle in debug mode
+bundle-debug plugin=PLUGIN_NAME:
+    cargo run --package xtask -- bundle {{plugin}}
 
-# ============================================================================
-# Install Commands
-# ============================================================================
+# Build alias (same as bundle)
+build plugin=PLUGIN_NAME: (bundle plugin)
 
-# Install plugin to FTS user FX directory
-install: build
+# Build debug alias
+build-debug plugin=PLUGIN_NAME: (bundle-debug plugin)
+
+# ── Install Commands ──────────────────────────────────────────────────
+
+# Install a bundled CLAP plugin to REAPER's FX directory
+install plugin=PLUGIN_NAME: (bundle plugin)
     #!/usr/bin/env bash
     set -euo pipefail
 
-    # Create FX directory if it doesn't exist
-    mkdir -p "{{FX_DIR}}"
-
-    echo "Removing old plugin if it exists..."
-    if [ -d "{{FX_DIR}}/{{PLUGIN_CLAP}}" ]; then
-        rm -rf "{{FX_DIR}}/{{PLUGIN_CLAP}}"
-        echo "✓ Old plugin removed"
+    # Determine FX directory (Linux vs macOS)
+    if [ "$(uname)" = "Darwin" ]; then
+        FX_DIR="{{FX_DIR_MAC}}"
     else
-        echo "✓ No existing plugin found"
+        # Use REAPER config from env if set (nix shell), else default
+        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
     fi
 
-    echo "Installing new plugin..."
-    cp -r "./target/bundled/{{PLUGIN_CLAP}}" "{{FX_DIR}}/"
-    echo "✓ Plugin installed to: {{FX_DIR}}/{{PLUGIN_CLAP}}"
+    CLAP_FILE="{{plugin}}.clap"
 
-# Install and reload REAPER plugin cache
-install-reload: install
+    mkdir -p "$FX_DIR"
+
+    # Remove old plugin
+    if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -d "$FX_DIR/$CLAP_FILE" ]; then
+        rm -rf "$FX_DIR/$CLAP_FILE"
+        echo "Removed old $CLAP_FILE"
+    fi
+
+    # Copy new plugin
+    BUNDLED="./target/bundled/$CLAP_FILE"
+    if [ ! -e "$BUNDLED" ]; then
+        echo "ERROR: $BUNDLED not found. Did the build succeed?"
+        exit 1
+    fi
+
+    cp -r "$BUNDLED" "$FX_DIR/"
+    echo "Installed: $FX_DIR/$CLAP_FILE"
+
+# Install and show REAPER reload instructions
+install-reload plugin=PLUGIN_NAME: (install plugin)
     #!/usr/bin/env bash
-    set -euo pipefail
     echo ""
-    echo "📢 Restart REAPER and rebuild the plugin cache:"
-    echo "   1. Close REAPER if running"
-    echo "   2. Delete: ~/Library/Caches/reaper-*.cache"
-    echo "   3. Launch REAPER - it will rebuild the plugin cache"
-    echo "   4. The fts-macros plugin should appear in FX list"
+    echo "Restart REAPER or rescan plugins to pick up the new build."
+    echo "  REAPER → Options → Preferences → Plug-ins → Re-scan"
 
-# Uninstall plugin from FX directory
-uninstall:
+# Uninstall a plugin from FX directory
+uninstall plugin=PLUGIN_NAME:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -d "{{FX_DIR}}/{{PLUGIN_CLAP}}" ]; then
-        rm -rf "{{FX_DIR}}/{{PLUGIN_CLAP}}"
-        echo "✓ Plugin removed from: {{FX_DIR}}/{{PLUGIN_CLAP}}"
+    if [ "$(uname)" = "Darwin" ]; then
+        FX_DIR="{{FX_DIR_MAC}}"
     else
-        echo "✗ No plugin found at: {{FX_DIR}}/{{PLUGIN_CLAP}}"
+        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
+    fi
+    CLAP_FILE="{{plugin}}.clap"
+    if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -d "$FX_DIR/$CLAP_FILE" ]; then
+        rm -rf "$FX_DIR/$CLAP_FILE"
+        echo "Removed: $FX_DIR/$CLAP_FILE"
+    else
+        echo "Not found: $FX_DIR/$CLAP_FILE"
     fi
 
-# ============================================================================
-# REAPER Commands
-# ============================================================================
+# ── REAPER Commands ───────────────────────────────────────────────────
 
-# Launch FTS REAPER with NIH logging enabled
+# Launch REAPER (uses fts-gui from nix shell, or system REAPER on mac)
 reaper:
     #!/usr/bin/env bash
     set -euo pipefail
-    mkdir -p "$(dirname "{{LOG_FILE}}")"
-    echo "Launching FTS REAPER..."
-    echo "Logs: {{LOG_FILE}}"
-    cd "{{REAPER_RESOURCES}}"
-    NIH_LOG="{{LOG_FILE}}" "{{REAPER_EXECUTABLE}}"
+    if [ "$(uname)" = "Darwin" ]; then
+        REAPER_EXECUTABLE="/Users/codywright/Music/FTS-REAPER/FTS-LIVE.app/Contents/MacOS/REAPER"
+        REAPER_RESOURCES="/Users/codywright/Music/FTS-REAPER/FTS-LIVE.app/Contents/Resources"
+        if [ "$(uname)" = "Darwin" ]; then
+            LOG_FILE="{{LOG_FILE_MAC}}"
+        else
+            LOG_FILE="{{LOG_FILE_LINUX}}"
+        fi
+        mkdir -p "$(dirname "$LOG_FILE")"
+        cd "$REAPER_RESOURCES"
+        NIH_LOG="$LOG_FILE" "$REAPER_EXECUTABLE"
+    else
+        # On Linux, use fts-gui from nix shell
+        if command -v fts-gui &>/dev/null; then
+            fts-gui
+        else
+            echo "Run 'nix develop --impure' first, or use fts-gui from the nix shell"
+            exit 1
+        fi
+    fi
 
-# Launch REAPER with debug logging
-reaper-debug:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    mkdir -p "$(dirname "{{LOG_FILE}}")"
-    echo "Launching FTS REAPER (debug mode)..."
-    echo "Logs: {{LOG_FILE}}"
-    cd "{{REAPER_RESOURCES}}"
-    RUST_LOG=debug NIH_LOG="{{LOG_FILE}}" "{{REAPER_EXECUTABLE}}"
+# ── Development Workflows ─────────────────────────────────────────────
 
-# ============================================================================
-# Development Workflows
-# ============================================================================
+# Build, install, and launch REAPER
+run plugin=PLUGIN_NAME: (install plugin) reaper
 
-# Build, install, and launch REAPER (full dev cycle)
-run: install reaper
-
-# Build, install, and launch REAPER with debug logging
-run-debug: install reaper-debug
-
-# Build, install, and open tmux session with REAPER + log monitoring
-dev: install
-    #!/usr/bin/env bash
-    set -euo pipefail
-    mkdir -p "$(dirname "{{LOG_FILE}}")"
-
-    echo "Starting development panes..."
-
-    # Split current pane horizontally, run REAPER in new pane on right
-    tmux split-window -h "cd \"{{REAPER_RESOURCES}}\" && NIH_LOG=\"{{LOG_FILE}}\" \"{{REAPER_EXECUTABLE}}\""
-
-    # Current pane (left) will show logs
-    echo "REAPER launched in right pane"
-    echo "Use Ctrl+B then arrow keys to switch panes"
-    echo "Showing logs below..."
-    echo ""
-
-    # Tail logs in current pane
-    while [ ! -f "{{LOG_FILE}}" ]; do sleep 1; done
-    tail -f "{{LOG_FILE}}"
-
-# Watch logs (tail the NIH log file)
+# Watch logs
 logs:
     #!/usr/bin/env bash
-    if [ -f "{{LOG_FILE}}" ]; then
-        tail -f "{{LOG_FILE}}"
+    if [ "$(uname)" = "Darwin" ]; then
+        LOG_FILE="{{LOG_FILE_MAC}}"
     else
-        echo "Waiting for log file: {{LOG_FILE}}"
-        while [ ! -f "{{LOG_FILE}}" ]; do sleep 1; done
-        tail -f "{{LOG_FILE}}"
+        LOG_FILE="{{LOG_FILE_LINUX}}"
+    fi
+    if [ -f "$LOG_FILE" ]; then
+        tail -f "$LOG_FILE"
+    else
+        echo "Waiting for log file: $LOG_FILE"
+        while [ ! -f "$LOG_FILE" ]; do sleep 1; done
+        tail -f "$LOG_FILE"
     fi
 
-# Clear log file
-clear-logs:
+# ── Utility Commands ──────────────────────────────────────────────────
+
+# Type-check a plugin
+check plugin=PLUGIN_NAME:
+    cargo check -p {{plugin}}
+
+# Run clippy on a plugin
+lint plugin=PLUGIN_NAME:
+    cargo clippy -p {{plugin}}
+
+# Run tests for a plugin's DSP crate
+test-dsp dsp_crate:
+    cargo test -p {{dsp_crate}}
+
+# Run REAPER integration tests (spawns REAPER, runs #[reaper_test] tests)
+test-reaper plugin=PLUGIN_NAME *test_name="":
     #!/usr/bin/env bash
-    if [ -f "{{LOG_FILE}}" ]; then
-        rm "{{LOG_FILE}}"
-        echo "✓ Cleared: {{LOG_FILE}}"
+    set -euo pipefail
+    if [ -n "{{test_name}}" ]; then
+        cargo run --package xtask -- reaper-test {{plugin}} {{test_name}}
     else
-        echo "No log file to clear"
+        cargo run --package xtask -- reaper-test {{plugin}}
     fi
-
-# ============================================================================
-# Utility Commands
-# ============================================================================
-
-# Check code without building
-check:
-    cargo check -p {{PLUGIN_NAME}}
-
-# Run clippy lints
-lint:
-    cargo clippy -p {{PLUGIN_NAME}}
 
 # Format code
 fmt:
@@ -167,20 +177,23 @@ clean:
     cargo clean
 
 # Show plugin info and paths
-info:
+info plugin=PLUGIN_NAME:
     #!/usr/bin/env bash
-    echo "Plugin Information"
-    echo "=================="
-    echo "Name:           {{PLUGIN_NAME}}"
-    echo "FX Directory:   {{FX_DIR}}"
-    echo "Log File:       {{LOG_FILE}}"
-    echo "REAPER:         {{REAPER_EXECUTABLE}}"
-    echo ""
-    echo "Installed Plugin:"
-    if [ -d "{{FX_DIR}}/{{PLUGIN_CLAP}}" ]; then
-        ls -lhd "{{FX_DIR}}/{{PLUGIN_CLAP}}"
+    if [ "$(uname)" = "Darwin" ]; then
+        FX_DIR="{{FX_DIR_MAC}}"
     else
-        echo "  (not installed)"
+        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
+    fi
+    CLAP_FILE="{{plugin}}.clap"
+    echo "Plugin:     {{plugin}}"
+    echo "FX Dir:     $FX_DIR"
+    echo "Bundled:    ./target/bundled/$CLAP_FILE"
+    echo ""
+    if [ -e "$FX_DIR/$CLAP_FILE" ]; then
+        echo "Installed:  YES"
+        ls -lhd "$FX_DIR/$CLAP_FILE"
+    else
+        echo "Installed:  NO"
     fi
 
 # Show help
@@ -188,31 +201,27 @@ help:
     #!/usr/bin/env bash
     echo "FTS Plugins - Development Commands"
     echo ""
+    echo "Build (any plugin):        just bundle comp-plugin"
+    echo "Install (any plugin):      just install comp-plugin"
+    echo "Build + Install + REAPER:  just run comp-plugin"
+    echo ""
     echo "Build:"
-    echo "  just build           Build plugin (release)"
-    echo "  just build-debug     Build plugin (debug)"
+    echo "  just build [plugin]      Bundle plugin (release)"
+    echo "  just build-debug [plugin] Bundle plugin (debug)"
     echo ""
     echo "Install:"
-    echo "  just install         Build and install to FX directory"
-    echo "  just install-reload  Install and show REAPER cache reload instructions"
-    echo "  just uninstall       Remove plugin from FX directory"
+    echo "  just install [plugin]    Build and install to REAPER FX dir"
+    echo "  just uninstall [plugin]  Remove plugin from FX dir"
     echo ""
-    echo "Development:"
-    echo "  just run             Build, install, and launch REAPER"
-    echo "  just run-debug       Same as run, with debug logging"
-    echo "  just dev             Build, install, launch REAPER in tmux with log monitoring"
+    echo "Dev:"
+    echo "  just run [plugin]        Build, install, launch REAPER"
+    echo "  just check [plugin]      Type-check"
+    echo "  just lint [plugin]       Clippy"
+    echo "  just test-dsp <crate>    Run DSP tests (e.g. just test-dsp comp-dsp)"
+    echo "  just test-reaper [plugin] [test] Run REAPER integration tests"
+    echo "  just logs                Tail NIH log"
+    echo "  just info [plugin]       Show paths and install status"
     echo ""
-    echo "REAPER:"
-    echo "  just reaper          Launch FTS REAPER with NIH logging"
-    echo "  just reaper-debug    Launch with debug logging"
-    echo ""
-    echo "Logs:"
-    echo "  just logs            Tail the NIH log file"
-    echo "  just clear-logs      Clear the log file"
-    echo ""
-    echo "Utility:"
-    echo "  just check           Check code without building"
-    echo "  just lint            Run clippy"
-    echo "  just fmt             Format code"
-    echo "  just clean           Clean build artifacts"
-    echo "  just info            Show plugin info and paths"
+    echo "Plugins: comp-plugin, eq-plugin, gate-plugin, limiter-plugin,"
+    echo "         tape-plugin, delay-plugin, reverb-plugin, trigger-plugin,"
+    echo "         rider-plugin, fts-macros"

@@ -1,0 +1,17 @@
+[package]
+name = "gate-analysis"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "Offline gate analysis — reads audio via AudioAccessor and writes open/close automation to DAW envelopes"
+
+[dependencies]
+gate-dsp = { path = "../gate-dsp" }
+fts-dsp = { path = "../../fts-dsp" }
+daw = { workspace = true, optional = true }
+daw-control-sync = { workspace = true, optional = true }
+
+[features]
+default = []
+daw = ["dep:daw", "dep:daw-control-sync"]

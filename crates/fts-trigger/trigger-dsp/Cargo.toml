@@ -1,0 +1,11 @@
+[package]
+name = "trigger-dsp"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+description = "Drum trigger processing engine — transient detection, velocity extraction, and sample playback"
+
+[dependencies]
+fts-dsp = { path = "../../fts-dsp" }
+eq-dsp = { path = "../../fts-eq/eq-dsp" }
