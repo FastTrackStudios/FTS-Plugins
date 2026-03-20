@@ -275,7 +275,7 @@ impl Default for FtsComp {
         Self {
             params,
             ui_state,
-            editor_state: DioxusState::new(|| (800, 500)),
+            editor_state: DioxusState::new(|| (900, 620)),
             chain: CompChain::new(),
             sample_rate: 48000.0,
             waveform_counter: 0,
