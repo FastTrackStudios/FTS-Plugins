@@ -21,7 +21,12 @@
 
 pub mod chain;
 pub mod detector;
+pub mod fingerprint;
+pub mod hpss;
+pub mod multiband;
 pub mod sampler;
+pub mod spectral_flux;
+pub mod transient_shape;
 pub mod velocity;
 
 pub use chain::TriggerChain;

@@ -9,3 +9,7 @@ description = "Drum trigger processing engine — transient detection, velocity 
 [dependencies]
 fts-dsp = { path = "../../fts-dsp" }
 eq-dsp = { path = "../../fts-eq/eq-dsp" }
+rustfft = "6.2"
+
+[dev-dependencies]
+symphonia = { version = "0.5", features = ["wav", "pcm"] }

@@ -12,6 +12,8 @@
 use fts_dsp::db::{db_to_linear, linear_to_db};
 use fts_dsp::envelope::EnvelopeFollower;
 
+use crate::spectral_flux::{FluxMode, SpectralFluxDetector, DEFAULT_FFT_SIZE, DEFAULT_HOP_SIZE};
+
 /// Sidechain detection mode — how the raw input is converted to a level.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DetectMode {
@@ -19,6 +21,25 @@ pub enum DetectMode {
     Peak,
     /// RMS envelope (windowed).
     Rms,
+}
+
+/// Detection algorithm selection.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DetectAlgorithm {
+    /// Time-domain envelope following (lowest latency, suitable for live).
+    PeakEnvelope,
+    /// Spectral flux onset detection (FFT-based).
+    SpectralFlux,
+    /// SuperFlux with vibrato suppression (FFT-based, highest accuracy).
+    SuperFlux,
+    /// High frequency content — best for percussive onsets.
+    Hfc,
+    /// Complex domain — catches soft/tonal onsets.
+    ComplexDomain,
+    /// Rectified complex domain — best single classical ODF.
+    RectifiedComplexDomain,
+    /// Modified KL divergence — sensitive to quiet onsets.
+    ModifiedKl,
 }
 
 /// Detector state machine states.
@@ -89,6 +110,15 @@ pub struct TriggerDetector {
     pub reactivity_ms: f64,
     /// Detection mode.
     pub mode: DetectMode,
+    /// Detection algorithm.
+    pub algorithm: DetectAlgorithm,
+
+    // Spectral flux detector (used in SpectralFlux/SuperFlux modes)
+    spectral: Option<SpectralFluxDetector>,
+    /// Threshold delta for adaptive peak picking in spectral modes.
+    pub spectral_threshold_delta: f64,
+    /// Pending ODF value from spectral flux (converted to level for state machine).
+    spectral_level: f64,
 
     sample_rate: f64,
 }
@@ -117,6 +147,10 @@ impl TriggerDetector {
             retrigger_ms: 10.0,
             reactivity_ms: 10.0,
             mode: DetectMode::Peak,
+            algorithm: DetectAlgorithm::PeakEnvelope,
+            spectral: None,
+            spectral_threshold_delta: 0.5,
+            spectral_level: 0.0,
             sample_rate: 48000.0,
         }
     }
@@ -141,6 +175,37 @@ impl TriggerDetector {
         self.detect_samples = (self.detect_time_ms * 0.001 * sample_rate) as u32;
         self.release_samples = (self.release_time_ms * 0.001 * sample_rate) as u32;
         self.retrigger_samples = (self.retrigger_ms * 0.001 * sample_rate).max(1.0) as u32;
+
+        // Initialize or update spectral detector if needed
+        let flux_mode = match self.algorithm {
+            DetectAlgorithm::PeakEnvelope => None,
+            DetectAlgorithm::SpectralFlux => Some(FluxMode::SpectralFlux),
+            DetectAlgorithm::SuperFlux => Some(FluxMode::SuperFlux),
+            DetectAlgorithm::Hfc => Some(FluxMode::Hfc),
+            DetectAlgorithm::ComplexDomain => Some(FluxMode::ComplexDomain),
+            DetectAlgorithm::RectifiedComplexDomain => Some(FluxMode::RectifiedComplexDomain),
+            DetectAlgorithm::ModifiedKl => Some(FluxMode::ModifiedKl),
+        };
+
+        match flux_mode {
+            Some(mode) => {
+                if self.spectral.is_none()
+                    || self.spectral.as_ref().unwrap().mode != mode
+                {
+                    self.spectral = Some(SpectralFluxDetector::new(
+                        mode,
+                        DEFAULT_FFT_SIZE,
+                        DEFAULT_HOP_SIZE,
+                        sample_rate,
+                    ));
+                } else {
+                    self.spectral.as_mut().unwrap().update(sample_rate);
+                }
+            }
+            None => {
+                self.spectral = None;
+            }
+        }
     }
 
     /// Feed one sample and return whether a trigger event occurred.
@@ -149,7 +214,39 @@ impl TriggerDetector {
     /// Use [`is_active`] to check ongoing trigger state.
     #[inline]
     pub fn tick(&mut self, sample: f64) -> Option<f64> {
-        // Update envelope level
+        // In spectral modes, feed the spectral detector and use its ODF
+        // as the "level" for the state machine
+        if let Some(ref mut spectral) = self.spectral {
+            if let Some(odf) = spectral.tick(sample) {
+                // Convert ODF to a level the state machine can threshold.
+                // The ODF is unbounded, so we use the peak picker's adaptive
+                // threshold to determine if this is a trigger-worthy onset.
+                // We scale the ODF into a pseudo-amplitude that the existing
+                // threshold comparison can work with.
+                self.spectral_level = odf;
+
+                if spectral.is_peak(odf, self.spectral_threshold_delta) {
+                    // Peak detected — set level high to trigger the state machine
+                    self.level = 1.0; // max level to ensure threshold crossing
+                    self.peak_level = odf; // store raw ODF as "peak" for velocity
+                } else {
+                    // No peak — decay the level
+                    self.level *= 0.5;
+                }
+            }
+
+            // Retrigger prevention
+            if self.since_last_trigger < u32::MAX {
+                self.since_last_trigger = self.since_last_trigger.saturating_add(1);
+            }
+
+            let detect_level = db_to_linear(self.detect_threshold_db);
+            let release_level = detect_level * self.release_ratio;
+
+            return self.run_state_machine(detect_level, release_level);
+        }
+
+        // Time-domain mode: update envelope level
         let input_abs = sample.abs();
         self.update_level(input_abs);
 
@@ -161,6 +258,12 @@ impl TriggerDetector {
         let detect_level = db_to_linear(self.detect_threshold_db);
         let release_level = detect_level * self.release_ratio;
 
+        self.run_state_machine(detect_level, release_level)
+    }
+
+    /// Run the four-state trigger state machine.
+    #[inline]
+    fn run_state_machine(&mut self, detect_level: f64, release_level: f64) -> Option<f64> {
         let mut triggered = None;
 
         match self.state {
@@ -237,6 +340,15 @@ impl TriggerDetector {
         linear_to_db(self.level)
     }
 
+    /// Returns the latency in samples introduced by the current algorithm.
+    /// PeakEnvelope has zero latency; spectral modes have FFT latency.
+    pub fn latency_samples(&self) -> usize {
+        match &self.spectral {
+            Some(s) => s.latency_samples(),
+            None => 0,
+        }
+    }
+
     pub fn reset(&mut self) {
         self.state = State::Off;
         self.level = 0.0;
@@ -246,6 +358,10 @@ impl TriggerDetector {
         self.detect_counter = 0;
         self.release_counter = 0;
         self.since_last_trigger = u32::MAX;
+        self.spectral_level = 0.0;
+        if let Some(ref mut s) = self.spectral {
+            s.reset();
+        }
     }
 
     /// Update the internal level based on detection mode.

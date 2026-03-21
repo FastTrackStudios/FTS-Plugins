@@ -12,6 +12,13 @@ crate-type = ["cdylib"]
 [dependencies]
 fts-plugin-core = { path = "../../fts-plugin-core" }
 trigger-dsp = { path = "../trigger-dsp" }
+eq-dsp = { path = "../../fts-eq/eq-dsp" }
 trigger-profiles = { path = "../trigger-profiles" }
 trigger-ui = { path = "../trigger-ui" }
+audio-gui = { workspace = true }
 nih_plug = { workspace = true }
+atomic_float = { workspace = true }
+fts-dsp = { workspace = true }
+crossbeam-channel = { workspace = true }
+symphonium = { workspace = true }
+serde = { workspace = true }

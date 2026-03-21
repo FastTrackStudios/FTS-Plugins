@@ -2,7 +2,7 @@
 
 use fts_dsp::{AudioConfig, Processor};
 use trigger_dsp::chain::TriggerChain;
-use trigger_dsp::detector::{DetectMode, TriggerDetector};
+use trigger_dsp::detector::{DetectAlgorithm, DetectMode, TriggerDetector};
 use trigger_dsp::sampler::{MixMode, Sample, Sampler, VelocityLayer};
 use trigger_dsp::velocity::{VelocityCurve, VelocityMapper};
 
@@ -533,6 +533,80 @@ fn reset_clears_state() {
             "After reset, silence[{i}] = ({l}, {r})"
         );
     }
+}
+
+// ── Spectral algorithm tests ────────────────────────────────────────────
+
+#[test]
+fn detector_spectral_flux_triggers_on_transient() {
+    let mut det = TriggerDetector::new();
+    det.detect_threshold_db = -20.0;
+    det.detect_time_ms = 0.0;
+    det.retrigger_ms = 50.0;
+    det.reactivity_ms = 5.0;
+    det.algorithm = DetectAlgorithm::SpectralFlux;
+    det.update(SAMPLE_RATE);
+
+    assert!(det.latency_samples() > 0, "Spectral mode should report latency");
+
+    // Feed enough silence to fill the ODF ring buffer (31 hops × 441 samples)
+    let mut triggered = false;
+    for _ in 0..16000 {
+        if det.tick(0.0).is_some() {
+            triggered = true;
+        }
+    }
+    assert!(!triggered, "Should not trigger on silence");
+
+    // Loud transient burst — needs multiple hops to produce ODF values
+    triggered = false;
+    for i in 0..4096 {
+        let t = i as f64 / SAMPLE_RATE;
+        let sample = (2.0 * std::f64::consts::PI * 1000.0 * t).sin() * 0.8;
+        if det.tick(sample).is_some() {
+            triggered = true;
+            break;
+        }
+    }
+    assert!(triggered, "Spectral flux should trigger on loud transient");
+}
+
+#[test]
+fn detector_superflux_triggers_on_transient() {
+    let mut det = TriggerDetector::new();
+    det.detect_threshold_db = -20.0;
+    det.detect_time_ms = 0.0;
+    det.retrigger_ms = 50.0;
+    det.reactivity_ms = 5.0;
+    det.algorithm = DetectAlgorithm::SuperFlux;
+    det.update(SAMPLE_RATE);
+
+    assert!(det.latency_samples() > 0, "SuperFlux should report latency");
+
+    // Feed enough silence to fill the ODF ring buffer
+    for _ in 0..16000 {
+        det.tick(0.0);
+    }
+
+    // Loud transient
+    let mut triggered = false;
+    for i in 0..4096 {
+        let t = i as f64 / SAMPLE_RATE;
+        let sample = (2.0 * std::f64::consts::PI * 200.0 * t).sin() * 0.8;
+        if det.tick(sample).is_some() {
+            triggered = true;
+            break;
+        }
+    }
+    assert!(triggered, "SuperFlux should trigger on loud transient");
+}
+
+#[test]
+fn detector_peak_envelope_has_zero_latency() {
+    let mut det = TriggerDetector::new();
+    det.algorithm = DetectAlgorithm::PeakEnvelope;
+    det.update(SAMPLE_RATE);
+    assert_eq!(det.latency_samples(), 0, "PeakEnvelope should have zero latency");
 }
 
 // ── Deterministic ───────────────────────────────────────────────────────
