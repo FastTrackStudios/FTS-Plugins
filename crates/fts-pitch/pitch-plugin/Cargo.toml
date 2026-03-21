@@ -1,10 +1,10 @@
 [package]
-name = "eq-plugin"
+name = "pitch-plugin"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
-description = "FTS EQ — CLAP/VST3 audio plugin entry point"
+description = "FTS Pitch — CLAP/VST3 pitch shifter plugin"
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -12,9 +12,8 @@ crate-type = ["cdylib", "lib"]
 [dependencies]
 audio-gui = { workspace = true }
 fts-plugin-core = { path = "../../fts-plugin-core" }
-eq-dsp = { path = "../eq-dsp" }
-eq-profiles = { path = "../eq-profiles" }
-eq-ui = { path = "../eq-ui" }
 fts-dsp = { workspace = true }
+pitch-dsp = { path = "../pitch-dsp" }
 nih_plug = { workspace = true }
 atomic_float = { workspace = true }
+serde = { workspace = true }

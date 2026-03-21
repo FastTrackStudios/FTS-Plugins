@@ -2,12 +2,12 @@
 //!
 //! Based on APComp's versatile compressor architecture, which covers the full
 //! range from gentle opto-style compression to hard limiting through its
-//! parameter space (convexity, feedback, inertia).
+//! parameter space (knee, feedback, inertia).
 //!
 //! # Architecture
 //!
 //! - [`detector`] — Envelope detection with exponential attack/release ballistics
-//! - [`gain`] — Gain reduction computation (threshold, ratio, knee, convexity)
+//! - [`gain`] — Gain reduction computation (threshold, ratio, soft knee)
 //! - [`compressor`] — Complete single-band compressor with all APComp features
 //! - [`chain`] — Full processing chain with sidechain EQ and parallel mix
 //!

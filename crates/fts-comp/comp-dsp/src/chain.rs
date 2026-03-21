@@ -102,7 +102,7 @@ impl Processor for CompChain {
                         level,
                         self.comp.threshold_db,
                         self.comp.ratio,
-                        self.comp.convexity,
+                        self.comp.knee_db,
                         self.comp.inertia,
                         inertia_decay,
                         ch,

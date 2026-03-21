@@ -12,7 +12,7 @@ fn make_comp() -> Compressor {
     c.ratio = 4.0;
     c.attack_ms = 1.0; // Fast for testing
     c.release_ms = 50.0;
-    c.convexity = 1.0;
+    c.knee_db = 0.0; // hard knee for testing
     c.feedback = 0.0;
     c.channel_link = 1.0;
     c.inertia = 0.0;
@@ -118,7 +118,7 @@ fn higher_ratio_more_reduction() {
 
 #[test]
 fn attack_time_affects_transient() {
-    // Fast attack should reduce the first loud samples more quickly
+    // Fast attack should reduce the first loud samples more quickly after a level jump
     let mut comp_fast = make_comp();
     comp_fast.attack_ms = 0.1;
     comp_fast.update(SAMPLE_RATE);
@@ -127,8 +127,17 @@ fn attack_time_affects_transient() {
     comp_slow.attack_ms = 100.0;
     comp_slow.update(SAMPLE_RATE);
 
+    // Warm up with a quiet signal so the detector is initialized at a low level
+    let quiet = 0.01; // ~-40 dB, below threshold
+    for _ in 0..480 {
+        let (mut l, mut r) = (quiet, quiet);
+        comp_fast.process_sample(&mut l, &mut r);
+        let (mut l, mut r) = (quiet, quiet);
+        comp_slow.process_sample(&mut l, &mut r);
+    }
+
+    // Now jump to a loud signal and measure the first 100 samples
     let amplitude = 1.0;
-    // Collect first 100 samples (about 2ms at 48kHz)
     let mut fast_sum = 0.0_f64;
     let mut slow_sum = 0.0_f64;
 

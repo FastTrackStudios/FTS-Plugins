@@ -2970,9 +2970,12 @@ dependencies = [
 name = "eq-plugin"
 version = "0.1.0"
 dependencies = [
+ "atomic_float 1.1.0",
+ "audio-gui",
  "eq-dsp",
  "eq-profiles",
  "eq-ui",
+ "fts-dsp",
  "fts-plugin-core",
  "nih_plug",
 ]
@@ -5141,6 +5144,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "livetune-plugin"
+version = "0.1.0"
+dependencies = [
+ "atomic_float 1.1.0",
+ "audio-gui",
+ "fts-dsp",
+ "fts-plugin-core",
+ "livetune-dsp",
+ "nih_plug",
+ "pitch-dsp",
+ "serde",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6916,6 +6933,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pitch-plugin"
+version = "0.1.0"
+dependencies = [
+ "atomic_float 1.1.0",
+ "audio-gui",
+ "fts-dsp",
+ "fts-plugin-core",
+ "nih_plug",
+ "pitch-dsp",
+ "serde",
+]
+
+[[package]]
 name = "pixels"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7791,6 +7821,9 @@ dependencies = [
 name = "rider-plugin"
 version = "0.1.0"
 dependencies = [
+ "atomic_float 1.1.0",
+ "audio-gui",
+ "fts-dsp",
  "fts-plugin-core",
  "nih_plug",
  "rider-dsp",
@@ -9802,14 +9835,23 @@ version = "0.1.0"
 dependencies = [
  "eq-dsp",
  "fts-dsp",
+ "rustfft",
+ "symphonia",
 ]
 
 [[package]]
 name = "trigger-plugin"
 version = "0.1.0"
 dependencies = [
+ "atomic_float 1.1.0",
+ "audio-gui",
+ "crossbeam-channel",
+ "eq-dsp",
+ "fts-dsp",
  "fts-plugin-core",
  "nih_plug",
+ "serde",
+ "symphonium",
  "trigger-dsp",
  "trigger-profiles",
  "trigger-ui",

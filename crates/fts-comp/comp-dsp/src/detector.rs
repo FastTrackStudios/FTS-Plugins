@@ -19,6 +19,8 @@ pub struct Detector {
     slewed: [f64; MAX_CH],
     /// Previous output sample per channel (for feedback detection).
     prev_output: [f64; MAX_CH],
+    /// Whether each channel has received its first non-silent sample.
+    initialized: [bool; MAX_CH],
 
     // Cached coefficients
     attack_coeff: f64,
@@ -31,6 +33,7 @@ impl Detector {
         Self {
             slewed: [DB_FLOOR; MAX_CH],
             prev_output: [0.0; MAX_CH],
+            initialized: [false; MAX_CH],
             attack_coeff: 0.0,
             release_coeff: 0.0,
             sample_rate: 48000.0,
@@ -60,6 +63,13 @@ impl Detector {
         // Clamp to sane range
         let input_db = input_db.clamp(DB_FLOOR, 6.0);
 
+        // Snap to input on first non-silent sample to avoid slow ramp from DB_FLOOR
+        if !self.initialized[ch] && input_db > DB_FLOOR {
+            self.initialized[ch] = true;
+            self.slewed[ch] = input_db;
+            return self.slewed[ch];
+        }
+
         // Asymmetric exponential smoothing
         if input_db > self.slewed[ch] {
             // Attack: signal rising
@@ -87,6 +97,7 @@ impl Detector {
     pub fn reset(&mut self) {
         self.slewed = [DB_FLOOR; MAX_CH];
         self.prev_output = [0.0; MAX_CH];
+        self.initialized = [false; MAX_CH];
     }
 }
 

@@ -18,7 +18,7 @@ const MAX_CH: usize = 2;
 /// Signal flow per sample:
 /// 1. Input gain
 /// 2. Level detection (feedforward + optional feedback)
-/// 3. Gain reduction computation (threshold/ratio/convexity/inertia)
+/// 3. Gain reduction computation (threshold/ratio/knee/inertia)
 /// 4. Channel linking
 /// 5. Apply gain reduction
 /// 6. Output saturation (tanh soft clip)
@@ -33,7 +33,7 @@ pub struct Compressor {
     pub ratio: f64,
     pub attack_ms: f64,
     pub release_ms: f64,
-    pub convexity: f64,
+    pub knee_db: f64,
     pub feedback: f64,
     pub channel_link: f64,
     pub inertia: f64,
@@ -42,6 +42,7 @@ pub struct Compressor {
     pub fold: f64,
     pub input_gain_db: f64,
     pub output_gain_db: f64,
+    pub auto_makeup: bool,
 
     // State
     sample_rate: f64,
@@ -59,7 +60,7 @@ impl Compressor {
             ratio: 4.0,
             attack_ms: 90.0,
             release_ms: 400.0,
-            convexity: 1.0,
+            knee_db: 6.0,
             feedback: 0.0,
             channel_link: 1.0,
             inertia: 0.0,
@@ -68,6 +69,7 @@ impl Compressor {
             fold: 0.0,
             input_gain_db: 0.0,
             output_gain_db: 0.0,
+            auto_makeup: false,
 
             sample_rate: 48000.0,
             last_gr_db: [0.0; MAX_CH],
@@ -77,8 +79,8 @@ impl Compressor {
     /// Update internal coefficients after parameter changes.
     pub fn update(&mut self, sample_rate: f64) {
         self.sample_rate = sample_rate;
-        let attack_s = linear_to_exponential(self.attack_ms, 0.0, 300.0) / 1000.0;
-        let release_s = linear_to_exponential(self.release_ms, 0.0, 3000.0) / 1000.0;
+        let attack_s = self.attack_ms / 1000.0;
+        let release_s = self.release_ms / 1000.0;
         self.detector.set_params(attack_s, release_s, sample_rate);
     }
 
@@ -89,8 +91,14 @@ impl Compressor {
     #[inline]
     pub fn process_sample(&mut self, left: &mut f64, right: &mut f64) {
         let input_gain = db_to_linear(self.input_gain_db);
-        let output_gain = db_to_linear(self.output_gain_db);
+        let mut output_gain = db_to_linear(self.output_gain_db);
         let inertia_decay = 0.99 + (self.inertia_decay * 0.01);
+
+        // Auto makeup gain: compensate for expected GR at threshold
+        if self.auto_makeup && self.ratio > 1.0 {
+            let makeup_db = -self.threshold_db * (1.0 - 1.0 / self.ratio) * 0.5;
+            output_gain *= db_to_linear(makeup_db);
+        }
 
         let dry = [*left, *right];
 
@@ -109,7 +117,7 @@ impl Compressor {
                 level_db,
                 self.threshold_db,
                 self.ratio,
-                self.convexity,
+                self.knee_db,
                 self.inertia,
                 inertia_decay,
                 ch,
@@ -184,16 +192,3 @@ impl Default for Compressor {
     }
 }
 
-// ── Utility ────────────────────────────────────────────────────────────
-
-/// APComp's exponential parameter scaling.
-///
-/// Maps a linear 0..max input to an exponential curve for more natural
-/// control feel on attack/release/ratio knobs.
-#[inline]
-fn linear_to_exponential(value: f64, min: f64, max: f64) -> f64 {
-    let value = value.clamp(min, max);
-    let normalized = (value - min) / (max - min);
-    let exponential = normalized * normalized;
-    min + exponential * (max - min)
-}

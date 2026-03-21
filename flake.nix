@@ -124,6 +124,9 @@
                     dbus
                     zlib
                     stdenv.cc.cc.lib
+
+                    # Issue tracking (beads)
+                    dolt
                   ];
 
                   languages.rust = {

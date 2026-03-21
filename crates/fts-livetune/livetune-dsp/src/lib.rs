@@ -10,7 +10,13 @@
 //! - PSOLA fallback for small shifts (<5 semitones)
 //! - Dry/wet mix and correction amount controls
 
+pub mod bitstream;
 pub mod chain;
 pub mod detector;
+pub mod lpc;
+pub mod mpm;
+pub mod pvsola;
+pub mod pyin;
 pub mod quantizer;
 pub mod vocoder;
+pub mod yaapt;

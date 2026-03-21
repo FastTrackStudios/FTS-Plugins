@@ -19,3 +19,4 @@ pub mod divider;
 pub mod granular;
 pub mod pll;
 pub mod psola;
+pub mod wsola;

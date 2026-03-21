@@ -1,11 +1,12 @@
 //! Compressor editor — Dioxus GUI root component.
 //!
 //! Layout: header, visualization row (transfer curve + waveform + meters),
-//! and two rows of rotary knobs for all parameters.
+//! and organized knob groups for all parameters.
 
 use std::sync::atomic::Ordering;
 
 use audio_gui::controls::knob::Knob;
+use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{
     theme, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform, TransferCurve,
 };
@@ -25,27 +26,10 @@ pub fn App() -> Element {
     let input_db = ui.input_peak_db.load(Ordering::Relaxed);
     let output_db = ui.output_peak_db.load(Ordering::Relaxed);
 
-    // Debug: log metering values periodically
-    {
-        use std::sync::atomic::AtomicU64;
-        static RENDER_COUNT: AtomicU64 = AtomicU64::new(0);
-        let n = RENDER_COUNT.fetch_add(1, Ordering::Relaxed);
-        if n % 300 == 0 {
-            nih_plug::nih_log!(
-                "[Editor] render={} in={:.1} out={:.1} gr={:.1} pos={}",
-                n,
-                input_db,
-                output_db,
-                gr_db,
-                ui.waveform_pos.load(Ordering::Relaxed)
-            );
-        }
-    }
-
     // Read current param values for transfer curve
     let threshold = params.threshold_db.value();
     let ratio = params.ratio.value();
-    let convexity = params.convexity.value();
+    let knee = params.knee_db.value();
 
     // Build waveform history from ring buffer
     let pos = ui.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
@@ -62,6 +46,13 @@ pub fn App() -> Element {
         Some(input_db)
     } else {
         None
+    };
+
+    // Format GR display
+    let gr_text = if gr_db > 0.01 {
+        format!("-{:.1} dB", gr_db)
+    } else {
+        "0.0 dB".to_string()
     };
 
     rsx! {
@@ -85,8 +76,21 @@ pub fn App() -> Element {
                     BORDER = theme::BORDER,
                 ),
                 div {
-                    style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
-                    "FTS COMPRESSOR"
+                    style: "display:flex; align-items:baseline; gap:12px;",
+                    div {
+                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
+                        "FTS COMPRESSOR"
+                    }
+                    // GR readout in header
+                    div {
+                        style: format!(
+                            "font-size:12px; color:{}; font-variant-numeric:tabular-nums;",
+                            if gr_db > 6.0 { theme::SIGNAL_WARN }
+                            else if gr_db > 0.1 { theme::SIGNAL_SAFE }
+                            else { theme::TEXT_DIM }
+                        ),
+                        "GR: {gr_text}"
+                    }
                 }
                 div {
                     style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
@@ -109,7 +113,7 @@ pub fn App() -> Element {
                     TransferCurve {
                         threshold_db: threshold,
                         ratio: ratio,
-                        convexity: convexity,
+                        knee_db: knee,
                         input_level_db: input_level,
                         width: 160.0,
                         height: 160.0,
@@ -145,48 +149,124 @@ pub fn App() -> Element {
                 }
             }
 
-            // ── Knob rows ────────────────────────────────────────
+            // ── Controls ─────────────────────────────────────────
             div {
                 style: format!(
                     "background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
-                     display:flex; flex-direction:column; gap:12px; flex:1; min-height:0;",
+                     display:flex; flex-direction:column; gap:10px; flex:1; min-height:0;",
                     CARD_BG = theme::CARD_BG,
                 ),
 
                 // Row 1: Core dynamics (large knobs)
                 div {
-                    style: "display:flex; gap:4px;",
+                    style: "display:flex; flex-direction:column; gap:8px;",
                     SectionLabel { text: "Dynamics" }
-                }
-                div {
-                    style: "display:flex; justify-content:center; gap:24px;",
-                    Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
-                    Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
-                    Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
-                    Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
-                    Knob { param_ptr: params.convexity.as_ptr(), size: KnobSize::Large, label: "Knee".to_string() }
+                    div {
+                        style: "display:flex; justify-content:center; gap:24px;",
+                        Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
+                        Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
+                        Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
+                        Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
+                        Knob { param_ptr: params.knee_db.as_ptr(), size: KnobSize::Large }
+                    }
                 }
 
-                // Row 2: I/O + advanced (medium knobs)
+                // Row 2: Grouped secondary controls
                 div {
-                    style: "display:flex; gap:4px;",
-                    SectionLabel { text: "I/O & Character" }
-                }
-                div {
-                    style: "display:flex; justify-content:center; gap:16px;",
-                    Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
+                    style: "display:flex; gap:20px; justify-content:center;",
+
+                    // I/O group
+                    ControlGroup {
+                        label: "I/O",
+                        Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
+                        Toggle { param_ptr: params.auto_makeup.as_ptr(), label: "Auto" }
+                    }
+
+                    // Divider
+                    div {
+                        style: format!(
+                            "width:1px; background:{}; align-self:stretch;",
+                            theme::BORDER,
+                        ),
+                    }
+
+                    // Mix group
+                    ControlGroup {
+                        label: "Mix",
+                        Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
+                    }
+
+                    // Divider
+                    div {
+                        style: format!(
+                            "width:1px; background:{}; align-self:stretch;",
+                            theme::BORDER,
+                        ),
+                    }
+
+                    // Character group
+                    ControlGroup {
+                        label: "Character",
+                        Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
+                    }
+
+                    // Divider
+                    div {
+                        style: format!(
+                            "width:1px; background:{}; align-self:stretch;",
+                            theme::BORDER,
+                        ),
+                    }
+
+                    // Sidechain group
+                    ControlGroup {
+                        label: "Sidechain",
+                        Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
+                    }
+
+                    // Divider
+                    div {
+                        style: format!(
+                            "width:1px; background:{}; align-self:stretch;",
+                            theme::BORDER,
+                        ),
+                    }
+
+                    // Advanced group
+                    ControlGroup {
+                        label: "Advanced",
+                        Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
+                    }
                 }
             }
         }
         } // DragProvider
+    }
+}
+
+/// A labeled group of controls with a sub-heading.
+#[component]
+fn ControlGroup(label: &'static str, children: Element) -> Element {
+    rsx! {
+        div {
+            style: "display:flex; flex-direction:column; align-items:center; gap:6px;",
+            div {
+                style: format!(
+                    "font-size:9px; color:{TEXT_DIM}; text-transform:uppercase; \
+                     letter-spacing:0.6px; font-weight:600;",
+                    TEXT_DIM = theme::TEXT_DIM,
+                ),
+                "{label}"
+            }
+            div {
+                style: "display:flex; gap:14px; align-items:flex-end;",
+                {children}
+            }
+        }
     }
 }
 

@@ -11,10 +11,29 @@
 use fts_dsp::{AudioConfig, Processor};
 use serde::{Deserialize, Serialize};
 
+use crate::bitstream::BitstreamDetector;
 use crate::detector::{PitchDetector, PitchEstimate};
+use crate::mpm::MpmDetector;
+use crate::pyin::PyinDetector;
 use crate::quantizer::{Key, NoteState, Scale, ScaleQuantizer};
 use crate::vocoder::FormantVocoder;
+use crate::yaapt::YaaptDetector;
 use pitch_dsp::psola::PsolaShifter;
+
+/// Which pitch detection algorithm to use.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DetectorMode {
+    /// YIN (de Cheveigné & Kawahara, 2002). Low-latency autocorrelation.
+    Yin,
+    /// YAAPT (Kasi & Zahorian, 2002). Hybrid spectral + temporal with DP.
+    Yaapt,
+    /// pYIN (Mauch & Dixon, 2014). Probabilistic YIN with HMM Viterbi.
+    Pyin,
+    /// MPM (McLeod & Wyvill, 2005). Normalized SDF with key maxima.
+    Mpm,
+    /// Bitstream ACF. Ultra-fast 1-bit autocorrelation.
+    Bitstream,
+}
 
 /// Which pitch shifting engine to use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,6 +59,8 @@ pub struct LiveTuneChain {
     pub amount: f64,
     /// Dry/wet mix: 0.0 = dry, 1.0 = fully corrected.
     pub mix: f64,
+    /// Pitch detection algorithm selection.
+    pub detector_mode: DetectorMode,
     /// Pitch shifting engine selection.
     pub shifter_mode: ShifterMode,
     /// Confidence threshold: only correct when pitch confidence exceeds this.
@@ -51,6 +72,10 @@ pub struct LiveTuneChain {
 
     // -- Internal components --
     detector: PitchDetector,
+    yaapt: YaaptDetector,
+    pyin: PyinDetector,
+    mpm: MpmDetector,
+    bitstream: BitstreamDetector,
     quantizer: ScaleQuantizer,
     psola: PsolaShifter,
     vocoder: FormantVocoder,
@@ -74,11 +99,16 @@ impl LiveTuneChain {
             retune_speed: 0.1,
             amount: 1.0,
             mix: 1.0,
+            detector_mode: DetectorMode::Yin,
             shifter_mode: ShifterMode::Auto,
             confidence_threshold: 0.5,
             preserve_formants: true,
             notes: [NoteState::Enabled; 12],
             detector: PitchDetector::new(),
+            yaapt: YaaptDetector::new(),
+            pyin: PyinDetector::new(),
+            mpm: MpmDetector::new(),
+            bitstream: BitstreamDetector::new(),
             quantizer: ScaleQuantizer::new(),
             psola: PsolaShifter::new(),
             vocoder: FormantVocoder::new(),
@@ -99,9 +129,15 @@ impl LiveTuneChain {
         self.current_shift
     }
 
-    /// Latency in samples (depends on active shifter).
+    /// Latency in samples (depends on active detector + shifter).
     pub fn latency(&self) -> usize {
-        let detector_latency = self.detector.latency();
+        let detector_latency = match self.detector_mode {
+            DetectorMode::Yin => self.detector.latency(),
+            DetectorMode::Yaapt => self.yaapt.latency(),
+            DetectorMode::Pyin => self.pyin.latency(),
+            DetectorMode::Mpm => self.mpm.latency(),
+            DetectorMode::Bitstream => self.bitstream.latency(),
+        };
         let shifter_latency = match self.shifter_mode {
             ShifterMode::Psola => self.psola.latency(),
             ShifterMode::Vocoder => self.vocoder.latency(),
@@ -129,7 +165,13 @@ impl LiveTuneChain {
     #[inline]
     fn process_sample(&mut self, input: f64) -> f64 {
         // 1. Pitch detection.
-        self.current_pitch = self.detector.tick(input);
+        self.current_pitch = match self.detector_mode {
+            DetectorMode::Yin => self.detector.tick(input),
+            DetectorMode::Yaapt => self.yaapt.tick(input),
+            DetectorMode::Pyin => self.pyin.tick(input),
+            DetectorMode::Mpm => self.mpm.tick(input),
+            DetectorMode::Bitstream => self.bitstream.tick(input),
+        };
 
         // 2. Scale quantization (only if pitch is detected with confidence).
         if self.current_pitch.confidence >= self.confidence_threshold
@@ -183,6 +225,10 @@ impl Default for LiveTuneChain {
 impl Processor for LiveTuneChain {
     fn reset(&mut self) {
         self.detector.reset();
+        self.yaapt.reset();
+        self.pyin.reset();
+        self.mpm.reset();
+        self.bitstream.reset();
         self.quantizer.reset();
         self.psola.reset();
         self.vocoder.reset();
@@ -193,6 +239,10 @@ impl Processor for LiveTuneChain {
     fn update(&mut self, config: AudioConfig) {
         self.sample_rate = config.sample_rate;
         self.detector.update(config.sample_rate);
+        self.yaapt.update(config.sample_rate);
+        self.pyin.update(config.sample_rate);
+        self.mpm.update(config.sample_rate);
+        self.bitstream.update(config.sample_rate);
         self.psola.update(config.sample_rate);
         self.vocoder.update(config.sample_rate);
     }

@@ -1,4 +1,4 @@
-//! Gain reduction computation — threshold, ratio, convexity, inertia.
+//! Gain reduction computation — threshold, ratio, soft knee, inertia.
 //!
 //! Converts the detected envelope level into the amount of gain reduction
 //! to apply, shaped by the compression curve parameters.
@@ -7,7 +7,7 @@
 const MAX_CH: usize = 2;
 
 // r[impl comp.chain.signal-flow]
-/// Gain computer with convexity shaping and inertia momentum.
+/// Gain computer with soft knee and inertia momentum.
 pub struct GainComputer {
     /// Current gain reduction in dB per channel.
     pub gr_db: [f64; MAX_CH],
@@ -21,18 +21,21 @@ impl GainComputer {
     pub fn new() -> Self {
         Self {
             gr_db: [0.0; MAX_CH],
-            prev_gr: [-200.0; MAX_CH],
+            prev_gr: [0.0; MAX_CH],
             inertia_vel: [0.0; MAX_CH],
         }
     }
 
     /// Compute gain reduction in dB from the detected level.
     ///
+    /// Uses a standard soft-knee compression curve. When `knee_db` > 0,
+    /// there is a smooth quadratic transition zone around the threshold.
+    ///
     /// # Parameters
     /// - `level_db`: smoothed envelope level in dB (from detector)
     /// - `threshold_db`: compression threshold in dB
     /// - `ratio`: compression ratio (1.0 = no compression, 20.0 = hard limiting)
-    /// - `convexity`: curve shape power (1.0 = standard, <1 = softer, >1 = harder)
+    /// - `knee_db`: soft knee width in dB (0 = hard knee, 6 = gentle, 12+ = very soft)
     /// - `inertia`: momentum coefficient (-1.0 to 0.3, 0 = off)
     /// - `inertia_decay`: decay coefficient for inertia velocity (0.99-1.0 range)
     /// - `ch`: channel index
@@ -44,7 +47,7 @@ impl GainComputer {
         level_db: f64,
         threshold_db: f64,
         ratio: f64,
-        convexity: f64,
+        knee_db: f64,
         inertia: f64,
         inertia_decay: f64,
         ch: usize,
@@ -54,21 +57,22 @@ impl GainComputer {
             return 0.0;
         }
 
-        if level_db > threshold_db {
-            // Standard compression curve: how much above threshold, reduced by ratio
-            let overshoot = level_db - threshold_db;
-            let target = threshold_db + overshoot / ratio;
-            let mut gr = level_db - target;
+        let slope = 1.0 - 1.0 / ratio;
+        let half_knee = knee_db * 0.5;
 
-            // Convexity shaping — power function on the gain reduction
-            if gr > 0.0 && convexity != 1.0 {
-                gr = gr.powf(convexity);
-            }
-
-            self.gr_db[ch] = gr;
+        let gr = if knee_db > 0.001 && (level_db - threshold_db).abs() < half_knee {
+            // Soft knee region: quadratic interpolation
+            let x = level_db - threshold_db + half_knee;
+            slope * x * x / (2.0 * knee_db)
+        } else if level_db > threshold_db {
+            // Above knee: standard compression
+            slope * (level_db - threshold_db)
         } else {
-            self.gr_db[ch] = 0.0;
-        }
+            // Below threshold: no compression
+            0.0
+        };
+
+        self.gr_db[ch] = gr;
 
         // Inertia system — adds momentum to gain reduction changes
         if inertia.abs() > 1e-6 {
@@ -98,7 +102,7 @@ impl GainComputer {
 
     pub fn reset(&mut self) {
         self.gr_db = [0.0; MAX_CH];
-        self.prev_gr = [-200.0; MAX_CH];
+        self.prev_gr = [0.0; MAX_CH];
         self.inertia_vel = [0.0; MAX_CH];
     }
 }

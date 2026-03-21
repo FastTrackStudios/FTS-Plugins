@@ -77,9 +77,11 @@ members = [
 
     # Pitch plugin (octave shifter)
     "crates/fts-pitch/pitch-dsp",
+    "crates/fts-pitch/pitch-plugin",
 
     # LiveTune plugin (auto-tune / pitch correction)
     "crates/fts-livetune/livetune-dsp",
+    "crates/fts-livetune/livetune-plugin",
 
     "apps/*",
     "xtask",

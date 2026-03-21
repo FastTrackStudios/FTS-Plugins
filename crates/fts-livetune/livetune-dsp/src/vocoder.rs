@@ -64,6 +64,12 @@ pub struct FormantVocoder {
     #[allow(dead_code)]
     cepstrum: Vec<f64>,
 
+    // Laroche-Dolson phase locking scratch buffers.
+    /// Whether each bin is a local magnitude peak.
+    peak_bins: Vec<bool>,
+    /// Index of the nearest peak bin for each bin.
+    nearest_peak: Vec<usize>,
+
     sample_rate: f64,
     /// Samples of latency.
     latency_samples: usize,
@@ -92,6 +98,8 @@ impl FormantVocoder {
             phase: vec![0.0; NUM_BINS],
             envelope: vec![0.0; NUM_BINS],
             cepstrum: vec![0.0; FFT_SIZE],
+            peak_bins: vec![false; NUM_BINS],
+            nearest_peak: vec![0; NUM_BINS],
             sample_rate: 48000.0,
             latency_samples: FFT_SIZE,
         }
@@ -244,34 +252,91 @@ impl FormantVocoder {
 
         let expected_phase_diff = 2.0 * PI * HOP_SIZE as f64 / FFT_SIZE as f64;
 
+        // --- Pass 1: compute shifted magnitudes for all bins ---
+        // Also store the source bin index for formant preservation.
+        let mut src_indices = vec![0usize; NUM_BINS];
         for i in 0..NUM_BINS {
-            // Source bin (fractional).
             let src = i as f64 / ratio;
             let src_idx = src.floor() as usize;
             let frac = src - src_idx as f64;
+            src_indices[i] = src_idx;
 
             if src_idx < NUM_BINS - 1 {
-                // Interpolate magnitude.
                 new_mag[i] = self.mag[src_idx] * (1.0 - frac) + self.mag[src_idx + 1] * frac;
+            }
+        }
 
-                // Phase propagation: compute instantaneous frequency from phase difference.
+        // --- Pass 2: identify peak bins in the shifted magnitude spectrum ---
+        for i in 0..NUM_BINS {
+            self.peak_bins[i] = if i == 0 {
+                new_mag[0] > new_mag[1]
+            } else if i == NUM_BINS - 1 {
+                new_mag[NUM_BINS - 1] > new_mag[NUM_BINS - 2]
+            } else {
+                new_mag[i] > new_mag[i - 1] && new_mag[i] > new_mag[i + 1]
+            };
+        }
+
+        // --- Pass 3: compute phase for peak bins using instantaneous frequency ---
+        for i in 0..NUM_BINS {
+            if !self.peak_bins[i] {
+                continue;
+            }
+            let src = i as f64 / ratio;
+            let src_idx = src.floor() as usize;
+            if src_idx < NUM_BINS - 1 {
                 let phase_diff = self.phase[src_idx] - self.prev_phase[src_idx];
                 let expected = expected_phase_diff * src_idx as f64;
                 let mut deviation = phase_diff - expected;
-                // Wrap to [-pi, pi].
                 deviation -= (deviation / (2.0 * PI)).round() * 2.0 * PI;
-
                 let true_freq = src_idx as f64 + deviation / expected_phase_diff;
                 let shifted_freq = true_freq * ratio;
-
-                // Accumulate phase for synthesis.
                 new_phase[i] = self.synth_phase[i] + expected_phase_diff * shifted_freq;
             }
+        }
 
-            // Apply formant preservation: re-apply original envelope.
-            if self.preserve_formants && (self.shift_ratio - 1.0).abs() > 0.001 {
+        // --- Pass 4: build nearest-peak map (sweep left then right) ---
+        // Forward sweep: assign nearest peak seen so far from the left.
+        let mut last_peak: Option<usize> = None;
+        for i in 0..NUM_BINS {
+            if self.peak_bins[i] {
+                last_peak = Some(i);
+            }
+            self.nearest_peak[i] = last_peak.unwrap_or(0);
+        }
+        // Backward sweep: pick the closer peak between left and right.
+        last_peak = None;
+        for i in (0..NUM_BINS).rev() {
+            if self.peak_bins[i] {
+                last_peak = Some(i);
+            }
+            if let Some(rp) = last_peak {
+                let lp = self.nearest_peak[i];
+                if (rp as isize - i as isize).unsigned_abs() < (lp as isize - i as isize).unsigned_abs() {
+                    self.nearest_peak[i] = rp;
+                }
+            }
+        }
+
+        // --- Pass 5: lock non-peak bins to their nearest peak ---
+        for i in 0..NUM_BINS {
+            if self.peak_bins[i] {
+                continue;
+            }
+            let np = self.nearest_peak[i];
+            // Preserve the analysis-frame phase relationship relative to the peak.
+            let src_i = (i as f64 / ratio).floor() as usize;
+            let src_np = (np as f64 / ratio).floor() as usize;
+            if src_i < NUM_BINS && src_np < NUM_BINS {
+                new_phase[i] = new_phase[np] + (self.phase[src_i.min(NUM_BINS - 1)] - self.phase[src_np.min(NUM_BINS - 1)]);
+            }
+        }
+
+        // --- Formant preservation: re-apply original envelope ---
+        if self.preserve_formants && (self.shift_ratio - 1.0).abs() > 0.001 {
+            for i in 0..NUM_BINS {
+                let src_idx = src_indices[i];
                 if src_idx < NUM_BINS && self.envelope[src_idx] > 1e-20 {
-                    // Remove source envelope, apply target envelope.
                     new_mag[i] *=
                         self.envelope[i.min(NUM_BINS - 1)] / self.envelope[src_idx].max(1e-20);
                 }

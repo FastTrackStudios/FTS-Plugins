@@ -71,8 +71,11 @@ pub struct FtsCompParams {
     #[id = "release"]
     pub release_ms: FloatParam,
 
-    #[id = "convexity"]
-    pub convexity: FloatParam,
+    #[id = "knee"]
+    pub knee_db: FloatParam,
+
+    #[id = "auto_makeup"]
+    pub auto_makeup: FloatParam,
 
     #[id = "feedback"]
     pub feedback: FloatParam,
@@ -111,7 +114,7 @@ impl Default for FtsCompParams {
         Self {
             threshold_db: FloatParam::new(
                 "Threshold",
-                0.0,
+                -10.0,
                 FloatRange::Linear {
                     min: -60.0,
                     max: 0.0,
@@ -156,8 +159,29 @@ impl Default for FtsCompParams {
             .with_unit(" ms")
             .with_value_to_string(formatters::v2s_f32_rounded(0)),
 
-            convexity: FloatParam::new("Knee", 1.0, FloatRange::Linear { min: 0.1, max: 3.0 })
-                .with_value_to_string(formatters::v2s_f32_rounded(2)),
+            knee_db: FloatParam::new(
+                "Knee",
+                6.0,
+                FloatRange::Linear { min: 0.0, max: 30.0 },
+            )
+            .with_unit(" dB")
+            .with_value_to_string(formatters::v2s_f32_rounded(1)),
+
+            auto_makeup: FloatParam::new(
+                "Auto Gain",
+                0.0,
+                FloatRange::Linear { min: 0.0, max: 1.0 },
+            )
+            .with_value_to_string(Arc::new(|v| {
+                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
+            }))
+            .with_string_to_value(Arc::new(|s| {
+                match s.trim().to_lowercase().as_str() {
+                    "on" | "1" | "true" => Some(1.0),
+                    "off" | "0" | "false" => Some(0.0),
+                    _ => s.parse().ok(),
+                }
+            })),
 
             feedback: FloatParam::new("Feedback", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_unit("%")
@@ -294,7 +318,8 @@ impl FtsComp {
         c.ratio = self.params.ratio.value() as f64;
         c.attack_ms = self.params.attack_ms.value() as f64;
         c.release_ms = self.params.release_ms.value() as f64;
-        c.convexity = self.params.convexity.value() as f64;
+        c.knee_db = self.params.knee_db.value() as f64;
+        c.auto_makeup = self.params.auto_makeup.value() > 0.5;
         c.feedback = self.params.feedback.value() as f64;
         c.channel_link = self.params.channel_link.value() as f64;
         c.inertia = self.params.inertia.value() as f64;

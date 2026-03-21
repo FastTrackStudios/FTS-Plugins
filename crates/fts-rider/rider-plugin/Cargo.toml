@@ -10,8 +10,11 @@ description = "FTS Rider — CLAP/VST3 audio plugin entry point"
 crate-type = ["cdylib"]
 
 [dependencies]
+audio-gui = { workspace = true }
 fts-plugin-core = { path = "../../fts-plugin-core" }
+fts-dsp = { workspace = true }
 rider-dsp = { path = "../rider-dsp" }
 rider-profiles = { path = "../rider-profiles" }
 rider-ui = { path = "../rider-ui" }
 nih_plug = { workspace = true }
+atomic_float = { workspace = true }
