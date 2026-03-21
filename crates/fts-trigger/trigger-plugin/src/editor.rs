@@ -5,7 +5,9 @@ use std::sync::Arc;
 
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::slider::ParamSlider;
-use audio_gui::prelude::{theme, DragProvider, KnobSize, LevelMeterDb, PeakWaveform};
+use audio_gui::prelude::{
+    theme, ControlGroup, DragProvider, Divider, KnobSize, LevelMeterDb, PeakWaveform,
+};
 use fts_plugin_core::prelude::*;
 
 use crate::engine::NUM_SLOTS;
@@ -241,35 +243,3 @@ fn open_file_dialog(slot: usize, ui: Arc<TriggerUiState>) {
     });
 }
 
-#[component]
-fn ControlGroup(label: &'static str, children: Element) -> Element {
-    rsx! {
-        div {
-            style: "display:flex; flex-direction:column; align-items:center; gap:6px;",
-            div {
-                style: format!(
-                    "font-size:9px; color:{TEXT_DIM}; text-transform:uppercase; \
-                     letter-spacing:0.6px; font-weight:600;",
-                    TEXT_DIM = theme::TEXT_DIM,
-                ),
-                "{label}"
-            }
-            div {
-                style: "display:flex; gap:10px; align-items:flex-end;",
-                {children}
-            }
-        }
-    }
-}
-
-#[component]
-fn Divider() -> Element {
-    rsx! {
-        div {
-            style: format!(
-                "width:1px; background:{}; align-self:stretch;",
-                theme::BORDER,
-            ),
-        }
-    }
-}

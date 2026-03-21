@@ -6,7 +6,7 @@ use std::sync::Arc;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::segment::SegmentButton;
 use audio_gui::controls::toggle::Toggle;
-use audio_gui::prelude::{theme, DragProvider, KnobSize, LevelMeterDb};
+use audio_gui::prelude::{theme, DragProvider, KnobSize, LevelMeterDb, SectionLabel};
 use fts_plugin_core::prelude::*;
 
 use crate::{FtsLiveTuneParams, LiveTuneUiState};
@@ -323,17 +323,3 @@ pub fn App() -> Element {
     }
 }
 
-/// Tiny section label.
-#[component]
-fn SectionLabel(text: &'static str) -> Element {
-    rsx! {
-        div {
-            style: format!(
-                "font-size:10px; color:{TEXT_DIM}; text-transform:uppercase; \
-                 letter-spacing:0.4px;",
-                TEXT_DIM = theme::TEXT_DIM,
-            ),
-            "{text}"
-        }
-    }
-}

@@ -8,7 +8,8 @@ use std::sync::atomic::Ordering;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{
-    theme, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform, TransferCurve,
+    theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform,
+    SectionLabel, TransferCurve,
 };
 use fts_plugin_core::prelude::*;
 
@@ -248,39 +249,3 @@ pub fn App() -> Element {
     }
 }
 
-/// A labeled group of controls with a sub-heading.
-#[component]
-fn ControlGroup(label: &'static str, children: Element) -> Element {
-    rsx! {
-        div {
-            style: "display:flex; flex-direction:column; align-items:center; gap:6px;",
-            div {
-                style: format!(
-                    "font-size:9px; color:{TEXT_DIM}; text-transform:uppercase; \
-                     letter-spacing:0.6px; font-weight:600;",
-                    TEXT_DIM = theme::TEXT_DIM,
-                ),
-                "{label}"
-            }
-            div {
-                style: "display:flex; gap:14px; align-items:flex-end;",
-                {children}
-            }
-        }
-    }
-}
-
-/// Tiny section label used above visualization and knob rows.
-#[component]
-fn SectionLabel(text: &'static str) -> Element {
-    rsx! {
-        div {
-            style: format!(
-                "font-size:10px; color:{TEXT_DIM}; text-transform:uppercase; \
-                 letter-spacing:0.4px;",
-                TEXT_DIM = theme::TEXT_DIM,
-            ),
-            "{text}"
-        }
-    }
-}
