@@ -218,12 +218,13 @@ impl Default for FtsLiveTuneParams {
                     }
                 })),
 
-            shifter_mode: IntParam::new("Shifter", 0, IntRange::Linear { min: 0, max: 2 })
+            shifter_mode: IntParam::new("Shifter", 0, IntRange::Linear { min: 0, max: 3 })
                 .with_value_to_string(Arc::new(|v| {
                     match v {
                         0 => "Auto".to_string(),
                         1 => "PSOLA".to_string(),
                         2 => "Vocoder".to_string(),
+                        3 => "PVSOLA".to_string(),
                         _ => format!("{v}"),
                     }
                 }))
@@ -232,6 +233,7 @@ impl Default for FtsLiveTuneParams {
                         "auto" | "0" => Some(0),
                         "psola" | "1" => Some(1),
                         "vocoder" | "2" => Some(2),
+                        "pvsola" | "hybrid" | "3" => Some(3),
                         _ => s.parse().ok(),
                     }
                 })),
@@ -369,6 +371,7 @@ impl FtsLiveTune {
             0 => ShifterMode::Auto,
             1 => ShifterMode::Psola,
             2 => ShifterMode::Vocoder,
+            3 => ShifterMode::Pvsola,
             _ => ShifterMode::Auto,
         };
         self.chain.confidence_threshold = self.params.confidence_threshold.value() as f64;

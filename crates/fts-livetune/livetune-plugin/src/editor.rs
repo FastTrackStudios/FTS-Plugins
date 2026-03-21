@@ -273,6 +273,7 @@ pub fn App() -> Element {
                                 SegmentButton { label: "Auto", selected: current_shifter == 0, on_click: shifter_setter(0) }
                                 SegmentButton { label: "PSOLA", selected: current_shifter == 1, on_click: shifter_setter(1) }
                                 SegmentButton { label: "Vocoder", selected: current_shifter == 2, on_click: shifter_setter(2) }
+                                SegmentButton { label: "PVSOLA", selected: current_shifter == 3, on_click: shifter_setter(3) }
                             }
                         }
 

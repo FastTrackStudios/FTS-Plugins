@@ -67,13 +67,14 @@ pub struct FtsPitchParams {
 impl Default for FtsPitchParams {
     fn default() -> Self {
         Self {
-            algorithm: IntParam::new("Algorithm", 0, IntRange::Linear { min: 0, max: 3 })
+            algorithm: IntParam::new("Algorithm", 0, IntRange::Linear { min: 0, max: 4 })
                 .with_value_to_string(Arc::new(|v| {
                     match v {
                         0 => "Divider".to_string(),
                         1 => "PLL".to_string(),
                         2 => "Granular".to_string(),
                         3 => "PSOLA".to_string(),
+                        4 => "WSOLA".to_string(),
                         _ => format!("{v}"),
                     }
                 }))
@@ -83,6 +84,7 @@ impl Default for FtsPitchParams {
                         "pll" | "1" => Some(1),
                         "granular" | "grain" | "2" => Some(2),
                         "psola" | "3" => Some(3),
+                        "wsola" | "4" => Some(4),
                         _ => s.parse().ok(),
                     }
                 })),
@@ -178,6 +180,7 @@ impl FtsPitch {
             1 => Algorithm::Pll,
             2 => Algorithm::Granular,
             3 => Algorithm::Psola,
+            4 => Algorithm::Wsola,
             _ => Algorithm::Granular,
         };
         self.chain.semitones = self.params.semitones.value() as f64;

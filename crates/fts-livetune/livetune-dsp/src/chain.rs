@@ -15,6 +15,7 @@ use crate::bitstream::BitstreamDetector;
 use crate::detector::{PitchDetector, PitchEstimate};
 use crate::mpm::MpmDetector;
 use crate::pyin::PyinDetector;
+use crate::pvsola::PvsolaShifter;
 use crate::quantizer::{Key, NoteState, Scale, ScaleQuantizer};
 use crate::vocoder::FormantVocoder;
 use crate::yaapt::YaaptDetector;
@@ -44,6 +45,8 @@ pub enum ShifterMode {
     Psola,
     /// Always use phase vocoder (formant preservation via cepstral envelope).
     Vocoder,
+    /// PVSOLA hybrid: phase vocoder + PSOLA with voicing-based blending.
+    Pvsola,
 }
 
 /// Complete auto-tune processor.
@@ -79,6 +82,7 @@ pub struct LiveTuneChain {
     quantizer: ScaleQuantizer,
     psola: PsolaShifter,
     vocoder: FormantVocoder,
+    pvsola: PvsolaShifter,
 
     // -- State --
     /// Current detected pitch estimate.
@@ -112,6 +116,7 @@ impl LiveTuneChain {
             quantizer: ScaleQuantizer::new(),
             psola: PsolaShifter::new(),
             vocoder: FormantVocoder::new(),
+            pvsola: PvsolaShifter::new(),
             current_pitch: PitchEstimate::unvoiced(),
             current_shift: 0.0,
             auto_threshold_st: 5.0,
@@ -141,6 +146,7 @@ impl LiveTuneChain {
         let shifter_latency = match self.shifter_mode {
             ShifterMode::Psola => self.psola.latency(),
             ShifterMode::Vocoder => self.vocoder.latency(),
+            ShifterMode::Pvsola => self.pvsola.latency(),
             ShifterMode::Auto => {
                 // Report worst-case (vocoder) latency for host compensation.
                 self.vocoder.latency()
@@ -195,20 +201,33 @@ impl LiveTuneChain {
 
         let ratio = (2.0f64).powf(shift_semitones / 12.0);
 
-        let use_vocoder = match self.shifter_mode {
-            ShifterMode::Psola => false,
-            ShifterMode::Vocoder => true,
-            ShifterMode::Auto => shift_semitones.abs() >= self.auto_threshold_st,
-        };
-
-        let wet = if use_vocoder {
-            self.vocoder.shift_ratio = ratio;
-            self.vocoder.mix = 1.0;
-            self.vocoder.tick(input)
-        } else {
-            self.psola.speed = ratio;
-            self.psola.mix = 1.0;
-            self.psola.tick(input)
+        let wet = match self.shifter_mode {
+            ShifterMode::Psola => {
+                self.psola.speed = ratio;
+                self.psola.mix = 1.0;
+                self.psola.tick(input)
+            }
+            ShifterMode::Vocoder => {
+                self.vocoder.shift_ratio = ratio;
+                self.vocoder.mix = 1.0;
+                self.vocoder.tick(input)
+            }
+            ShifterMode::Pvsola => {
+                self.pvsola.shift_ratio = ratio;
+                self.pvsola.mix = 1.0;
+                self.pvsola.tick(input)
+            }
+            ShifterMode::Auto => {
+                if shift_semitones.abs() >= self.auto_threshold_st {
+                    self.vocoder.shift_ratio = ratio;
+                    self.vocoder.mix = 1.0;
+                    self.vocoder.tick(input)
+                } else {
+                    self.psola.speed = ratio;
+                    self.psola.mix = 1.0;
+                    self.psola.tick(input)
+                }
+            }
         };
 
         // 4. Dry/wet mix.
@@ -232,6 +251,7 @@ impl Processor for LiveTuneChain {
         self.quantizer.reset();
         self.psola.reset();
         self.vocoder.reset();
+        self.pvsola.reset();
         self.current_pitch = PitchEstimate::unvoiced();
         self.current_shift = 0.0;
     }
@@ -245,6 +265,7 @@ impl Processor for LiveTuneChain {
         self.bitstream.update(config.sample_rate);
         self.psola.update(config.sample_rate);
         self.vocoder.update(config.sample_rate);
+        self.pvsola.update(config.sample_rate);
     }
 
     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
