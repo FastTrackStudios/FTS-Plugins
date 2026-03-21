@@ -3138,6 +3138,7 @@ dependencies = [
  "fts-dsp",
  "fts-plugin-core",
  "nih_plug",
+ "rustfft",
 ]
 
 [[package]]
