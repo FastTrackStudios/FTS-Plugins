@@ -20,5 +20,5 @@ nih_plug = { workspace = true }
 atomic_float = { workspace = true }
 fts-dsp = { workspace = true }
 crossbeam-channel = { workspace = true }
-symphonium = { workspace = true }
+fts-sample = { workspace = true }
 serde = { workspace = true }

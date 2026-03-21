@@ -3619,6 +3619,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fts-sample"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-channel",
+ "symphonium",
+ "tracing",
+]
+
+[[package]]
 name = "fts-themes"
 version = "0.1.0"
 dependencies = [
@@ -9849,9 +9858,9 @@ dependencies = [
  "eq-dsp",
  "fts-dsp",
  "fts-plugin-core",
+ "fts-sample",
  "nih_plug",
  "serde",
- "symphonium",
  "trigger-dsp",
  "trigger-profiles",
  "trigger-ui",

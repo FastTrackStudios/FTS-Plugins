@@ -1,11 +1,10 @@
-//! Sample loading utility using Symphonium.
+//! Sample loading bridge between fts-sample and trigger-dsp.
 //!
-//! Decodes audio files on a background thread and sends loaded samples
-//! to the audio thread via a crossbeam channel.
+//! Converts `fts_sample::AudioData` into `trigger_dsp::sampler::Sample`
+//! and provides the channel message type for async loading.
 
 use crossbeam_channel::Sender;
-use std::path::Path;
-use symphonium::{ResampleQuality, SymphoniumLoader};
+use fts_sample::AudioData;
 use trigger_dsp::sampler::Sample;
 
 /// Message sent from loader thread to audio thread.
@@ -15,52 +14,12 @@ pub struct SampleLoadMessage {
     pub name: String,
 }
 
-/// Load a sample file, decode it, and convert to the DSP `Sample` format.
-///
-/// Resamples to `target_sr` automatically via Symphonium.
-pub fn load_sample(
-    path: &Path,
-    target_sr: f64,
-) -> Result<(Sample, String), Box<dyn std::error::Error + Send + Sync>> {
-    let mut loader = SymphoniumLoader::new();
-    let decoded = loader
-        .load_f32(
-            path.to_str().unwrap_or(""),
-            Some(target_sr as u32),
-            ResampleQuality::default(),
-            None,
-        )
-        .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
-            Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("{e}")))
-        })?;
-
-    let name = path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("sample")
-        .to_string();
-
-    let num_channels = decoded.channels() as usize;
-    let num_frames = if num_channels > 0 {
-        decoded.data[0].len()
-    } else {
-        return Err("Empty audio file".into());
-    };
-
-    // Convert to Vec<[f64; 2]> stereo pairs
-    let mut data = Vec::with_capacity(num_frames);
-    for frame in 0..num_frames {
-        let l = decoded.data[0][frame] as f64;
-        let r = if num_channels > 1 {
-            decoded.data[1][frame] as f64
-        } else {
-            l
-        };
-        data.push([l, r]);
+impl SampleLoadMessage {
+    fn from_audio(audio: AudioData, slot: usize) -> Self {
+        let name = audio.name.clone();
+        let sample = Sample::new(audio.data, audio.sample_rate);
+        Self { slot, sample, name }
     }
-
-    let sample = Sample::new(data, target_sr);
-    Ok((sample, name))
 }
 
 /// Spawn a background thread to load a sample and send it to the audio thread.
@@ -70,14 +29,5 @@ pub fn load_sample_async(
     target_sr: f64,
     tx: Sender<SampleLoadMessage>,
 ) {
-    std::thread::spawn(move || {
-        match load_sample(Path::new(&path), target_sr) {
-            Ok((sample, name)) => {
-                let _ = tx.send(SampleLoadMessage { slot, sample, name });
-            }
-            Err(e) => {
-                eprintln!("Failed to load sample for slot {}: {}", slot, e);
-            }
-        }
-    });
+    fts_sample::load_audio_async(path, target_sr, tx, slot, SampleLoadMessage::from_audio);
 }

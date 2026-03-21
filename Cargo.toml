@@ -75,6 +75,9 @@ members = [
     # NAM plugin (Neural Amp Modeler)
     "crates/fts-nam/nam-dsp",
 
+    # Shared sample loading
+    "crates/fts-sample",
+
     # Pitch plugin (octave shifter)
     "crates/fts-pitch/pitch-dsp",
     "crates/fts-pitch/pitch-plugin",
@@ -99,6 +102,7 @@ license = "MIT OR Apache-2.0"
 audio-gui = { path = "crates/audio-gui" }
 fts-plugin-core = { path = "crates/fts-plugin-core" }
 fts-dsp = { path = "crates/fts-dsp" }
+fts-sample = { path = "crates/fts-sample" }
 fts-modulation = { path = "crates/fts-modulation" }
 fts-themes = { path = "crates/fts-themes" }
 

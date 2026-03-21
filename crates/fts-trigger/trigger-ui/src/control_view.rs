@@ -23,6 +23,8 @@ pub fn MixerStrip(
     enabled_ptr: ParamPtr,
     mute_ptr: ParamPtr,
     solo_ptr: ParamPtr,
+    /// Callback when the load button is clicked.
+    on_load: EventHandler<usize>,
 ) -> Element {
     let slot_num = slot + 1;
     let display_name = if name.is_empty() {
@@ -82,6 +84,20 @@ pub fn MixerStrip(
                 ),
                 title: "{name}",
                 "{display_name}"
+            }
+
+            // Load button
+            div {
+                style: format!(
+                    "padding:2px 8px; border-radius:3px; cursor:pointer; \
+                     font-size:9px; font-weight:600; text-transform:uppercase; \
+                     letter-spacing:0.3px; \
+                     background:{}; color:{}; \
+                     border:1px solid {};",
+                    theme::SURFACE, theme::TEXT_DIM, theme::BORDER,
+                ),
+                onclick: move |_| on_load.call(slot),
+                "Load"
             }
 
             // Gain fader

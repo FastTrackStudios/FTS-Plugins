@@ -1,6 +1,7 @@
 //! FTS Trigger — Dioxus GUI editor.
 
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::slider::ParamSlider;
@@ -8,6 +9,7 @@ use audio_gui::prelude::{theme, DragProvider, KnobSize, LevelMeterDb, PeakWavefo
 use fts_plugin_core::prelude::*;
 
 use crate::engine::NUM_SLOTS;
+use crate::loader;
 use crate::{TriggerUiState, WAVEFORM_LEN};
 use trigger_ui::control_view::MixerStrip;
 
@@ -16,6 +18,7 @@ use trigger_ui::control_view::MixerStrip;
 pub fn App() -> Element {
     let shared = use_context::<SharedState>();
     let ui = shared.get::<TriggerUiState>().expect("TriggerUiState missing");
+    let ui_for_load = ui.clone();
     let params = &ui.params;
 
     // Read metering
@@ -141,6 +144,12 @@ pub fn App() -> Element {
                         enabled_ptr: params.slots[slot].enabled.as_ptr(),
                         mute_ptr: params.slots[slot].mute.as_ptr(),
                         solo_ptr: params.slots[slot].solo.as_ptr(),
+                        on_load: {
+                            let ui = ui_for_load.clone();
+                            move |slot: usize| {
+                                open_file_dialog(slot, ui.clone());
+                            }
+                        },
                     }
                 }
             }
@@ -162,6 +171,13 @@ pub fn App() -> Element {
                     Knob { param_ptr: params.release_time.as_ptr(), size: KnobSize::Small }
                     Knob { param_ptr: params.release_ratio.as_ptr(), size: KnobSize::Small }
                     ParamSlider { param_ptr: params.detect_mode.as_ptr() }
+                }
+
+                Divider {}
+
+                ControlGroup {
+                    label: "Algorithm",
+                    ParamSlider { param_ptr: params.detect_algorithm.as_ptr() }
                 }
 
                 Divider {}
@@ -201,6 +217,28 @@ pub fn App() -> Element {
         }
         } // DragProvider
     }
+}
+
+/// Open a native file dialog on a background thread, then send the
+/// selected file to the audio thread for loading.
+fn open_file_dialog(slot: usize, ui: Arc<TriggerUiState>) {
+    std::thread::spawn(move || {
+        let title = format!("Load Sample — Slot {}", slot + 1);
+        let file = fts_sample::dialog::pick_audio_file(&title);
+
+        if let Some(path) = file {
+            let sr = ui.sample_rate.load(Ordering::Relaxed) as f64;
+            let tx = ui.sample_tx.clone();
+            let path_str = path.to_string_lossy().to_string();
+
+            // Persist the path for DAW recall
+            if let Ok(mut paths) = ui.params.slot_paths.lock() {
+                paths.paths[slot] = Some(path_str.clone());
+            }
+
+            loader::load_sample_async(path_str, slot, sr, tx);
+        }
+    });
 }
 
 #[component]
