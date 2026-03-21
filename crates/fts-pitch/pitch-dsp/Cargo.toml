@@ -8,3 +8,7 @@ license.workspace = true
 [dependencies]
 fts-dsp = { path = "../../fts-dsp", default-features = false }
 serde = { workspace = true }
+
+# External pitch/time-stretch libraries
+signalsmith-stretch = "0.1"
+

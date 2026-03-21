@@ -19,4 +19,6 @@ pub mod divider;
 pub mod granular;
 pub mod pll;
 pub mod psola;
+pub mod rubberband;
+pub mod signalsmith;
 pub mod wsola;

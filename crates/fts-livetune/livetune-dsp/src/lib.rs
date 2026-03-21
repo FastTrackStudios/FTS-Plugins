@@ -12,11 +12,16 @@
 
 pub mod bitstream;
 pub mod chain;
+pub mod crepe;
 pub mod detector;
+pub mod fcpe;
 pub mod lpc;
 pub mod mpm;
+pub mod pesto;
 pub mod pvsola;
 pub mod pyin;
 pub mod quantizer;
+pub mod rmvpe;
+pub mod swiftf0;
 pub mod vocoder;
 pub mod yaapt;
