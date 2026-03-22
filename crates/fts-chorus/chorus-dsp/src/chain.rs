@@ -74,6 +74,7 @@ fn create_voices_stereo(engine: EngineType, count: usize) -> Vec<Box<dyn ChorusE
                 EngineType::Bbd => Box::new(BbdVoice::new(offset)),
                 EngineType::Tape => Box::new(TapeVoice::new(offset)),
                 EngineType::Orbit => Box::new(OrbitVoice::new(offset)),
+                EngineType::Juno => Box::new(JunoVoice::new(offset)),
             };
             voice
         })

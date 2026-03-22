@@ -6,4 +6,5 @@
 //! amplitude control with stereo phase offset.
 
 pub mod chain;
+pub mod dynamics;
 pub mod tremolo;

@@ -65,15 +65,19 @@ members = [
 
     # Tremolo plugin
     "crates/fts-trem/trem-dsp",
+    "crates/fts-trem/trem-plugin",
 
     # Chorus plugin
     "crates/fts-chorus/chorus-dsp",
+    "crates/fts-chorus/chorus-plugin",
 
     # Wah plugin
     "crates/fts-wah/wah-dsp",
 
     # NAM plugin (Neural Amp Modeler)
     "crates/fts-nam/nam-dsp",
+    "crates/fts-nam/nam-ui",
+    "crates/fts-nam/nam-plugin",
 
     # Shared sample loading
     "crates/fts-sample",
@@ -85,6 +89,11 @@ members = [
     # LiveTune plugin (auto-tune / pitch correction)
     "crates/fts-livetune/livetune-dsp",
     "crates/fts-livetune/livetune-plugin",
+
+    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
+    "crates/fts-midi-guitar/midi-guitar-dsp",
+    "crates/fts-midi-guitar/midi-guitar-plugin",
+    "crates/fts-midi-guitar/midi-guitar-analysis",
 
     "apps/*",
     "xtask",
@@ -99,7 +108,7 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 # Internal crates
-audio-gui = { git = "https://github.com/FastTrackStudios/audio-gui.git", branch = "main" }
+audio-gui = { path = "crates/audio-gui" }
 fts-plugin-core = { path = "crates/fts-plugin-core" }
 fts-dsp = { path = "crates/fts-dsp" }
 fts-sample = { path = "crates/fts-sample" }
