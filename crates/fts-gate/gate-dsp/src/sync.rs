@@ -42,6 +42,7 @@ impl OnsetEvent {
             1 => DrumClass::Snare,
             2 => DrumClass::HiHat,
             3 => DrumClass::Tom,
+            4 => DrumClass::Guitar,
             _ => DrumClass::Unknown,
         }
     }
@@ -64,6 +65,7 @@ fn drum_class_to_raw(c: DrumClass) -> u8 {
         DrumClass::Snare => 1,
         DrumClass::HiHat => 2,
         DrumClass::Tom => 3,
+        DrumClass::Guitar => 4,
         DrumClass::Unknown => 255,
     }
 }

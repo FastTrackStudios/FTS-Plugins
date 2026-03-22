@@ -66,6 +66,8 @@ pub struct FtsGateParams {
     pub sc_lpf_freq: FloatParam,
     #[id = "sc_listen"]
     pub sc_listen: FloatParam,
+    #[id = "sc_source"]
+    pub sc_source: FloatParam,
     #[id = "drum_target"]
     pub drum_target: FloatParam,
     #[id = "drum_strictness"]
@@ -195,29 +197,39 @@ impl Default for FtsGateParams {
             .with_unit(" Hz")
             .with_value_to_string(formatters::v2s_f32_rounded(0)),
             sc_listen: bool_param("SC Listen"),
-            drum_target: FloatParam::new(
-                "Drum Target",
-                0.0,
-                FloatRange::Linear { min: 0.0, max: 4.0 },
-            )
-            .with_step_size(1.0)
-            .with_value_to_string(Arc::new(|v| match v.round() as i32 {
-                1 => "Kick".to_string(),
-                2 => "Snare".to_string(),
-                3 => "Hi-Hat".to_string(),
-                4 => "Tom".to_string(),
-                _ => "Off".to_string(),
-            }))
-            .with_string_to_value(Arc::new(|s| {
-                match s.trim().to_lowercase().as_str() {
+            sc_source: FloatParam::new("SC Source", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_step_size(1.0)
+                .with_value_to_string(Arc::new(|v| {
+                    if v > 0.5 {
+                        "External".to_string()
+                    } else {
+                        "Internal".to_string()
+                    }
+                }))
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "internal" | "int" | "0" => Some(0.0),
+                    "external" | "ext" | "1" => Some(1.0),
+                    _ => s.parse().ok(),
+                })),
+            drum_target: FloatParam::new("Target", 0.0, FloatRange::Linear { min: 0.0, max: 5.0 })
+                .with_step_size(1.0)
+                .with_value_to_string(Arc::new(|v| match v.round() as i32 {
+                    1 => "Kick".to_string(),
+                    2 => "Snare".to_string(),
+                    3 => "Hi-Hat".to_string(),
+                    4 => "Tom".to_string(),
+                    5 => "Guitar".to_string(),
+                    _ => "Off".to_string(),
+                }))
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
                     "off" | "0" => Some(0.0),
                     "kick" | "1" => Some(1.0),
                     "snare" | "2" => Some(2.0),
                     "hi-hat" | "hihat" | "hat" | "3" => Some(3.0),
                     "tom" | "4" => Some(4.0),
+                    "guitar" | "gtr" | "di" | "5" => Some(5.0),
                     _ => None,
-                }
-            })),
+                })),
             drum_strictness: FloatParam::new(
                 "Strictness",
                 0.5,
@@ -276,6 +288,7 @@ fn param_to_drum_class(v: f32) -> DrumClass {
         2 => DrumClass::Snare,
         3 => DrumClass::HiHat,
         4 => DrumClass::Tom,
+        5 => DrumClass::Guitar,
         _ => DrumClass::Unknown,
     }
 }
@@ -286,6 +299,7 @@ fn drum_class_to_u8(c: DrumClass) -> u8 {
         DrumClass::Snare => 1,
         DrumClass::HiHat => 2,
         DrumClass::Tom => 3,
+        DrumClass::Guitar => 4,
         DrumClass::Unknown => 255,
     }
 }
@@ -331,11 +345,21 @@ impl Plugin for FtsGate {
     const URL: &'static str = "";
     const EMAIL: &'static str = "";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-    const AUDIO_IO_LAYOUTS: &'static [AudioIOLayout] = &[AudioIOLayout {
-        main_input_channels: NonZeroU32::new(2),
-        main_output_channels: NonZeroU32::new(2),
-        ..AudioIOLayout::const_default()
-    }];
+    const AUDIO_IO_LAYOUTS: &'static [AudioIOLayout] = &[
+        // Stereo with sidechain input
+        AudioIOLayout {
+            main_input_channels: NonZeroU32::new(2),
+            main_output_channels: NonZeroU32::new(2),
+            aux_input_ports: &[new_nonzero_u32(2)],
+            ..AudioIOLayout::const_default()
+        },
+        // Stereo without sidechain (fallback)
+        AudioIOLayout {
+            main_input_channels: NonZeroU32::new(2),
+            main_output_channels: NonZeroU32::new(2),
+            ..AudioIOLayout::const_default()
+        },
+    ];
     type SysExMessage = ();
     type BackgroundTask = ();
 
@@ -374,13 +398,27 @@ impl Plugin for FtsGate {
     fn process(
         &mut self,
         buffer: &mut Buffer,
-        _aux: &mut AuxiliaryBuffers,
+        aux: &mut AuxiliaryBuffers,
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
         self.sync_params();
         context.set_latency_samples(self.chain.latency_samples() as u32);
 
-        for mut frame in buffer.iter_samples() {
+        let use_external_sc = self.params.sc_source.value() > 0.5
+            && !aux.inputs.is_empty()
+            && aux.inputs[0].samples() > 0;
+
+        // Pre-read sidechain slices (avoids borrow conflicts in the sample loop)
+        let sc_slices: Option<(&[f32], &[f32])> = if use_external_sc {
+            let sc = aux.inputs[0].as_slice_immutable();
+            let sc_l = sc.get(0).map(|s| &**s).unwrap_or(&[]);
+            let sc_r = sc.get(1).map(|s| &**s).unwrap_or(sc_l);
+            Some((sc_l, sc_r))
+        } else {
+            None
+        };
+
+        for (sample_idx, mut frame) in buffer.iter_samples().enumerate() {
             let mut channels = frame.iter_mut();
             let left_ref = channels.next().unwrap();
             let right_ref = channels.next().unwrap();
@@ -389,7 +427,16 @@ impl Plugin for FtsGate {
 
             let mut l_buf = [*left_ref as f64];
             let mut r_buf = [*right_ref as f64];
-            self.chain.process(&mut l_buf, &mut r_buf);
+
+            if let Some((sc_l_buf, sc_r_buf)) = sc_slices {
+                let sc_l = *sc_l_buf.get(sample_idx).unwrap_or(&0.0) as f64;
+                let sc_r = *sc_r_buf.get(sample_idx).unwrap_or(&0.0) as f64;
+                self.chain
+                    .process_with_sidechain(&mut l_buf, &mut r_buf, &[sc_l], &[sc_r]);
+            } else {
+                self.chain.process(&mut l_buf, &mut r_buf);
+            }
+
             *left_ref = l_buf[0] as f32;
             *right_ref = r_buf[0] as f32;
 

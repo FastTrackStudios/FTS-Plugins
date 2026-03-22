@@ -114,6 +114,7 @@ impl AdaptiveDecayTracker {
                 DrumClass::Snare => (100.0, 500.0),
                 DrumClass::Tom => (60.0, 400.0),
                 DrumClass::HiHat => (3000.0, 15000.0),
+                DrumClass::Guitar => (80.0, 1200.0),
                 DrumClass::Unknown => (30.0, 500.0), // wide search
             };
             self.search_range = (lo, hi);

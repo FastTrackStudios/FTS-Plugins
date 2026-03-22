@@ -13,6 +13,7 @@ pub enum DrumClass {
     Snare,
     HiHat,
     Tom,
+    Guitar,
     Unknown,
 }
 
@@ -242,6 +243,17 @@ impl TimbreClassifier {
         // Tom: mid-range dominant
         if r[LOW_MID] > 0.30 + s * 0.10 && r[SUB] > 0.15 {
             return DrumClass::Tom;
+        }
+
+        // Guitar DI: strong low-mid and hi-mid presence, minimal sub, moderate highs
+        // Guitar DI signals typically have fundamental 80–400 Hz with harmonics up to 5 kHz,
+        // distinct from drums by having more even energy spread across low-mid and hi-mid.
+        if r[LOW_MID] > 0.25 + s * 0.05
+            && r[HI_MID] > 0.20 + s * 0.05
+            && r[SUB] < 0.20 - s * 0.05
+            && r[HIGH] < 0.25 - s * 0.05
+        {
+            return DrumClass::Guitar;
         }
 
         DrumClass::Unknown

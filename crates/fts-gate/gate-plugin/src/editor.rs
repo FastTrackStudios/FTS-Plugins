@@ -22,6 +22,7 @@ fn drum_class_label(raw: u8) -> &'static str {
         1 => "SNARE",
         2 => "HI-HAT",
         3 => "TOM",
+        4 => "GUITAR",
         _ => "—",
     }
 }
@@ -33,6 +34,7 @@ fn drum_class_color(raw: u8) -> &'static str {
         1 => "#f0c040", // amber — snare
         2 => "#4ade80", // green — hi-hat
         3 => "#8b5cf6", // purple — tom
+        4 => "#60a5fa", // blue — guitar
         _ => "#737380",
     }
 }
@@ -298,6 +300,7 @@ pub fn App() -> Element {
                 // Sidechain group
                 ControlGroup {
                     label: "Sidechain",
+                    Toggle { param_ptr: params.sc_source.as_ptr(), label: "Ext" }
                     Knob { param_ptr: params.sc_hpf_freq.as_ptr(), size: KnobSize::Medium }
                     Knob { param_ptr: params.sc_lpf_freq.as_ptr(), size: KnobSize::Medium }
                     Toggle { param_ptr: params.sc_listen.as_ptr(), label: "Listen" }

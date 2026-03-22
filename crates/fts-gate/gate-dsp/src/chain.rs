@@ -168,6 +168,96 @@ impl GateChain {
     pub fn latency_samples(&self) -> usize {
         self.lookahead_samples + self.aligner.alignment_samples()
     }
+
+    /// Process with an external sidechain signal driving the detector.
+    ///
+    /// `left`/`right` are the main audio (gated output).
+    /// `sc_left`/`sc_right` are the external sidechain (used for detection only).
+    /// All slices must be the same length.
+    pub fn process_with_sidechain(
+        &mut self,
+        left: &mut [f64],
+        right: &mut [f64],
+        sc_left: &[f64],
+        sc_right: &[f64],
+    ) {
+        for i in 0..left.len() {
+            // ── Sidechain path: use external SC, apply filters ──
+            let mut sc_l = sc_left[i];
+            let mut sc_r = sc_right[i];
+
+            if self.sc_hpf.enabled {
+                sc_l = self.sc_hpf.tick(sc_l, 0);
+                sc_r = self.sc_hpf.tick(sc_r, 1);
+            }
+            if self.sc_lpf.enabled {
+                sc_l = self.sc_lpf.tick(sc_l, 0);
+                sc_r = self.sc_lpf.tick(sc_r, 1);
+            }
+
+            // Sidechain listen: output the filtered SC signal
+            if self.sc_listen {
+                left[i] = sc_l;
+                right[i] = sc_r;
+                continue;
+            }
+
+            // Detection (mono sum)
+            let sc_mono = (sc_l + sc_r) * 0.5;
+
+            // Timbre classification
+            let (timbre_pass, drum_class) = self.classifier.tick(sc_mono);
+            if drum_class != DrumClass::Unknown {
+                self.last_drum_class = drum_class;
+            }
+
+            // Detector
+            let mut gate_open =
+                self.detector
+                    .tick(sc_mono, self.open_threshold_db, self.close_threshold_db, 0);
+
+            if !timbre_pass {
+                gate_open = false;
+            }
+
+            // Onset edge detection
+            self.onset_this_frame = gate_open && !self.prev_gate_open;
+            self.prev_gate_open = gate_open;
+
+            if self.onset_this_frame {
+                self.decay_tracker.on_onset(self.last_drum_class);
+                let amplitude = sc_mono.abs() as f32;
+                self.aligner.publish_onset(amplitude, self.last_drum_class);
+            }
+
+            // Adaptive decay
+            if self.decay_tracker.enabled {
+                let updated = self.decay_tracker.tick(sc_mono);
+                if updated {
+                    self.envelope.set_params(
+                        self.attack_ms,
+                        self.decay_tracker.computed_hold_ms,
+                        self.decay_tracker.computed_release_ms,
+                        self.range_db,
+                        self.config.sample_rate,
+                    );
+                }
+            }
+
+            // Envelope
+            let gain = self.envelope.tick(gate_open, 0);
+
+            // Audio path: lookahead → alignment → gain (applied to main, not SC)
+            let (delayed_l, delayed_r) = self.lookahead_delay(left[i], right[i]);
+            let (aligned_l, aligned_r) = self.aligner.tick(delayed_l, delayed_r);
+
+            left[i] = aligned_l * gain;
+            right[i] = aligned_r * gain;
+
+            self.last_gain[0] = gain;
+            self.last_gain[1] = gain;
+        }
+    }
 }
 
 impl Processor for GateChain {
