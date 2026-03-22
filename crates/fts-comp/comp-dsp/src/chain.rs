@@ -8,7 +8,7 @@ use eq_dsp::filter_type::{FilterStructure, FilterType};
 use fts_dsp::db::{db_to_linear, linear_to_db};
 use fts_dsp::{AudioConfig, Processor};
 
-use crate::compressor::Compressor;
+use crate::compressor::{Compressor, PEAK_TO_MEAN_DB};
 
 // r[impl comp.chain.signal-flow]
 // r[impl comp.chain.sidechain-eq]
@@ -58,14 +58,14 @@ impl CompChain {
             let level_l = self.comp.detector.tick(sc_l.abs(), self.comp.feedback, 0);
             let level_r = self.comp.detector.tick(sc_r.abs(), self.comp.feedback, 1);
 
-            // Compute gain reduction from filtered levels
+            // Compute gain reduction from filtered levels and smooth with attack/release
             let inertia_decay = 0.99 + (self.comp.inertia_decay * 0.01);
             let mut gr_db = [0.0_f64; 2];
             for ch in 0..2 {
                 let level = if ch == 0 { level_l } else { level_r };
                 gr_db[ch] = self.comp.gain_computer.compute(
                     level,
-                    self.comp.threshold_db,
+                    self.comp.threshold_db + PEAK_TO_MEAN_DB,
                     self.comp.ratio,
                     self.comp.knee_db,
                     self.comp.inertia,
@@ -167,14 +167,14 @@ impl Processor for CompChain {
                 let level_l = self.comp.detector.tick(sc_l.abs(), self.comp.feedback, 0);
                 let level_r = self.comp.detector.tick(sc_r.abs(), self.comp.feedback, 1);
 
-                // Compute gain reduction from filtered levels
+                // Compute gain reduction from filtered levels and smooth with attack/release
                 let inertia_decay = 0.99 + (self.comp.inertia_decay * 0.01);
                 let mut gr_db = [0.0_f64; 2];
                 for ch in 0..2 {
                     let level = if ch == 0 { level_l } else { level_r };
                     gr_db[ch] = self.comp.gain_computer.compute(
                         level,
-                        self.comp.threshold_db,
+                        self.comp.threshold_db + PEAK_TO_MEAN_DB,
                         self.comp.ratio,
                         self.comp.knee_db,
                         self.comp.inertia,

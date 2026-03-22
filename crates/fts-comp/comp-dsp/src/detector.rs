@@ -1,8 +1,9 @@
 //! Linear-domain envelope detector with scaled time constants.
 //!
 //! Single-stage asymmetric 1-pole filter operating on |input| in the linear
-//! domain, then converting to dB. This avoids zero-crossing artifacts inherent
-//! in dB-domain detection while preserving natural signal dynamics.
+//! domain, then converting to dB. The detector converges toward peak levels.
+//! The compressor compensates for the peak-vs-mean offset internally so that
+//! user-facing threshold values match Pro-C 3's mean-referenced thresholds.
 
 use fts_dsp::db::{linear_to_db, DB_FLOOR};
 

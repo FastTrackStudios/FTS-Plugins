@@ -12,6 +12,17 @@ use crate::gain::GainComputer;
 /// Maximum number of stereo channels.
 const MAX_CH: usize = 2;
 
+/// Peak-to-mean threshold offset: empirically tuned to 4.2 dB.
+///
+/// Theoretical value is 20*log10(π/2) ≈ 3.922 dB (ratio of peak to mean
+/// rectified sinewave). The extra ~0.28 dB accounts for discrete-time
+/// sampling effects in the asymmetric 1-pole detector.
+///
+/// Our asymmetric detector converges toward peak level, while Pro-C 3's
+/// thresholds are referenced to mean rectified level. This offset is applied
+/// internally so the same threshold value produces identical compression.
+pub const PEAK_TO_MEAN_DB: f64 = 4.2;
+
 // r[impl comp.chain.signal-flow]
 /// Complete stereo compressor with all APComp features.
 ///
@@ -112,10 +123,11 @@ impl Compressor {
             // Detect envelope level
             let level_db = self.detector.tick(samples[ch].abs(), self.feedback, ch);
 
-            // Compute gain reduction
+            // Compute gain reduction — offset threshold to account for
+            // peak-tracking detector vs mean-referenced threshold
             gr_db[ch] = self.gain_computer.compute(
                 level_db,
-                self.threshold_db,
+                self.threshold_db + PEAK_TO_MEAN_DB,
                 self.ratio,
                 self.knee_db,
                 self.inertia,
