@@ -149,12 +149,18 @@ impl SlotParams {
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
             .with_value_to_string(Arc::new(|v| {
-                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
+                if v > 0.5 {
+                    "On".to_string()
+                } else {
+                    "Off".to_string()
+                }
             }))
-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
-                "on" | "1" | "true" => Some(1.0),
-                "off" | "0" | "false" => Some(0.0),
-                _ => s.parse().ok(),
+            .with_string_to_value(Arc::new(|s| {
+                match s.trim().to_lowercase().as_str() {
+                    "on" | "1" | "true" => Some(1.0),
+                    "off" | "0" | "false" => Some(0.0),
+                    _ => s.parse().ok(),
+                }
             })),
 
             mute: FloatParam::new(
@@ -163,12 +169,18 @@ impl SlotParams {
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
             .with_value_to_string(Arc::new(|v| {
-                if v > 0.5 { "M".to_string() } else { "-".to_string() }
+                if v > 0.5 {
+                    "M".to_string()
+                } else {
+                    "-".to_string()
+                }
             }))
-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
-                "m" | "1" | "true" => Some(1.0),
-                "-" | "0" | "false" => Some(0.0),
-                _ => s.parse().ok(),
+            .with_string_to_value(Arc::new(|s| {
+                match s.trim().to_lowercase().as_str() {
+                    "m" | "1" | "true" => Some(1.0),
+                    "-" | "0" | "false" => Some(0.0),
+                    _ => s.parse().ok(),
+                }
             })),
 
             solo: FloatParam::new(
@@ -177,12 +189,18 @@ impl SlotParams {
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
             .with_value_to_string(Arc::new(|v| {
-                if v > 0.5 { "S".to_string() } else { "-".to_string() }
+                if v > 0.5 {
+                    "S".to_string()
+                } else {
+                    "-".to_string()
+                }
             }))
-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
-                "s" | "1" | "true" => Some(1.0),
-                "-" | "0" | "false" => Some(0.0),
-                _ => s.parse().ok(),
+            .with_string_to_value(Arc::new(|s| {
+                match s.trim().to_lowercase().as_str() {
+                    "s" | "1" | "true" => Some(1.0),
+                    "-" | "0" | "false" => Some(0.0),
+                    _ => s.parse().ok(),
+                }
             })),
         }
     }
@@ -301,10 +319,7 @@ impl Default for FtsTriggerParams {
             release_ratio: FloatParam::new(
                 "Hysteresis",
                 0.5,
-                FloatRange::Linear {
-                    min: 0.1,
-                    max: 0.9,
-                },
+                FloatRange::Linear { min: 0.1, max: 0.9 },
             )
             .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
@@ -338,21 +353,17 @@ impl Default for FtsTriggerParams {
                     _ => "Peak".to_string(),
                 })),
 
-            detect_algorithm: IntParam::new(
-                "Algorithm",
-                0,
-                IntRange::Linear { min: 0, max: 6 },
-            )
-            .with_value_to_string(Arc::new(|v| match v {
-                0 => "Live".to_string(),
-                1 => "Flux".to_string(),
-                2 => "SuperFlux".to_string(),
-                3 => "HFC".to_string(),
-                4 => "Complex".to_string(),
-                5 => "RectComplex".to_string(),
-                6 => "Mod KL".to_string(),
-                _ => "Live".to_string(),
-            })),
+            detect_algorithm: IntParam::new("Algorithm", 0, IntRange::Linear { min: 0, max: 6 })
+                .with_value_to_string(Arc::new(|v| match v {
+                    0 => "Live".to_string(),
+                    1 => "Flux".to_string(),
+                    2 => "SuperFlux".to_string(),
+                    3 => "HFC".to_string(),
+                    4 => "Complex".to_string(),
+                    5 => "RectComplex".to_string(),
+                    6 => "Mod KL".to_string(),
+                    _ => "Live".to_string(),
+                })),
 
             // Sidechain
             sc_hpf: FloatParam::new(
@@ -393,27 +404,23 @@ impl Default for FtsTriggerParams {
                 }
             })),
 
-            sc_listen: FloatParam::new(
-                "SC Listen",
-                0.0,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_value_to_string(Arc::new(|v| {
-                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
-            }))
-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
-                "on" | "1" | "true" => Some(1.0),
-                "off" | "0" | "false" => Some(0.0),
-                _ => s.parse().ok(),
-            })),
+            sc_listen: FloatParam::new("SC Listen", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(Arc::new(|v| {
+                    if v > 0.5 {
+                        "On".to_string()
+                    } else {
+                        "Off".to_string()
+                    }
+                }))
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "on" | "1" | "true" => Some(1.0),
+                    "off" | "0" | "false" => Some(0.0),
+                    _ => s.parse().ok(),
+                })),
 
             // Velocity
-            dynamics: FloatParam::new(
-                "Dynamics",
-                0.5,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            dynamics: FloatParam::new("Dynamics", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
             vel_curve: IntParam::new("Curve", 0, IntRange::Linear { min: 0, max: 3 })
                 .with_value_to_string(Arc::new(|v| match v {
@@ -433,12 +440,8 @@ impl Default for FtsTriggerParams {
                     _ => "Replace".to_string(),
                 })),
 
-            mix_amount: FloatParam::new(
-                "Blend",
-                1.0,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            mix_amount: FloatParam::new("Blend", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
             output_gain: FloatParam::new(
                 "Output",
@@ -696,10 +699,12 @@ impl Plugin for FtsTrigger {
             } else {
                 -100.0
             };
-            let new_in = if in_db > prev_in { in_db } else { prev_in - 0.3 };
-            self.ui_state
-                .input_peak_db
-                .store(new_in, Ordering::Relaxed);
+            let new_in = if in_db > prev_in {
+                in_db
+            } else {
+                prev_in - 0.3
+            };
+            self.ui_state.input_peak_db.store(new_in, Ordering::Relaxed);
 
             // Output peak with decay
             let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);

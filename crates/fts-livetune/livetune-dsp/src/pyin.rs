@@ -73,7 +73,14 @@ struct Svf {
 
 impl Svf {
     fn new() -> Self {
-        Self { ic1eq: 0.0, ic2eq: 0.0, a1: 0.0, a2: 0.0, a3: 0.0, k: 1.0 }
+        Self {
+            ic1eq: 0.0,
+            ic2eq: 0.0,
+            a1: 0.0,
+            a2: 0.0,
+            a3: 0.0,
+            k: 1.0,
+        }
     }
 
     fn set_params(&mut self, freq: f64, q: f64, sample_rate: f64) {
@@ -259,7 +266,11 @@ impl PyinDetector {
             rms += s * s;
         }
         rms = (rms / w as f64).sqrt();
-        let db = if rms > 1e-20 { 20.0 * rms.log10() } else { -120.0 };
+        let db = if rms > 1e-20 {
+            20.0 * rms.log10()
+        } else {
+            -120.0
+        };
 
         if db < self.gate_db {
             // Unvoiced observation.
@@ -412,8 +423,8 @@ impl PyinDetector {
         // Map candidates to pitch bins.
         for c in &candidates {
             if c.freq_hz >= F_MIN && c.freq_hz <= F_MAX {
-                let bin = (12.0 * BINS_PER_SEMITONE as f64 * (c.freq_hz / F_MIN).log2()).round()
-                    as usize;
+                let bin =
+                    (12.0 * BINS_PER_SEMITONE as f64 * (c.freq_hz / F_MIN).log2()).round() as usize;
                 if bin < n {
                     obs[bin] += c.probability;
                 }
@@ -562,7 +573,9 @@ impl PyinDetector {
             let semitones = 12.0 * (freq / self.a_freq).log2();
             let midi_note = 69.0 + semitones;
             // Confidence from the observation probability.
-            let confidence = self.obs_frames.last()
+            let confidence = self
+                .obs_frames
+                .last()
                 .and_then(|obs| obs.get(final_state))
                 .copied()
                 .unwrap_or(0.0)

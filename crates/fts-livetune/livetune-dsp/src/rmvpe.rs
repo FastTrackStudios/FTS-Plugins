@@ -389,9 +389,7 @@ impl RmvpeDetector {
             _ => return,
         };
 
-        match ort::session::Session::builder()
-            .and_then(|mut b| b.commit_from_file(&path))
-        {
+        match ort::session::Session::builder().and_then(|mut b| b.commit_from_file(&path)) {
             Ok(s) => {
                 self.session = Some(s);
             }
@@ -435,15 +433,14 @@ impl RmvpeDetector {
         self.mel_frames.push(last);
 
         // Build ONNX input tensor using (shape, data) tuple.
-        let input_tensor = match ort::value::Tensor::<f32>::from_array(
-            ([1usize, n_frames, N_MELS], mel_f32),
-        ) {
-            Ok(t) => t,
-            Err(_) => {
-                self.last_estimate = PitchEstimate::unvoiced();
-                return;
-            }
-        };
+        let input_tensor =
+            match ort::value::Tensor::<f32>::from_array(([1usize, n_frames, N_MELS], mel_f32)) {
+                Ok(t) => t,
+                Err(_) => {
+                    self.last_estimate = PitchEstimate::unvoiced();
+                    return;
+                }
+            };
 
         let session = self.session.as_mut().unwrap();
         let outputs = match session.run(ort::inputs![input_tensor]) {

@@ -148,43 +148,35 @@ impl Default for FtsRiderParams {
             .with_unit(" Hz")
             .with_value_to_string(formatters::v2s_f32_rounded(0)),
 
-            detect_mode: FloatParam::new(
-                "Mode",
-                1.0,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_step_size(1.0)
-            .with_value_to_string(Arc::new(|v| {
-                if v > 0.5 {
-                    "LUFS".to_string()
-                } else {
-                    "RMS".to_string()
-                }
-            }))
-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
-                "lufs" | "k" | "1" => Some(1.0),
-                "rms" | "0" => Some(0.0),
-                _ => s.parse().ok(),
-            })),
+            detect_mode: FloatParam::new("Mode", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_step_size(1.0)
+                .with_value_to_string(Arc::new(|v| {
+                    if v > 0.5 {
+                        "LUFS".to_string()
+                    } else {
+                        "RMS".to_string()
+                    }
+                }))
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "lufs" | "k" | "1" => Some(1.0),
+                    "rms" | "0" => Some(0.0),
+                    _ => s.parse().ok(),
+                })),
 
-            sc_listen: FloatParam::new(
-                "SC Listen",
-                0.0,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_step_size(1.0)
-            .with_value_to_string(Arc::new(|v| {
-                if v > 0.5 {
-                    "On".to_string()
-                } else {
-                    "Off".to_string()
-                }
-            }))
-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
-                "on" | "1" | "true" => Some(1.0),
-                "off" | "0" | "false" => Some(0.0),
-                _ => s.parse().ok(),
-            })),
+            sc_listen: FloatParam::new("SC Listen", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_step_size(1.0)
+                .with_value_to_string(Arc::new(|v| {
+                    if v > 0.5 {
+                        "On".to_string()
+                    } else {
+                        "Off".to_string()
+                    }
+                }))
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "on" | "1" | "true" => Some(1.0),
+                    "off" | "0" | "false" => Some(0.0),
+                    _ => s.parse().ok(),
+                })),
 
             output_gain_db: FloatParam::new(
                 "Output",
@@ -244,11 +236,10 @@ impl FtsRider {
         self.chain.rider.release_ms = speed * 1.6;
         self.chain.rider.detector.window_ms = speed;
 
-        self.chain.set_target_db(self.params.target_db.value() as f64);
-        self.chain.set_range_db(self.params.range_db.value() as f64);
         self.chain
-            .rider
-            .activity_threshold_db = self.params.gate_db.value() as f64;
+            .set_target_db(self.params.target_db.value() as f64);
+        self.chain.set_range_db(self.params.range_db.value() as f64);
+        self.chain.rider.activity_threshold_db = self.params.gate_db.value() as f64;
 
         let sc_freq = self.params.sc_freq.value() as f64;
         self.chain.set_sidechain_freq(sc_freq);
@@ -324,8 +315,7 @@ impl Plugin for FtsRider {
     ) -> ProcessStatus {
         self.sync_params();
 
-        let output_gain_lin =
-            fts_dsp::db::db_to_linear(self.params.output_gain_db.value() as f64);
+        let output_gain_lin = fts_dsp::db::db_to_linear(self.params.output_gain_db.value() as f64);
         let range = self.params.range_db.value().max(0.01);
 
         for mut frame in buffer.iter_samples() {
@@ -392,11 +382,12 @@ impl Plugin for FtsRider {
             self.waveform_peak = self.waveform_peak.max(input_peak);
             // Map gain_db to 0.0–1.0: 0.5 = unity, 0.0 = max cut, 1.0 = max boost
             let gain_norm = (gain / range + 0.5).clamp(0.0, 1.0);
-            self.waveform_gain_peak = if (gain_norm - 0.5).abs() > (self.waveform_gain_peak - 0.5).abs() {
-                gain_norm
-            } else {
-                self.waveform_gain_peak
-            };
+            self.waveform_gain_peak =
+                if (gain_norm - 0.5).abs() > (self.waveform_gain_peak - 0.5).abs() {
+                    gain_norm
+                } else {
+                    self.waveform_gain_peak
+                };
 
             self.waveform_counter += 1;
             if self.waveform_counter >= self.waveform_interval {
@@ -404,8 +395,7 @@ impl Plugin for FtsRider {
                     self.ui_state.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
                 self.ui_state.waveform_input[pos]
                     .store(self.waveform_peak.min(1.0), Ordering::Relaxed);
-                self.ui_state.waveform_gain[pos]
-                    .store(self.waveform_gain_peak, Ordering::Relaxed);
+                self.ui_state.waveform_gain[pos].store(self.waveform_gain_peak, Ordering::Relaxed);
                 self.ui_state
                     .waveform_pos
                     .store((pos + 1) as f32, Ordering::Relaxed);
@@ -422,8 +412,7 @@ impl Plugin for FtsRider {
 
 impl ClapPlugin for FtsRider {
     const CLAP_ID: &'static str = "com.fasttrackstudio.rider";
-    const CLAP_DESCRIPTION: Option<&'static str> =
-        Some("Vocal rider with automatic level control");
+    const CLAP_DESCRIPTION: Option<&'static str> = Some("Vocal rider with automatic level control");
     const CLAP_MANUAL_URL: Option<&'static str> = None;
     const CLAP_SUPPORT_URL: Option<&'static str> = None;
     const CLAP_FEATURES: &'static [ClapFeature] = &[

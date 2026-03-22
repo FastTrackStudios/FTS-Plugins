@@ -6,7 +6,7 @@ use std::sync::Arc;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::slider::ParamSlider;
 use audio_gui::prelude::{
-    theme, ControlGroup, DragProvider, Divider, KnobSize, LevelMeterDb, PeakWaveform,
+    theme, ControlGroup, Divider, DragProvider, KnobSize, LevelMeterDb, PeakWaveform,
 };
 use fts_plugin_core::prelude::*;
 
@@ -19,7 +19,9 @@ use trigger_ui::control_view::MixerStrip;
 #[component]
 pub fn App() -> Element {
     let shared = use_context::<SharedState>();
-    let ui = shared.get::<TriggerUiState>().expect("TriggerUiState missing");
+    let ui = shared
+        .get::<TriggerUiState>()
+        .expect("TriggerUiState missing");
     let ui_for_load = ui.clone();
     let params = &ui.params;
 
@@ -242,4 +244,3 @@ fn open_file_dialog(slot: usize, ui: Arc<TriggerUiState>) {
         }
     });
 }
-

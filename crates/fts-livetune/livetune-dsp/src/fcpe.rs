@@ -558,7 +558,10 @@ mod tests {
         for i in 0..48000 {
             let sample = (2.0 * PI * freq * i as f64 / SR).sin() * 0.8;
             let est = d.tick(sample);
-            assert!(est.freq_hz.is_finite(), "freq_hz is not finite at sample {i}");
+            assert!(
+                est.freq_hz.is_finite(),
+                "freq_hz is not finite at sample {i}"
+            );
             assert!(
                 est.semitones.is_finite(),
                 "semitones is not finite at sample {i}"

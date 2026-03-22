@@ -99,7 +99,7 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 # Internal crates
-audio-gui = { path = "crates/audio-gui" }
+audio-gui = { git = "https://github.com/FastTrackStudios/audio-gui.git", branch = "main" }
 fts-plugin-core = { path = "crates/fts-plugin-core" }
 fts-dsp = { path = "crates/fts-dsp" }
 fts-sample = { path = "crates/fts-sample" }
@@ -231,7 +231,17 @@ anyrender_vello_cpu = { git = "https://github.com/FastTrackStudios/anyrender.git
 anyrender_vello_hybrid = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 anyrender_svg = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 wgpu_context = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
-# moire-trace-capture: tolerate broken frame-pointer chains (NixOS glibc
-# doesn't preserve frame pointers, so the upstream version panics; this fork
-# breaks gracefully). Remove once bearcove/moire accepts a fix upstream.
-moire-trace-capture = { path = "vendor/moire-trace-capture" }
+# moire: unify crates.io moire with the git rev that roam pulls in,
+# avoiding duplicate moire-runtime #[ctor] registrations that crash.
+moire = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+moire-macros-noop = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+moire-runtime = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+moire-tokio = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+moire-trace-types = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+moire-types = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+moire-wasm = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+moire-wire = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+
+# moire-trace-capture: tolerate broken frame-pointer chains (NixOS glibc).
+[patch."https://github.com/bearcove/moire"]
+moire-trace-capture = { path = "../forks/moire-trace-capture" }

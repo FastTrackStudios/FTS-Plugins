@@ -162,7 +162,10 @@ impl Default for FtsCompParams {
             knee_db: FloatParam::new(
                 "Knee",
                 6.0,
-                FloatRange::Linear { min: 0.0, max: 30.0 },
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 72.0,
+                },
             )
             .with_unit(" dB")
             .with_value_to_string(formatters::v2s_f32_rounded(1)),
@@ -173,7 +176,11 @@ impl Default for FtsCompParams {
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
             .with_value_to_string(Arc::new(|v| {
-                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
+                if v > 0.5 {
+                    "On".to_string()
+                } else {
+                    "Off".to_string()
+                }
             }))
             .with_string_to_value(Arc::new(|s| {
                 match s.trim().to_lowercase().as_str() {
@@ -405,9 +412,8 @@ impl Plugin for FtsComp {
             // Track input peak
             let input_peak = left.abs().max(right.abs()) as f32;
 
-            // Process through compressor chain
-            // Use the inner loop directly for single-sample processing
-            self.chain.comp.process_sample(&mut left, &mut right);
+            // Process through compressor chain (includes sidechain HPF if active)
+            self.chain.process_sample(&mut left, &mut right);
 
             *left_ref = left as f32;
             *right_ref = right as f32;

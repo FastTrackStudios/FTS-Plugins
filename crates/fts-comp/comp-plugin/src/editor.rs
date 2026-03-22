@@ -8,8 +8,8 @@ use std::sync::atomic::Ordering;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{
-    theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform,
-    SectionLabel, TransferCurve,
+    theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform, SectionLabel,
+    TransferCurve,
 };
 use fts_plugin_core::prelude::*;
 
@@ -248,4 +248,3 @@ pub fn App() -> Element {
         } // DragProvider
     }
 }
-

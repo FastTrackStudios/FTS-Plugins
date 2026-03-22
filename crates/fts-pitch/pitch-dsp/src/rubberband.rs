@@ -41,10 +41,7 @@ mod ffi {
         pub fn rubberband_set_pitch_scale(state: RubberBandState, scale: c_double);
         pub fn rubberband_get_pitch_scale(state: RubberBandState) -> c_double;
         pub fn rubberband_set_formant_scale(state: RubberBandState, scale: c_double);
-        pub fn rubberband_set_formant_option(
-            state: RubberBandState,
-            options: RubberBandOptions,
-        );
+        pub fn rubberband_set_formant_option(state: RubberBandState, options: RubberBandOptions);
         pub fn rubberband_set_max_process_size(state: RubberBandState, samples: c_uint);
         pub fn rubberband_get_samples_required(state: RubberBandState) -> c_uint;
         pub fn rubberband_get_latency(state: RubberBandState) -> c_uint;
@@ -67,8 +64,10 @@ mod ffi {
 // Public interface
 // ---------------------------------------------------------------------------
 
-/// Block size used for feeding samples into Rubber Band.
+/// Block size for standard quality mode.
 const BLOCK_SIZE: usize = 512;
+/// Block size for live (low-latency) mode.
+const BLOCK_SIZE_LIVE: usize = 128;
 
 /// Rubber Band-based pitch shifter with sample-by-sample interface.
 ///
@@ -81,6 +80,8 @@ pub struct RubberbandShifter {
     pub mix: f64,
     /// Enable formant preservation.
     pub preserve_formants: bool,
+    /// Live mode: use R2 engine and smaller blocks for lower latency.
+    pub live: bool,
 
     /// Raw FFI handle (null when uninitialised).
     state: ffi::RubberBandState,
@@ -101,6 +102,10 @@ pub struct RubberbandShifter {
     sample_rate: f64,
     /// Latency reported by rubberband at creation time.
     reported_latency: usize,
+    /// Current block size (depends on live mode).
+    block_size: usize,
+    /// Track previous live state to detect changes.
+    prev_live: bool,
 }
 
 impl RubberbandShifter {
@@ -109,6 +114,7 @@ impl RubberbandShifter {
             speed: 0.5,
             mix: 1.0,
             preserve_formants: false,
+            live: false,
             state: std::ptr::null_mut(),
             in_buf: vec![0.0f32; BLOCK_SIZE],
             in_count: 0,
@@ -118,6 +124,8 @@ impl RubberbandShifter {
             current_formants: false,
             sample_rate: 48000.0,
             reported_latency: 0,
+            block_size: BLOCK_SIZE,
+            prev_live: false,
         }
     }
 
@@ -126,14 +134,24 @@ impl RubberbandShifter {
     /// Must be called before `tick()` will produce output.
     pub fn update(&mut self, sample_rate: f64) {
         self.sample_rate = sample_rate;
+        self.block_size = if self.live {
+            BLOCK_SIZE_LIVE
+        } else {
+            BLOCK_SIZE
+        };
+        self.prev_live = self.live;
 
         // Tear down any previous instance.
         self.destroy_state();
 
-        let options = ffi::OPTION_PROCESS_REALTIME
-            | ffi::OPTION_ENGINE_FINER
+        // Live mode: R2 engine (default, no ENGINE_FINER) for lower latency.
+        // Standard mode: R3 engine (ENGINE_FINER) for higher quality.
+        let mut options = ffi::OPTION_PROCESS_REALTIME
             | ffi::OPTION_PITCH_HIGH_QUALITY
             | ffi::OPTION_THREADING_NEVER;
+        if !self.live {
+            options |= ffi::OPTION_ENGINE_FINER;
+        }
 
         let pitch_scale = self.speed.clamp(0.01, 100.0);
 
@@ -149,8 +167,11 @@ impl RubberbandShifter {
         assert!(!state.is_null(), "rubberband_new returned null");
 
         unsafe {
-            ffi::rubberband_set_max_process_size(state, BLOCK_SIZE as u32);
+            ffi::rubberband_set_max_process_size(state, self.block_size as u32);
         }
+
+        // Resize input buffer for new block size.
+        self.in_buf.resize(self.block_size, 0.0);
 
         self.state = state;
         self.current_pitch_scale = pitch_scale;
@@ -170,11 +191,11 @@ impl RubberbandShifter {
 
         // Prime the engine: feed silence equal to the latency so that
         // subsequent output is aligned.
-        let prime_samples = self.reported_latency + BLOCK_SIZE;
-        let silence = vec![0.0f32; BLOCK_SIZE];
+        let prime_samples = self.reported_latency + self.block_size;
+        let silence = vec![0.0f32; self.block_size];
         let mut fed = 0;
         while fed < prime_samples {
-            let n = BLOCK_SIZE.min(prime_samples - fed);
+            let n = self.block_size.min(prime_samples - fed);
             let slice = &silence[..n];
             let ptr: *const f32 = slice.as_ptr();
             unsafe {
@@ -231,10 +252,10 @@ impl RubberbandShifter {
         self.in_count += 1;
 
         // When we have a full block, push it into rubberband.
-        if self.in_count >= BLOCK_SIZE {
+        if self.in_count >= self.block_size {
             let ptr: *const f32 = self.in_buf.as_ptr();
             unsafe {
-                ffi::rubberband_process(self.state, &ptr, BLOCK_SIZE as u32, 0);
+                ffi::rubberband_process(self.state, &ptr, self.block_size as u32, 0);
             }
             self.in_count = 0;
             self.drain_available();

@@ -14,3 +14,12 @@ ndarray = "0.16"
 
 # ONNX Runtime for neural pitch detection models
 ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "download-binaries", "tls-native", "copy-dylibs"] }
+
+[dev-dependencies]
+criterion = "0.5"
+hound = "3.5"
+
+[[bench]]
+name = "throughput"
+harness = false
+

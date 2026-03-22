@@ -547,7 +547,10 @@ fn detector_spectral_flux_triggers_on_transient() {
     det.algorithm = DetectAlgorithm::SpectralFlux;
     det.update(SAMPLE_RATE);
 
-    assert!(det.latency_samples() > 0, "Spectral mode should report latency");
+    assert!(
+        det.latency_samples() > 0,
+        "Spectral mode should report latency"
+    );
 
     // Feed enough silence to fill the ODF ring buffer (31 hops × 441 samples)
     let mut triggered = false;
@@ -606,7 +609,11 @@ fn detector_peak_envelope_has_zero_latency() {
     let mut det = TriggerDetector::new();
     det.algorithm = DetectAlgorithm::PeakEnvelope;
     det.update(SAMPLE_RATE);
-    assert_eq!(det.latency_samples(), 0, "PeakEnvelope should have zero latency");
+    assert_eq!(
+        det.latency_samples(),
+        0,
+        "PeakEnvelope should have zero latency"
+    );
 }
 
 // ── Deterministic ───────────────────────────────────────────────────────

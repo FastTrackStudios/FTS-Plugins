@@ -119,6 +119,10 @@
                     # Audio libs
                     alsa-lib
                     pipewire.jack
+                    rubberband
+
+                    # C/C++ bindgen (signalsmith-stretch build)
+                    llvmPackages.libclang
 
                     # Misc system libs
                     dbus
@@ -138,6 +142,12 @@
                     FTS_REAPER_EXECUTABLE = "${ftsDev.reaper}/bin/reaper";
                     FTS_REAPER_RESOURCES = "${ftsDev.reaper}/opt/REAPER";
                     FTS_REAPER_CONFIG = ftsReaperConfig;
+                    # bindgen needs libclang (signalsmith-stretch C++ wrapper)
+                    LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+                    # Linker needs librubberband for FFI
+                    LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+                      pkgs.rubberband
+                    ];
                     # Help wgpu find Vulkan
                     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
                       pkgs.vulkan-loader

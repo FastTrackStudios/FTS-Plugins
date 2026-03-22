@@ -34,7 +34,14 @@ struct Svf {
 
 impl Svf {
     fn new() -> Self {
-        Self { ic1eq: 0.0, ic2eq: 0.0, a1: 0.0, a2: 0.0, a3: 0.0, k: 1.0 }
+        Self {
+            ic1eq: 0.0,
+            ic2eq: 0.0,
+            a1: 0.0,
+            a2: 0.0,
+            a3: 0.0,
+            k: 1.0,
+        }
     }
 
     fn set_params(&mut self, freq: f64, q: f64, sample_rate: f64) {
@@ -184,7 +191,11 @@ impl MpmDetector {
             power += s * s;
         }
         let rms = (power / w as f64).sqrt();
-        let db = if rms > 1e-20 { 20.0 * rms.log10() } else { -120.0 };
+        let db = if rms > 1e-20 {
+            20.0 * rms.log10()
+        } else {
+            -120.0
+        };
         if db < self.gate_db {
             return PitchEstimate::unvoiced();
         }
@@ -206,10 +217,7 @@ impl MpmDetector {
         }
 
         // Find highest amplitude among key maxima.
-        let highest_amp = key_maxima
-            .iter()
-            .map(|&(_, a)| a)
-            .fold(0.0f64, f64::max);
+        let highest_amp = key_maxima.iter().map(|&(_, a)| a).fold(0.0f64, f64::max);
 
         if highest_amp < SMALL_CUTOFF {
             return PitchEstimate::unvoiced();
@@ -284,11 +292,7 @@ impl MpmDetector {
                 r += frame[j] * frame[j + tau];
             }
 
-            self.nsdf[tau] = if m_tau > 1e-20 {
-                2.0 * r / m_tau
-            } else {
-                0.0
-            };
+            self.nsdf[tau] = if m_tau > 1e-20 { 2.0 * r / m_tau } else { 0.0 };
         }
     }
 

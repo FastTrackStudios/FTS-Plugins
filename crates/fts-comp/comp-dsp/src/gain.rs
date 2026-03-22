@@ -28,14 +28,23 @@ impl GainComputer {
 
     /// Compute gain reduction in dB from the detected level.
     ///
-    /// Uses a standard soft-knee compression curve. When `knee_db` > 0,
-    /// there is a smooth quadratic transition zone around the threshold.
+    /// Uses a softplus knee function that provides a smooth, C∞-continuous
+    /// transition around the threshold:
+    ///   GR = slope * k * ln(1 + exp((level - threshold) / k))
+    /// where k = knee_db / 10.
+    ///
+    /// For large signals (level >> threshold): GR ≈ slope * (level - threshold)
+    /// For small signals (level << threshold): GR ≈ 0
+    /// The transition is controlled by `knee_db` — larger values give a
+    /// softer, wider transition zone.
+    ///
+    /// When `knee_db` is 0, falls back to a hard-knee curve.
     ///
     /// # Parameters
     /// - `level_db`: smoothed envelope level in dB (from detector)
     /// - `threshold_db`: compression threshold in dB
     /// - `ratio`: compression ratio (1.0 = no compression, 20.0 = hard limiting)
-    /// - `knee_db`: soft knee width in dB (0 = hard knee, 6 = gentle, 12+ = very soft)
+    /// - `knee_db`: soft knee width in dB (0 = hard knee, 6 = gentle, 18 = standard)
     /// - `inertia`: momentum coefficient (-1.0 to 0.3, 0 = off)
     /// - `inertia_decay`: decay coefficient for inertia velocity (0.99-1.0 range)
     /// - `ch`: channel index
@@ -58,17 +67,31 @@ impl GainComputer {
         }
 
         let slope = 1.0 - 1.0 / ratio;
-        let half_knee = knee_db * 0.5;
 
-        let gr = if knee_db > 0.001 && (level_db - threshold_db).abs() < half_knee {
-            // Soft knee region: quadratic interpolation
-            let x = level_db - threshold_db + half_knee;
-            slope * x * x / (2.0 * knee_db)
+        let gr = if knee_db > 0.001 {
+            // Softplus knee: GR = slope * k * ln(1 + exp(x / k))
+            let k = knee_db * 0.1;
+            let x = level_db - threshold_db;
+            // Use a numerically stable version to avoid overflow for large x/k:
+            //   ln(1 + exp(z)) = z + ln(1 + exp(-z))  when z > 0
+            //   ln(1 + exp(z)) = ln(1 + exp(z))       when z <= 0
+            let z = x / k;
+            let softplus = if z > 20.0 {
+                // For very large z, exp(z) >> 1, so ln(1+exp(z)) ≈ z
+                z
+            } else if z < -20.0 {
+                // For very negative z, exp(z) ≈ 0, so ln(1+exp(z)) ≈ 0
+                0.0
+            } else if z > 0.0 {
+                z + (1.0 + (-z).exp()).ln()
+            } else {
+                (1.0 + z.exp()).ln()
+            };
+            slope * k * softplus
         } else if level_db > threshold_db {
-            // Above knee: standard compression
+            // Hard knee: standard compression
             slope * (level_db - threshold_db)
         } else {
-            // Below threshold: no compression
             0.0
         };
 

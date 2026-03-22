@@ -14,6 +14,7 @@
 //! 4. **PSOLA** — Pitch-synchronous overlap-add.
 //!    ~1152 sample latency, highest quality monophonic.
 
+pub mod allpass_shift;
 pub mod chain;
 pub mod divider;
 pub mod granular;

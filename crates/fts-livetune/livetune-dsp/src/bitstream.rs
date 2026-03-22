@@ -40,7 +40,14 @@ struct Svf {
 
 impl Svf {
     fn new() -> Self {
-        Self { ic1eq: 0.0, ic2eq: 0.0, a1: 0.0, a2: 0.0, a3: 0.0, k: 1.0 }
+        Self {
+            ic1eq: 0.0,
+            ic2eq: 0.0,
+            a1: 0.0,
+            a2: 0.0,
+            a3: 0.0,
+            k: 1.0,
+        }
     }
 
     fn set_params(&mut self, freq: f64, q: f64, sample_rate: f64) {
@@ -236,7 +243,11 @@ impl BitstreamDetector {
             rms += s * s;
         }
         rms = (rms / n as f64).sqrt();
-        let db = if rms > 1e-20 { 20.0 * rms.log10() } else { -120.0 };
+        let db = if rms > 1e-20 {
+            20.0 * rms.log10()
+        } else {
+            -120.0
+        };
         if db < self.gate_db {
             return PitchEstimate::unvoiced();
         }
@@ -324,8 +335,7 @@ impl BitstreamDetector {
                 let idx_a = (start + i) % n_words;
                 let idx_b1 = (start + i + word_offset) % n_words;
                 let idx_b2 = (start + i + word_offset + 1) % n_words;
-                let shifted = (self.words[idx_b1] >> bit_shift)
-                    | (self.words[idx_b2] << shift2);
+                let shifted = (self.words[idx_b1] >> bit_shift) | (self.words[idx_b2] << shift2);
                 mismatch += (self.words[idx_a] ^ shifted).count_ones();
             }
         }

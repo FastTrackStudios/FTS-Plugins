@@ -152,29 +152,25 @@ impl Default for FtsLiveTuneParams {
                 })),
 
             scale: IntParam::new("Scale", 0, IntRange::Linear { min: 0, max: 6 })
-                .with_value_to_string(Arc::new(|v| {
-                    match v {
-                        0 => "Chromatic".to_string(),
-                        1 => "Major".to_string(),
-                        2 => "Minor".to_string(),
-                        3 => "Maj Penta".to_string(),
-                        4 => "Min Penta".to_string(),
-                        5 => "Blues".to_string(),
-                        6 => "Custom".to_string(),
-                        _ => format!("{v}"),
-                    }
+                .with_value_to_string(Arc::new(|v| match v {
+                    0 => "Chromatic".to_string(),
+                    1 => "Major".to_string(),
+                    2 => "Minor".to_string(),
+                    3 => "Maj Penta".to_string(),
+                    4 => "Min Penta".to_string(),
+                    5 => "Blues".to_string(),
+                    6 => "Custom".to_string(),
+                    _ => format!("{v}"),
                 }))
-                .with_string_to_value(Arc::new(|s| {
-                    match s.trim().to_lowercase().as_str() {
-                        "chromatic" | "0" => Some(0),
-                        "major" | "1" => Some(1),
-                        "minor" | "2" => Some(2),
-                        "maj penta" | "major pentatonic" | "3" => Some(3),
-                        "min penta" | "minor pentatonic" | "4" => Some(4),
-                        "blues" | "5" => Some(5),
-                        "custom" | "6" => Some(6),
-                        _ => s.parse().ok(),
-                    }
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "chromatic" | "0" => Some(0),
+                    "major" | "1" => Some(1),
+                    "minor" | "2" => Some(2),
+                    "maj penta" | "major pentatonic" | "3" => Some(3),
+                    "min penta" | "minor pentatonic" | "4" => Some(4),
+                    "blues" | "5" => Some(5),
+                    "custom" | "6" => Some(6),
+                    _ => s.parse().ok(),
                 })),
 
             retune_speed: FloatParam::new(
@@ -184,58 +180,46 @@ impl Default for FtsLiveTuneParams {
             )
             .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
-            amount: FloatParam::new(
-                "Amount",
-                1.0,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_unit("%")
-            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            amount: FloatParam::new("Amount", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_unit("%")
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
             mix: FloatParam::new("Mix", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_unit("%")
                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
             detector_mode: IntParam::new("Detector", 0, IntRange::Linear { min: 0, max: 4 })
-                .with_value_to_string(Arc::new(|v| {
-                    match v {
-                        0 => "YIN".to_string(),
-                        1 => "YAAPT".to_string(),
-                        2 => "pYIN".to_string(),
-                        3 => "MPM".to_string(),
-                        4 => "Bitstream".to_string(),
-                        _ => format!("{v}"),
-                    }
+                .with_value_to_string(Arc::new(|v| match v {
+                    0 => "YIN".to_string(),
+                    1 => "YAAPT".to_string(),
+                    2 => "pYIN".to_string(),
+                    3 => "MPM".to_string(),
+                    4 => "Bitstream".to_string(),
+                    _ => format!("{v}"),
                 }))
-                .with_string_to_value(Arc::new(|s| {
-                    match s.trim().to_lowercase().as_str() {
-                        "yin" | "0" => Some(0),
-                        "yaapt" | "1" => Some(1),
-                        "pyin" | "2" => Some(2),
-                        "mpm" | "3" => Some(3),
-                        "bitstream" | "4" => Some(4),
-                        _ => s.parse().ok(),
-                    }
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "yin" | "0" => Some(0),
+                    "yaapt" | "1" => Some(1),
+                    "pyin" | "2" => Some(2),
+                    "mpm" | "3" => Some(3),
+                    "bitstream" | "4" => Some(4),
+                    _ => s.parse().ok(),
                 })),
 
             shifter_mode: IntParam::new("Shifter", 0, IntRange::Linear { min: 0, max: 3 })
-                .with_value_to_string(Arc::new(|v| {
-                    match v {
-                        0 => "Auto".to_string(),
-                        1 => "PSOLA".to_string(),
-                        2 => "Vocoder".to_string(),
-                        3 => "PVSOLA".to_string(),
-                        _ => format!("{v}"),
-                    }
+                .with_value_to_string(Arc::new(|v| match v {
+                    0 => "Auto".to_string(),
+                    1 => "PSOLA".to_string(),
+                    2 => "Vocoder".to_string(),
+                    3 => "PVSOLA".to_string(),
+                    _ => format!("{v}"),
                 }))
-                .with_string_to_value(Arc::new(|s| {
-                    match s.trim().to_lowercase().as_str() {
-                        "auto" | "0" => Some(0),
-                        "psola" | "1" => Some(1),
-                        "vocoder" | "2" => Some(2),
-                        "pvsola" | "hybrid" | "3" => Some(3),
-                        _ => s.parse().ok(),
-                    }
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "auto" | "0" => Some(0),
+                    "psola" | "1" => Some(1),
+                    "vocoder" | "2" => Some(2),
+                    "pvsola" | "hybrid" | "3" => Some(3),
+                    _ => s.parse().ok(),
                 })),
 
             confidence_threshold: FloatParam::new(
@@ -257,10 +241,12 @@ impl Default for FtsLiveTuneParams {
                     "Off".to_string()
                 }
             }))
-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
-                "on" | "1" | "true" => Some(1.0),
-                "off" | "0" | "false" => Some(0.0),
-                _ => s.parse().ok(),
+            .with_string_to_value(Arc::new(|s| {
+                match s.trim().to_lowercase().as_str() {
+                    "on" | "1" | "true" => Some(1.0),
+                    "off" | "0" | "false" => Some(0.0),
+                    _ => s.parse().ok(),
+                }
             })),
 
             note_c: make_note_param("C"),
@@ -319,18 +305,8 @@ impl FtsLiveTune {
     fn read_note_states(&self) -> [NoteState; 12] {
         let p = &self.params;
         let note_params = [
-            &p.note_c,
-            &p.note_cs,
-            &p.note_d,
-            &p.note_eb,
-            &p.note_e,
-            &p.note_f,
-            &p.note_fs,
-            &p.note_g,
-            &p.note_ab,
-            &p.note_a,
-            &p.note_bb,
-            &p.note_b,
+            &p.note_c, &p.note_cs, &p.note_d, &p.note_eb, &p.note_e, &p.note_f, &p.note_fs,
+            &p.note_g, &p.note_ab, &p.note_a, &p.note_bb, &p.note_b,
         ];
         let mut states = [NoteState::Enabled; 12];
         for (i, param) in note_params.iter().enumerate() {
@@ -465,7 +441,11 @@ impl Plugin for FtsLiveTune {
             } else {
                 -100.0
             };
-            let new_in = if in_db > prev_in { in_db } else { prev_in - 0.3 };
+            let new_in = if in_db > prev_in {
+                in_db
+            } else {
+                prev_in - 0.3
+            };
             self.ui_state.input_peak_db.store(new_in, Ordering::Relaxed);
 
             let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);

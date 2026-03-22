@@ -330,7 +330,11 @@ impl PestoDetector {
             sum_w += w;
             sum_wm += w * i as f64;
         }
-        let midi = if sum_w > 1e-12 { sum_wm / sum_w } else { peak_idx as f64 };
+        let midi = if sum_w > 1e-12 {
+            sum_wm / sum_w
+        } else {
+            peak_idx as f64
+        };
 
         // Confidence: peak activation normalised against sum.
         let total: f64 = values.iter().map(|v| v.max(0.0) as f64).sum();

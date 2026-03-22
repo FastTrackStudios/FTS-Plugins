@@ -189,9 +189,7 @@ impl TriggerDetector {
 
         match flux_mode {
             Some(mode) => {
-                if self.spectral.is_none()
-                    || self.spectral.as_ref().unwrap().mode != mode
-                {
+                if self.spectral.is_none() || self.spectral.as_ref().unwrap().mode != mode {
                     self.spectral = Some(SpectralFluxDetector::new(
                         mode,
                         DEFAULT_FFT_SIZE,

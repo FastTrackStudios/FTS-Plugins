@@ -185,9 +185,7 @@ impl CrepeDetector {
     fn try_load_model(&mut self) {
         if let Some(ref path) = self.model_path {
             match ort::session::Session::builder()
-                .and_then(|mut b: ort::session::builder::SessionBuilder| {
-                    b.commit_from_file(path)
-                })
+                .and_then(|mut b: ort::session::builder::SessionBuilder| b.commit_from_file(path))
             {
                 Ok(sess) => {
                     self.session = Some(sess);
@@ -228,8 +226,7 @@ impl CrepeDetector {
 
         // Normalise the frame (zero-mean, unit-variance).
         let mut normalised = [0.0f32; FRAME_SIZE];
-        let mean: f32 =
-            self.frame_buf.iter().copied().sum::<f32>() / FRAME_SIZE as f32;
+        let mean: f32 = self.frame_buf.iter().copied().sum::<f32>() / FRAME_SIZE as f32;
         let var: f32 = self
             .frame_buf
             .iter()

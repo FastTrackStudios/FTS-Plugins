@@ -29,7 +29,6 @@ pub struct SpectralFingerprint {
     pub fft_size: usize,
 }
 
-
 /// Spectral fingerprint matcher for bleed rejection.
 pub struct FingerprintMatcher {
     /// Learned template fingerprint.
@@ -58,10 +57,7 @@ pub struct FingerprintMatcher {
 impl FingerprintMatcher {
     pub fn new(fft_size: usize, sample_rate: f64) -> Self {
         let window: Vec<f64> = (0..fft_size)
-            .map(|i| {
-                0.5 * (1.0
-                    - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos())
-            })
+            .map(|i| 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos()))
             .collect();
 
         let num_bins = fft_size / 2 + 1;
@@ -111,7 +107,11 @@ impl FingerprintMatcher {
             return 0;
         }
 
-        let mut avg: Vec<f64> = self.learn_accum.iter().map(|&v| v / self.learn_count as f64).collect();
+        let mut avg: Vec<f64> = self
+            .learn_accum
+            .iter()
+            .map(|&v| v / self.learn_count as f64)
+            .collect();
 
         // Re-normalize the average
         let norm = Self::l2_norm(&avg);

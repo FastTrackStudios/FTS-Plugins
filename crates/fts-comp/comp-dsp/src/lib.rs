@@ -23,6 +23,7 @@
 //! - Sidechain HPF via eq-dsp
 
 pub mod chain;
+pub mod character;
 pub mod compressor;
 pub mod detector;
 pub mod gain;

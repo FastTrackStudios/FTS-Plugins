@@ -4,7 +4,6 @@
 //! suitable for gain reduction computation.
 
 use fts_dsp::db::{linear_to_db, DB_FLOOR};
-use fts_dsp::envelope::EnvelopeFollower;
 
 /// Maximum number of stereo channels.
 const MAX_CH: usize = 2;
@@ -12,8 +11,8 @@ const MAX_CH: usize = 2;
 // r[impl comp.chain.signal-flow]
 /// Envelope detector with asymmetric attack/release.
 ///
-/// Uses exponential smoothing with separate attack and release coefficients,
-/// matching APComp's slew-rate envelope follower. Operates in the dB domain.
+/// Uses exponential smoothing with separate attack and release coefficients.
+/// Operates in the dB domain.
 pub struct Detector {
     /// Smoothed signal level in dB per channel.
     slewed: [f64; MAX_CH],
@@ -42,11 +41,26 @@ impl Detector {
 
     /// Update coefficients for new attack/release times or sample rate.
     ///
-    /// `attack_s` and `release_s` are in seconds.
+    /// `attack_s` and `release_s` are in seconds. The displayed time represents
+    /// the time to reach ~90% of the target (common convention for compressors),
+    /// so the internal time constant is scaled accordingly.
     pub fn set_params(&mut self, attack_s: f64, release_s: f64, sample_rate: f64) {
         self.sample_rate = sample_rate;
-        self.attack_coeff = EnvelopeFollower::coeff(attack_s, sample_rate);
-        self.release_coeff = EnvelopeFollower::coeff(release_s, sample_rate);
+        // Empirically-derived scaling factors that match Pro-C 3 Clean's
+        // time constant definition. Attack uses ~1.8x (close to ln(10)/1.3)
+        // and release uses ~1.3x.
+        self.attack_coeff = Self::coeff_scaled(attack_s, sample_rate, 1.8);
+        self.release_coeff = Self::coeff_scaled(release_s, sample_rate, 1.3);
+    }
+
+    /// Compute coefficient with a scaling factor on the time constant.
+    #[inline]
+    fn coeff_scaled(time_s: f64, sample_rate: f64, scale: f64) -> f64 {
+        if time_s > 0.0 {
+            (-scale / (sample_rate * time_s)).exp()
+        } else {
+            0.0
+        }
     }
 
     /// Feed a sample into the detector and return the smoothed level in dB.

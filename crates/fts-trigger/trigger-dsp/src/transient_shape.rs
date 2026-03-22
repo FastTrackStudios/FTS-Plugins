@@ -154,13 +154,16 @@ mod tests {
         }
 
         let transient_peak = transient_outputs.iter().cloned().fold(0.0_f64, f64::max);
-        let sustained_avg: f64 =
-            sustained_outputs[sustained_outputs.len() - 100..].iter().sum::<f64>() / 100.0;
+        let sustained_avg: f64 = sustained_outputs[sustained_outputs.len() - 100..]
+            .iter()
+            .sum::<f64>()
+            / 100.0;
 
         assert!(
             transient_peak > sustained_avg * 1.2,
             "Transient should be boosted: peak={:.3}, sustained_avg={:.3}",
-            transient_peak, sustained_avg
+            transient_peak,
+            sustained_avg
         );
     }
 

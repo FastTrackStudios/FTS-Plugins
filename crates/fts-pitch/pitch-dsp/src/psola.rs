@@ -16,6 +16,8 @@ pub struct PsolaShifter {
     pub speed: f64,
     /// Mix: 0.0 = dry only, 1.0 = wet only.
     pub mix: f64,
+    /// Base analysis window size. Default 2048; set to 512 for low-latency live mode.
+    pub base_window_size: usize,
 
     // Circular analysis buffer.
     analysis_buf: DelayLine,
@@ -58,6 +60,7 @@ impl PsolaShifter {
         Self {
             speed: 0.5,
             mix: 1.0,
+            base_window_size: Self::DEFAULT_WINDOW,
             analysis_buf: DelayLine::new(buf_len),
             output_buf: vec![0.0; buf_len],
             output_pos: 0,
@@ -89,6 +92,7 @@ impl PsolaShifter {
 
         self.autocorr_scratch.resize(self.max_period + 1, 0.0);
         self.detect_interval = 512.min(self.max_period);
+        self.window_size = self.base_window_size;
     }
 
     pub fn reset(&mut self) {

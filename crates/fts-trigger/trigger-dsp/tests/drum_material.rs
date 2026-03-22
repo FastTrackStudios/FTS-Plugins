@@ -33,11 +33,7 @@ fn drum_data_dir() -> PathBuf {
 fn load_wav(filename: &str) -> Option<Audio> {
     let path = drum_data_dir().join(filename);
     if !path.exists() {
-        eprintln!(
-            "Skipping: {} not found at {}",
-            filename,
-            path.display()
-        );
+        eprintln!("Skipping: {} not found at {}", filename, path.display());
         return None;
     }
 

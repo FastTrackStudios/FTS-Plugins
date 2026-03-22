@@ -291,7 +291,8 @@ impl YaaptDetector {
 
         // Design FIR bandpass filters.
         self.bp_filter = FirBandpass::new(self.params.bp_forder);
-        self.bp_filter.design(self.params.bp_low, self.params.bp_high, sample_rate);
+        self.bp_filter
+            .design(self.params.bp_low, self.params.bp_high, sample_rate);
         self.bp_filter_nl = FirBandpass::new(self.params.bp_forder);
         self.bp_filter_nl
             .design(self.params.bp_low, self.params.bp_high, sample_rate);
@@ -453,10 +454,9 @@ impl YaaptDetector {
         }
 
         // Sum energy in F0 band.
-        let bin_f0_min = ((2.0 * self.params.f0_min / self.sample_rate) * nfft as f64).round()
-            as usize;
-        let bin_f0_max =
-            ((self.params.f0_max / self.sample_rate) * nfft as f64).round() as usize;
+        let bin_f0_min =
+            ((2.0 * self.params.f0_min / self.sample_rate) * nfft as f64).round() as usize;
+        let bin_f0_max = ((self.params.f0_max / self.sample_rate) * nfft as f64).round() as usize;
         let bin_f0_min = bin_f0_min.min(half - 1);
         let bin_f0_max = bin_f0_max.min(half - 1);
 
@@ -564,7 +564,11 @@ impl YaaptDetector {
         }
 
         // Sort by merit descending, keep top 4.
-        candidates.sort_by(|a, b| b.merit.partial_cmp(&a.merit).unwrap_or(std::cmp::Ordering::Equal));
+        candidates.sort_by(|a, b| {
+            b.merit
+                .partial_cmp(&a.merit)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         candidates.truncate(4);
 
         // Normalize merit to 0–1 range.
@@ -653,7 +657,11 @@ impl YaaptDetector {
         }
 
         // Sort by merit descending, keep top N.
-        candidates.sort_by(|a, b| b.merit.partial_cmp(&a.merit).unwrap_or(std::cmp::Ordering::Equal));
+        candidates.sort_by(|a, b| {
+            b.merit
+                .partial_cmp(&a.merit)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         candidates.truncate(self.params.nccf_maxcands);
         candidates
     }
@@ -666,12 +674,14 @@ impl YaaptDetector {
         temporal2: &[PitchCandidate],
         is_voiced_energy: bool,
     ) -> PitchCandidate {
-        let unvoiced = PitchCandidate { freq_hz: 0.0, merit: 0.0 };
+        let unvoiced = PitchCandidate {
+            freq_hz: 0.0,
+            merit: 0.0,
+        };
 
         // Collect all temporal candidates.
-        let mut all: Vec<PitchCandidate> = Vec::with_capacity(
-            temporal1.len() + temporal2.len() + spectral.len(),
-        );
+        let mut all: Vec<PitchCandidate> =
+            Vec::with_capacity(temporal1.len() + temporal2.len() + spectral.len());
         all.extend_from_slice(temporal1);
         all.extend_from_slice(temporal2);
 
@@ -698,7 +708,8 @@ impl YaaptDetector {
                 let diff = (cand.freq_hz - spec_f0).abs();
                 if diff < tol {
                     let agreement = 1.0 - diff / tol;
-                    cand.merit = (cand.merit * (1.0 + self.params.merit_boost * 1.5 * agreement)).clamp(0.0, 1.0);
+                    cand.merit = (cand.merit * (1.0 + self.params.merit_boost * 1.5 * agreement))
+                        .clamp(0.0, 1.0);
                 }
                 // Penalize candidates at sub-harmonics of the spectral F0.
                 for divisor in [2.0, 3.0] {
@@ -729,7 +740,11 @@ impl YaaptDetector {
         }
 
         // Pick the best candidate.
-        all.sort_by(|a, b| b.merit.partial_cmp(&a.merit).unwrap_or(std::cmp::Ordering::Equal));
+        all.sort_by(|a, b| {
+            b.merit
+                .partial_cmp(&a.merit)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         all[0]
     }
 
@@ -747,7 +762,12 @@ impl YaaptDetector {
         }
 
         // Median of the voiced values.
-        let mut sorted: Vec<f64> = self.median_buf.iter().copied().filter(|&f| f > 0.0).collect();
+        let mut sorted: Vec<f64> = self
+            .median_buf
+            .iter()
+            .copied()
+            .filter(|&f| f > 0.0)
+            .collect();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         sorted[sorted.len() / 2]
     }

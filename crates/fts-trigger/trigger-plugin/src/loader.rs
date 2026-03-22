@@ -23,11 +23,6 @@ impl SampleLoadMessage {
 }
 
 /// Spawn a background thread to load a sample and send it to the audio thread.
-pub fn load_sample_async(
-    path: String,
-    slot: usize,
-    target_sr: f64,
-    tx: Sender<SampleLoadMessage>,
-) {
+pub fn load_sample_async(path: String, slot: usize, target_sr: f64, tx: Sender<SampleLoadMessage>) {
     fts_sample::load_audio_async(path, target_sr, tx, slot, SampleLoadMessage::from_audio);
 }

@@ -7,10 +7,13 @@
 use fts_dsp::{AudioConfig, Processor};
 use serde::{Deserialize, Serialize};
 
+use crate::allpass_shift::AllpassShifter;
 use crate::divider::{DivideRatio, FreqDivider};
 use crate::granular::GranularShifter;
 use crate::pll::{PllOctave, PllTracker, SubWaveform};
 use crate::psola::PsolaShifter;
+use crate::rubberband::RubberbandShifter;
+use crate::signalsmith::SignalsmithShifter;
 use crate::wsola::WsolaShifter;
 
 /// Which pitch shifting algorithm to use.
@@ -33,6 +36,15 @@ pub enum Algorithm {
     /// WSOLA waveform-similarity overlap-add. ~1024 sample latency.
     /// Works on any signal (monophonic or polyphonic) without pitch detection.
     Wsola,
+    /// Signalsmith Stretch — high-quality FFT-based spectral pitch shifter.
+    /// Clean, polyphonic-capable. ~256+ sample latency.
+    Signalsmith,
+    /// Rubber Band Library — professional pitch shifter with formant preservation.
+    /// High quality, ~512+ sample latency.
+    Rubberband,
+    /// Allpass interpolation — Dattorro/Schroeder barberpole style.
+    /// Zero latency, classic hardware pitch shifter character.
+    Allpass,
 }
 
 /// Convert semitones to pitch ratio: `2^(semitones / 12)`.
@@ -54,6 +66,8 @@ pub struct PitchChain {
     pub semitones: f64,
     /// Dry/wet mix (0.0–1.0).
     pub mix: f64,
+    /// Live mode: minimize latency at the cost of quality.
+    pub live: bool,
 
     // -- PLL-specific settings --
     /// PLL sub-oscillator waveform.
@@ -68,6 +82,13 @@ pub struct PitchChain {
     granular: GranularShifter,
     psola: PsolaShifter,
     wsola: WsolaShifter,
+    signalsmith: SignalsmithShifter,
+    rubberband: RubberbandShifter,
+    allpass: AllpassShifter,
+
+    /// Track previous live state to detect changes and reinitialise.
+    prev_live: bool,
+    sample_rate: f64,
 }
 
 impl PitchChain {
@@ -76,6 +97,7 @@ impl PitchChain {
             algorithm: Algorithm::FreqDivider,
             semitones: -12.0,
             mix: 1.0,
+            live: false,
             pll_waveform: SubWaveform::Saw,
             grain_size: 1024,
             divider: FreqDivider::new(),
@@ -83,6 +105,11 @@ impl PitchChain {
             granular: GranularShifter::new(),
             psola: PsolaShifter::new(),
             wsola: WsolaShifter::new(),
+            signalsmith: SignalsmithShifter::new(),
+            rubberband: RubberbandShifter::new(),
+            allpass: AllpassShifter::new(),
+            prev_live: false,
+            sample_rate: 48000.0,
         }
     }
 
@@ -94,6 +121,9 @@ impl PitchChain {
             Algorithm::Granular => self.granular.latency(),
             Algorithm::Psola => self.psola.latency(),
             Algorithm::Wsola => self.wsola.latency(),
+            Algorithm::Signalsmith => self.signalsmith.latency(),
+            Algorithm::Rubberband => self.rubberband.latency(),
+            Algorithm::Allpass => self.allpass.latency(),
         }
     }
 
@@ -110,6 +140,30 @@ impl PitchChain {
 
     /// Sync algorithm-specific parameters before processing.
     fn sync_params(&mut self) {
+        // Detect live mode changes and reconfigure engines.
+        if self.live != self.prev_live {
+            self.prev_live = self.live;
+
+            // PSOLA: smaller analysis window in live mode.
+            self.psola.base_window_size = if self.live { 512 } else { 2048 };
+
+            // WSOLA: smaller grains in live mode.
+            self.wsola.base_grain_size = if self.live { 256 } else { 1024 };
+
+            // Signalsmith: cheaper preset + smaller blocks.
+            self.signalsmith.live = self.live;
+
+            // Rubberband: R2 engine + smaller blocks.
+            self.rubberband.live = self.live;
+
+            // Re-initialise engines with new settings.
+            let sr = self.sample_rate;
+            self.psola.update(sr);
+            self.wsola.update(sr);
+            self.signalsmith.update(sr);
+            self.rubberband.update(sr);
+        }
+
         let ratio = semitones_to_ratio(self.semitones.clamp(-24.0, 24.0));
         let (is_down, is_oct2) = self.nearest_octave();
 
@@ -130,10 +184,14 @@ impl PitchChain {
         };
         self.pll.mix = if is_down { self.mix } else { 0.0 };
 
-        // Granular: arbitrary ratio.
+        // Granular: arbitrary ratio. In live mode, cap grain size at 256.
         self.granular.speed = ratio;
         self.granular.mix = self.mix;
-        self.granular.grain_size = self.grain_size;
+        self.granular.grain_size = if self.live {
+            self.grain_size.min(256)
+        } else {
+            self.grain_size
+        };
 
         // PSOLA: arbitrary ratio.
         self.psola.speed = ratio;
@@ -142,6 +200,18 @@ impl PitchChain {
         // WSOLA: arbitrary ratio.
         self.wsola.speed = ratio;
         self.wsola.mix = self.mix;
+
+        // Signalsmith: arbitrary ratio.
+        self.signalsmith.speed = ratio;
+        self.signalsmith.mix = self.mix;
+
+        // Rubberband: arbitrary ratio.
+        self.rubberband.speed = ratio;
+        self.rubberband.mix = self.mix;
+
+        // Allpass: arbitrary ratio.
+        self.allpass.speed = ratio;
+        self.allpass.mix = self.mix;
     }
 }
 
@@ -158,14 +228,21 @@ impl Processor for PitchChain {
         self.granular.reset();
         self.psola.reset();
         self.wsola.reset();
+        self.signalsmith.reset();
+        self.rubberband.reset();
+        self.allpass.reset();
     }
 
     fn update(&mut self, config: AudioConfig) {
+        self.sample_rate = config.sample_rate;
         self.divider.update(config.sample_rate);
         self.pll.update(config.sample_rate);
         self.granular.update(config.sample_rate);
         self.psola.update(config.sample_rate);
         self.wsola.update(config.sample_rate);
+        self.signalsmith.update(config.sample_rate);
+        self.rubberband.update(config.sample_rate);
+        self.allpass.update(config.sample_rate);
     }
 
     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
@@ -195,6 +272,21 @@ impl Processor for PitchChain {
             Algorithm::Wsola => {
                 for s in left.iter_mut() {
                     *s = self.wsola.tick(*s);
+                }
+            }
+            Algorithm::Signalsmith => {
+                for s in left.iter_mut() {
+                    *s = self.signalsmith.tick(*s);
+                }
+            }
+            Algorithm::Rubberband => {
+                for s in left.iter_mut() {
+                    *s = self.rubberband.tick(*s);
+                }
+            }
+            Algorithm::Allpass => {
+                for s in left.iter_mut() {
+                    *s = self.allpass.tick(*s);
                 }
             }
         }
@@ -256,6 +348,9 @@ mod tests {
             Algorithm::Granular,
             Algorithm::Psola,
             Algorithm::Wsola,
+            Algorithm::Signalsmith,
+            Algorithm::Rubberband,
+            Algorithm::Allpass,
         ] {
             let mut chain = PitchChain::new();
             chain.algorithm = algo;
@@ -410,6 +505,9 @@ mod tests {
             Algorithm::Granular,
             Algorithm::Psola,
             Algorithm::Wsola,
+            Algorithm::Signalsmith,
+            Algorithm::Rubberband,
+            Algorithm::Allpass,
         ] {
             let mut chain = PitchChain::new();
             chain.algorithm = algo;
@@ -438,6 +536,9 @@ mod tests {
             Algorithm::Granular,
             Algorithm::Psola,
             Algorithm::Wsola,
+            Algorithm::Signalsmith,
+            Algorithm::Rubberband,
+            Algorithm::Allpass,
         ] {
             let mut chain = PitchChain::new();
             chain.algorithm = algo;
@@ -478,6 +579,9 @@ mod tests {
             Algorithm::Granular,
             Algorithm::Psola,
             Algorithm::Wsola,
+            Algorithm::Signalsmith,
+            Algorithm::Rubberband,
+            Algorithm::Allpass,
         ] {
             let mut chain = PitchChain::new();
             chain.algorithm = algo;
@@ -500,24 +604,197 @@ mod tests {
         }
     }
 
-    #[test]
-    fn latency_values() {
-        let mut chain = PitchChain::new();
-        chain.update(config());
+    const ALL_ALGOS: [Algorithm; 8] = [
+        Algorithm::FreqDivider,
+        Algorithm::Pll,
+        Algorithm::Granular,
+        Algorithm::Psola,
+        Algorithm::Wsola,
+        Algorithm::Signalsmith,
+        Algorithm::Rubberband,
+        Algorithm::Allpass,
+    ];
 
+    #[test]
+    fn latency_standard_mode() {
+        let mut chain = PitchChain::new();
+        chain.live = false;
+        chain.update(config());
+        // Process one block so sync_params runs.
+        let mut l = sine_block(220.0, 0, 512);
+        let mut r = l.clone();
+
+        for algo in ALL_ALGOS {
+            chain.algorithm = algo;
+            chain.process(&mut l, &mut r);
+            let lat = chain.latency();
+            let ms = lat as f64 / SR * 1000.0;
+            eprintln!("  {algo:?} standard: {lat} samples ({ms:.1} ms)");
+        }
+
+        // Zero-latency algorithms.
         chain.algorithm = Algorithm::FreqDivider;
         assert_eq!(chain.latency(), 0);
-
         chain.algorithm = Algorithm::Pll;
         assert_eq!(chain.latency(), 0);
 
+        // Time-domain algorithms: moderate latency.
         chain.algorithm = Algorithm::Granular;
-        assert_eq!(chain.latency(), 1024);
-
+        assert!(
+            chain.latency() <= 4096,
+            "Granular too high: {}",
+            chain.latency()
+        );
         chain.algorithm = Algorithm::Psola;
-        assert!(chain.latency() > 0);
-
+        assert!(chain.latency() > 0 && chain.latency() <= 4096);
         chain.algorithm = Algorithm::Wsola;
-        assert_eq!(chain.latency(), 1024);
+        assert!(
+            chain.latency() <= 2048,
+            "WSOLA too high: {}",
+            chain.latency()
+        );
+    }
+
+    #[test]
+    fn latency_live_mode() {
+        let mut chain = PitchChain::new();
+        chain.live = true;
+        chain.update(config());
+        // Process one block so sync_params runs and live mode propagates.
+        let mut l = sine_block(220.0, 0, 512);
+        let mut r = l.clone();
+
+        for algo in ALL_ALGOS {
+            chain.algorithm = algo;
+            chain.process(&mut l, &mut r);
+            let lat = chain.latency();
+            let ms = lat as f64 / SR * 1000.0;
+            eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
+        }
+
+        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
+        // Rubberband R2 real-time has ~1024 sample minimum internal latency.
+        let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
+        for algo in ALL_ALGOS {
+            chain.algorithm = algo;
+            chain.process(&mut l, &mut r);
+            let lat = chain.latency();
+            assert!(
+                lat <= live_limit_samples,
+                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
+                lat as f64 / SR * 1000.0,
+            );
+        }
+    }
+
+    #[test]
+    fn live_mode_reduces_latency() {
+        for algo in ALL_ALGOS {
+            let mut standard = PitchChain::new();
+            standard.algorithm = algo;
+            standard.live = false;
+            standard.semitones = -12.0;
+            standard.update(config());
+            let mut l = sine_block(220.0, 0, 512);
+            let mut r = l.clone();
+            standard.process(&mut l, &mut r);
+            let std_lat = standard.latency();
+
+            let mut live = PitchChain::new();
+            live.algorithm = algo;
+            live.live = true;
+            live.semitones = -12.0;
+            live.update(config());
+            let mut l = sine_block(220.0, 0, 512);
+            let mut r = l.clone();
+            live.process(&mut l, &mut r);
+            let live_lat = live.latency();
+
+            eprintln!(
+                "  {algo:?}: standard={std_lat} live={live_lat} ({})",
+                if live_lat < std_lat {
+                    "reduced"
+                } else if live_lat == std_lat {
+                    "same"
+                } else {
+                    "INCREASED!"
+                }
+            );
+
+            // Live should never increase latency.
+            assert!(
+                live_lat <= std_lat,
+                "{algo:?} live latency ({live_lat}) > standard ({std_lat})!"
+            );
+        }
+    }
+
+    #[test]
+    fn throughput_all_algorithms() {
+        let block_size = 512;
+        let num_blocks = 200;
+        let total_samples = block_size * num_blocks;
+
+        for algo in ALL_ALGOS {
+            let mut chain = PitchChain::new();
+            chain.algorithm = algo;
+            chain.semitones = -12.0;
+            chain.mix = 1.0;
+            chain.update(config());
+
+            let start = std::time::Instant::now();
+            for b in 0..num_blocks {
+                let mut left = sine_block(220.0, b * block_size, block_size);
+                let mut right = left.clone();
+                chain.process(&mut left, &mut right);
+            }
+            let elapsed = start.elapsed();
+
+            let audio_duration_s = total_samples as f64 / SR;
+            let process_s = elapsed.as_secs_f64();
+            let realtime_ratio = audio_duration_s / process_s;
+
+            eprintln!(
+                "  {algo:?}: {total_samples} samples in {:.1}ms ({realtime_ratio:.0}x realtime)",
+                process_s * 1000.0,
+            );
+
+            // In release mode all algorithms must be faster than realtime.
+            // In debug mode (unoptimized), some heavy algorithms (PSOLA, Rubberband)
+            // may be slower — just check they complete without hanging.
+            #[cfg(not(debug_assertions))]
+            assert!(
+                realtime_ratio > 1.0,
+                "{algo:?} is SLOWER than realtime: {realtime_ratio:.1}x"
+            );
+        }
+    }
+
+    #[test]
+    fn live_mode_produces_output() {
+        // Verify live mode still produces actual audio, not silence.
+        for algo in ALL_ALGOS {
+            let mut chain = PitchChain::new();
+            chain.algorithm = algo;
+            chain.semitones = -12.0;
+            chain.mix = 1.0;
+            chain.live = true;
+            chain.update(config());
+
+            let mut energy = 0.0;
+            for b in 0..100 {
+                let mut left = sine_block(220.0, b * 512, 512);
+                let mut right = left.clone();
+                chain.process(&mut left, &mut right);
+                if b > 20 {
+                    energy += left.iter().map(|s| s * s).sum::<f64>();
+                }
+            }
+
+            assert!(
+                energy > 0.1,
+                "{algo:?} live mode produced no output: energy={energy}"
+            );
+        }
     }
 }

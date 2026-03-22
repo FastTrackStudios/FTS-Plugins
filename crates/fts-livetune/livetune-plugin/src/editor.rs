@@ -322,4 +322,3 @@ pub fn App() -> Element {
         } // DragProvider
     }
 }
-

@@ -14,9 +14,10 @@
 use signalsmith_stretch::Stretch;
 use std::collections::VecDeque;
 
-/// Block size used for internal buffering between the sample-by-sample
-/// interface and the block-based Signalsmith Stretch engine.
+/// Block size for standard quality mode.
 const BLOCK_SIZE: usize = 256;
+/// Block size for live (low-latency) mode.
+const BLOCK_SIZE_LIVE: usize = 64;
 
 /// Signalsmith Stretch pitch shifter.
 pub struct SignalsmithShifter {
@@ -24,6 +25,8 @@ pub struct SignalsmithShifter {
     pub speed: f64,
     /// Mix: 0.0 = dry only, 1.0 = wet only.
     pub mix: f64,
+    /// Live mode: use cheaper preset and smaller blocks for lower latency.
+    pub live: bool,
 
     /// The underlying Signalsmith Stretch instance.
     stretch: Stretch,
@@ -41,6 +44,11 @@ pub struct SignalsmithShifter {
 
     /// The last `speed` value sent to the engine, used to avoid redundant calls.
     last_speed: f64,
+
+    /// Current block size (depends on live mode).
+    block_size: usize,
+    /// Track previous live state to detect changes.
+    prev_live: bool,
 }
 
 impl SignalsmithShifter {
@@ -51,21 +59,41 @@ impl SignalsmithShifter {
         let mut s = Self {
             speed: 0.5,
             mix: 1.0,
+            live: false,
             stretch,
             input_buf: Vec::with_capacity(BLOCK_SIZE),
             output_queue: VecDeque::with_capacity(BLOCK_SIZE * 2),
             output_scratch: vec![0.0f32; BLOCK_SIZE],
             sample_rate,
             last_speed: -1.0, // force first update
+            block_size: BLOCK_SIZE,
+            prev_live: false,
         };
         s.apply_speed();
         s
     }
 
     pub fn update(&mut self, sample_rate: f64) {
-        if (self.sample_rate - sample_rate).abs() > 0.5 {
+        let sr_changed = (self.sample_rate - sample_rate).abs() > 0.5;
+        let live_changed = self.live != self.prev_live;
+
+        if sr_changed || live_changed {
             self.sample_rate = sample_rate;
-            self.stretch = Stretch::preset_default(1, sample_rate as u32);
+            self.prev_live = self.live;
+            self.block_size = if self.live {
+                BLOCK_SIZE_LIVE
+            } else {
+                BLOCK_SIZE
+            };
+
+            self.stretch = if self.live {
+                // Low-latency: small FFT block (256) with 1/4 hop (64).
+                // Trades spectral resolution for ~5ms latency at 48kHz.
+                Stretch::new(1, 256, 64)
+            } else {
+                Stretch::preset_default(1, sample_rate as u32)
+            };
+
             self.input_buf.clear();
             self.output_queue.clear();
             self.last_speed = -1.0;
@@ -91,7 +119,7 @@ impl SignalsmithShifter {
 
         self.input_buf.push(input as f32);
 
-        if self.input_buf.len() >= BLOCK_SIZE {
+        if self.input_buf.len() >= self.block_size {
             self.process_block();
         }
 
@@ -101,7 +129,7 @@ impl SignalsmithShifter {
     }
 
     pub fn latency(&self) -> usize {
-        self.stretch.input_latency() + self.stretch.output_latency() + BLOCK_SIZE
+        self.stretch.input_latency() + self.stretch.output_latency() + self.block_size
     }
 
     // ── private ──────────────────────────────────────────────────────

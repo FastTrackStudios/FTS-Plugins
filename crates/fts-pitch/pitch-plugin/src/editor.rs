@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::segment::SegmentButton;
+use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{theme, DragProvider, KnobSize, LevelMeterDb, SectionLabel};
 use fts_plugin_core::prelude::*;
 
@@ -14,8 +15,7 @@ use crate::{FtsPitchParams, PitchUiState};
 #[component]
 pub fn App() -> Element {
     let shared = use_context::<SharedState>();
-    let ui: Arc<PitchUiState> =
-        shared.get::<PitchUiState>().expect("PitchUiState missing");
+    let ui: Arc<PitchUiState> = shared.get::<PitchUiState>().expect("PitchUiState missing");
     let params: Arc<FtsPitchParams> = ui.params.clone();
     let ctx = use_param_context();
 
@@ -32,18 +32,22 @@ pub fn App() -> Element {
         format!("{latency} smp")
     };
 
-    let st = params.semitones.value();
-    let st_text = if st > 0.0 {
-        format!("+{st:.1} st")
+    let pitch_st = params.pitch.value();
+    let fine_ct = params.fine_tune.value();
+    let total_st = pitch_st as f32 + fine_ct / 100.0;
+    let st_text = if total_st > 0.0 {
+        format!("+{total_st:.1} st")
     } else {
-        format!("{st:.1} st")
+        format!("{total_st:.1} st")
     };
 
     // Extract ParamPtrs (Copy) for Knob components.
-    let semitones_ptr = params.semitones.as_ptr();
+    let pitch_ptr = params.pitch.as_ptr();
+    let fine_tune_ptr = params.fine_tune.as_ptr();
     let mix_ptr = params.mix.as_ptr();
     let output_gain_ptr = params.output_gain_db.as_ptr();
     let grain_size_ptr = params.grain_size.as_ptr();
+    let live_ptr = params.live.as_ptr();
     let wf = params.pll_waveform.value();
 
     // Build algorithm setter closures (need owned Arcs).
@@ -111,10 +115,11 @@ pub fn App() -> Element {
                 }
             }
 
-            // ── Algorithm selector ───────────────────────────────
+            // ── Algorithm selector + Live toggle ─────────────────
             div {
                 style: format!(
-                    "display:flex; gap:4px; background:{CARD_BG}; border-radius:6px; padding:8px;",
+                    "display:flex; gap:8px; align-items:center; background:{CARD_BG}; \
+                     border-radius:6px; padding:8px;",
                     CARD_BG = theme::CARD_BG,
                 ),
                 SectionLabel { text: "Algorithm" }
@@ -125,7 +130,14 @@ pub fn App() -> Element {
                     SegmentButton { label: "Granular", selected: algo == 2, on_click: algo_setter(2) }
                     SegmentButton { label: "PSOLA", selected: algo == 3, on_click: algo_setter(3) }
                     SegmentButton { label: "WSOLA", selected: algo == 4, on_click: algo_setter(4) }
+                    SegmentButton { label: "Signalsmith", selected: algo == 5, on_click: algo_setter(5) }
+                    SegmentButton { label: "Rubberband", selected: algo == 6, on_click: algo_setter(6) }
+                    SegmentButton { label: "Allpass", selected: algo == 7, on_click: algo_setter(7) }
                 }
+                div {
+                    style: format!("width:1px; background:{}; align-self:stretch;", theme::BORDER),
+                }
+                Toggle { param_ptr: live_ptr, label: "Live" }
             }
 
             // ── Main controls + Meters ───────────────────────────
@@ -146,7 +158,8 @@ pub fn App() -> Element {
                         SectionLabel { text: "Pitch" }
                         div {
                             style: "display:flex; justify-content:center; gap:24px;",
-                            Knob { param_ptr: semitones_ptr, size: KnobSize::Large }
+                            Knob { param_ptr: pitch_ptr, size: KnobSize::Large }
+                            Knob { param_ptr: fine_tune_ptr, size: KnobSize::Large }
                             Knob { param_ptr: mix_ptr, size: KnobSize::Large }
                             Knob { param_ptr: output_gain_ptr, size: KnobSize::Large }
                         }
@@ -194,4 +207,3 @@ pub fn App() -> Element {
         } // DragProvider
     }
 }
-

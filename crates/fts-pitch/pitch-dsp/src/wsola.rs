@@ -20,6 +20,9 @@ pub struct WsolaShifter {
     pub speed: f64,
     /// Mix: 0.0 = dry only, 1.0 = wet only.
     pub mix: f64,
+    /// Base grain size at 48kHz (scaled by sample rate in update()).
+    /// Default 1024; set to 256 for low-latency live mode.
+    pub base_grain_size: usize,
 
     // Circular analysis buffer (input history).
     analysis_buf: DelayLine,
@@ -65,6 +68,7 @@ impl WsolaShifter {
         Self {
             speed: 0.5,
             mix: 1.0,
+            base_grain_size: Self::DEFAULT_GRAIN,
             analysis_buf: DelayLine::new(buf_len),
             output_buf: vec![0.0; buf_len],
             output_pos: 0,
@@ -83,7 +87,7 @@ impl WsolaShifter {
         self.sample_rate = sample_rate;
 
         // Scale grain size proportionally to sample rate.
-        self.grain_size = ((Self::DEFAULT_GRAIN as f64 * sample_rate) / 48000.0) as usize;
+        self.grain_size = ((self.base_grain_size as f64 * sample_rate) / 48000.0) as usize;
         // Keep grain size even for symmetric windowing.
         if self.grain_size % 2 != 0 {
             self.grain_size += 1;
@@ -151,7 +155,11 @@ impl WsolaShifter {
             }
 
             let denom = (energy_prev * energy_cand).sqrt();
-            let norm_corr = if denom > 1e-12 { correlation / denom } else { 0.0 };
+            let norm_corr = if denom > 1e-12 {
+                correlation / denom
+            } else {
+                0.0
+            };
 
             if norm_corr > best_corr {
                 best_corr = norm_corr;
@@ -211,9 +219,8 @@ impl WsolaShifter {
             if self.write_count >= min_data {
                 // Clamp read_offset so we never read beyond what has been
                 // written (the delay line stores write_count samples at most).
-                let max_readable = self.write_count as f64
-                    - self.grain_size as f64
-                    - self.tolerance as f64;
+                let max_readable =
+                    self.write_count as f64 - self.grain_size as f64 - self.tolerance as f64;
                 if self.read_offset > max_readable {
                     self.read_offset = max_readable.max(1.0);
                 }

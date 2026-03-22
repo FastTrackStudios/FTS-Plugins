@@ -191,4 +191,3 @@ impl Default for Compressor {
         Self::new()
     }
 }
-

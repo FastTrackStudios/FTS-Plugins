@@ -109,9 +109,7 @@ impl SpectralFluxDetector {
 
         // Hanning window
         let window: Vec<f64> = (0..fft_size)
-            .map(|i| {
-                0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos())
-            })
+            .map(|i| 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos()))
             .collect();
 
         // Build filterbank for SuperFlux
@@ -314,7 +312,11 @@ impl SpectralFluxDetector {
         self.prev_magnitude[..num_bins].copy_from_slice(&self.magnitude[..num_bins]);
 
         let diff = hfc - prev_hfc;
-        if diff > 0.0 { diff } else { 0.0 }
+        if diff > 0.0 {
+            diff
+        } else {
+            0.0
+        }
     }
 
     /// Complex domain: magnitude + phase prediction error.
@@ -376,7 +378,11 @@ impl SpectralFluxDetector {
 
         self.prev_magnitude[..num_bins].copy_from_slice(&self.magnitude[..num_bins]);
 
-        if result > 0.0 { result } else { 0.0 }
+        if result > 0.0 {
+            result
+        } else {
+            0.0
+        }
     }
 
     /// Adaptive peak picking on ODF values.
@@ -478,7 +484,11 @@ mod tests {
     const FFT: usize = 1024;
     const HOP: usize = 512;
 
-    fn silence_then_transient(det: &mut SpectralFluxDetector, silence: usize, tone_hz: f64) -> Vec<f64> {
+    fn silence_then_transient(
+        det: &mut SpectralFluxDetector,
+        silence: usize,
+        tone_hz: f64,
+    ) -> Vec<f64> {
         let mut odfs = Vec::new();
         for _ in 0..silence {
             if let Some(odf) = det.tick(0.0) {
@@ -503,7 +513,12 @@ mod tests {
             }
         }
         assert!(last_odf.is_some());
-        assert_eq!(last_odf.unwrap(), 0.0, "mode {:?} should be zero on silence", mode);
+        assert_eq!(
+            last_odf.unwrap(),
+            0.0,
+            "mode {:?} should be zero on silence",
+            mode
+        );
     }
 
     fn assert_detects_transient(mode: FluxMode) {
@@ -513,21 +528,28 @@ mod tests {
         assert!(
             max_odf > 0.01,
             "mode {:?}: expected ODF spike on transient, got max={}",
-            mode, max_odf
+            mode,
+            max_odf
         );
     }
 
     #[test]
-    fn spectral_flux_silent() { assert_silent_is_zero(FluxMode::SpectralFlux); }
+    fn spectral_flux_silent() {
+        assert_silent_is_zero(FluxMode::SpectralFlux);
+    }
     #[test]
-    fn spectral_flux_transient() { assert_detects_transient(FluxMode::SpectralFlux); }
+    fn spectral_flux_transient() {
+        assert_detects_transient(FluxMode::SpectralFlux);
+    }
 
     #[test]
     fn superflux_silent() {
         let mut det = SpectralFluxDetector::new(FluxMode::SuperFlux, 2048, 441, 44100.0);
         let mut last_odf = None;
         for _ in 0..4096 {
-            if let Some(odf) = det.tick(0.0) { last_odf = Some(odf); }
+            if let Some(odf) = det.tick(0.0) {
+                last_odf = Some(odf);
+            }
         }
         assert!(last_odf.is_some());
         assert_eq!(last_odf.unwrap(), 0.0);
@@ -536,39 +558,64 @@ mod tests {
     fn superflux_transient() {
         let mut det = SpectralFluxDetector::new(FluxMode::SuperFlux, 2048, 441, 44100.0);
         let mut odfs = Vec::new();
-        for _ in 0..4096 { if let Some(odf) = det.tick(0.0) { odfs.push(odf); } }
+        for _ in 0..4096 {
+            if let Some(odf) = det.tick(0.0) {
+                odfs.push(odf);
+            }
+        }
         for i in 0..441 {
             let s = (i as f64 * 200.0 * std::f64::consts::TAU / 44100.0).sin() * 0.9;
-            if let Some(odf) = det.tick(s) { odfs.push(odf); }
+            if let Some(odf) = det.tick(s) {
+                odfs.push(odf);
+            }
         }
         let max_odf = odfs.iter().cloned().fold(0.0_f64, f64::max);
         assert!(max_odf > 0.01, "SuperFlux: expected spike, got {}", max_odf);
     }
 
     #[test]
-    fn hfc_silent() { assert_silent_is_zero(FluxMode::Hfc); }
+    fn hfc_silent() {
+        assert_silent_is_zero(FluxMode::Hfc);
+    }
     #[test]
-    fn hfc_transient() { assert_detects_transient(FluxMode::Hfc); }
+    fn hfc_transient() {
+        assert_detects_transient(FluxMode::Hfc);
+    }
 
     #[test]
-    fn complex_domain_silent() { assert_silent_is_zero(FluxMode::ComplexDomain); }
+    fn complex_domain_silent() {
+        assert_silent_is_zero(FluxMode::ComplexDomain);
+    }
     #[test]
-    fn complex_domain_transient() { assert_detects_transient(FluxMode::ComplexDomain); }
+    fn complex_domain_transient() {
+        assert_detects_transient(FluxMode::ComplexDomain);
+    }
 
     #[test]
-    fn rectified_complex_domain_silent() { assert_silent_is_zero(FluxMode::RectifiedComplexDomain); }
+    fn rectified_complex_domain_silent() {
+        assert_silent_is_zero(FluxMode::RectifiedComplexDomain);
+    }
     #[test]
-    fn rectified_complex_domain_transient() { assert_detects_transient(FluxMode::RectifiedComplexDomain); }
+    fn rectified_complex_domain_transient() {
+        assert_detects_transient(FluxMode::RectifiedComplexDomain);
+    }
 
     #[test]
-    fn modified_kl_silent() { assert_silent_is_zero(FluxMode::ModifiedKl); }
+    fn modified_kl_silent() {
+        assert_silent_is_zero(FluxMode::ModifiedKl);
+    }
     #[test]
-    fn modified_kl_transient() { assert_detects_transient(FluxMode::ModifiedKl); }
+    fn modified_kl_transient() {
+        assert_detects_transient(FluxMode::ModifiedKl);
+    }
 
     #[test]
     fn filterbank_covers_range() {
         let (fb, num_bands) = build_filterbank(1025, 44100.0, 24, 30.0, 17000.0);
-        assert!(num_bands > 100, "Expected >100 bands at 24/octave over 30-17kHz");
+        assert!(
+            num_bands > 100,
+            "Expected >100 bands at 24/octave over 30-17kHz"
+        );
         assert_eq!(fb.len(), num_bands);
         for (i, band) in fb.iter().enumerate() {
             assert!(!band.is_empty(), "Band {} is empty", i);

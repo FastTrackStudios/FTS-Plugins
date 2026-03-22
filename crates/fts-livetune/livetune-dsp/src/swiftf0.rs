@@ -181,12 +181,11 @@ impl SwiftF0Detector {
         }
 
         // Construct the ONNX input tensor [1, 512].
-        let input_tensor = match ort::value::Tensor::from_array(
-            (vec![1i64, FRAME_SIZE as i64], ordered),
-        ) {
-            Ok(t) => t,
-            Err(_) => return PitchEstimate::unvoiced(),
-        };
+        let input_tensor =
+            match ort::value::Tensor::from_array((vec![1i64, FRAME_SIZE as i64], ordered)) {
+                Ok(t) => t,
+                Err(_) => return PitchEstimate::unvoiced(),
+            };
 
         let session = self.session.as_mut().unwrap();
 

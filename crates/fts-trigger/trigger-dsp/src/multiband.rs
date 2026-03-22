@@ -44,8 +44,8 @@ pub struct MultibandDetector {
     // Band 1: HPF at crossover[0], LPF at crossover[1]
     // Band 2: HPF at crossover[1], LPF at crossover[2]
     // Band 3: HPF at crossover[2]
-    lo_filters: [Band; 3],  // Low-pass at each crossover
-    hi_filters: [Band; 3],  // High-pass at each crossover
+    lo_filters: [Band; 3], // Low-pass at each crossover
+    hi_filters: [Band; 3], // High-pass at each crossover
 
     // Per-band onset detectors
     detectors: [SpectralFluxDetector; NUM_BANDS],
@@ -201,7 +201,11 @@ impl MultibandDetector {
     pub fn dominant_band(triggers: &[BandTrigger]) -> Option<usize> {
         triggers
             .iter()
-            .max_by(|a, b| a.odf.partial_cmp(&b.odf).unwrap_or(std::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.odf
+                    .partial_cmp(&b.odf)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .map(|t| t.band)
     }
 

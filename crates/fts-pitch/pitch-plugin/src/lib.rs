@@ -39,13 +39,17 @@ impl PitchUiState {
 
 #[derive(Params)]
 pub struct FtsPitchParams {
-    /// Algorithm selection: 0=FreqDivider, 1=PLL, 2=Granular, 3=PSOLA.
+    /// Algorithm selection.
     #[id = "algorithm"]
     pub algorithm: IntParam,
 
-    /// Pitch shift in semitones (-24 to +24).
-    #[id = "semitones"]
-    pub semitones: FloatParam,
+    /// Pitch shift in whole semitones (-24 to +24).
+    #[id = "pitch"]
+    pub pitch: IntParam,
+
+    /// Fine-tune adjustment in cents (-50 to +50).
+    #[id = "fine_tune"]
+    pub fine_tune: FloatParam,
 
     /// Dry/wet mix (0.0-1.0).
     #[id = "mix"]
@@ -62,42 +66,59 @@ pub struct FtsPitchParams {
     /// Output gain in dB.
     #[id = "output_gain"]
     pub output_gain_db: FloatParam,
+
+    /// Live mode: minimize latency at the cost of quality.
+    #[id = "live"]
+    pub live: BoolParam,
 }
 
 impl Default for FtsPitchParams {
     fn default() -> Self {
         Self {
-            algorithm: IntParam::new("Algorithm", 0, IntRange::Linear { min: 0, max: 4 })
-                .with_value_to_string(Arc::new(|v| {
-                    match v {
-                        0 => "Divider".to_string(),
-                        1 => "PLL".to_string(),
-                        2 => "Granular".to_string(),
-                        3 => "PSOLA".to_string(),
-                        4 => "WSOLA".to_string(),
-                        _ => format!("{v}"),
-                    }
+            algorithm: IntParam::new("Algorithm", 5, IntRange::Linear { min: 0, max: 7 })
+                .with_value_to_string(Arc::new(|v| match v {
+                    0 => "Divider".to_string(),
+                    1 => "PLL".to_string(),
+                    2 => "Granular".to_string(),
+                    3 => "PSOLA".to_string(),
+                    4 => "WSOLA".to_string(),
+                    5 => "Signalsmith".to_string(),
+                    6 => "Rubberband".to_string(),
+                    7 => "Allpass".to_string(),
+                    _ => format!("{v}"),
                 }))
-                .with_string_to_value(Arc::new(|s| {
-                    match s.trim().to_lowercase().as_str() {
-                        "divider" | "freq" | "0" => Some(0),
-                        "pll" | "1" => Some(1),
-                        "granular" | "grain" | "2" => Some(2),
-                        "psola" | "3" => Some(3),
-                        "wsola" | "4" => Some(4),
-                        _ => s.parse().ok(),
-                    }
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "divider" | "freq" | "0" => Some(0),
+                    "pll" | "1" => Some(1),
+                    "granular" | "grain" | "2" => Some(2),
+                    "psola" | "3" => Some(3),
+                    "wsola" | "4" => Some(4),
+                    "signalsmith" | "5" => Some(5),
+                    "rubberband" | "rubber" | "6" => Some(6),
+                    "allpass" | "7" => Some(7),
+                    _ => s.parse().ok(),
                 })),
 
-            semitones: FloatParam::new(
-                "Semitones",
-                -12.0,
+            pitch: IntParam::new("Pitch", -12, IntRange::Linear { min: -24, max: 24 })
+                .with_unit(" st")
+                .with_value_to_string(Arc::new(|v| {
+                    if v > 0 {
+                        format!("+{v}")
+                    } else {
+                        format!("{v}")
+                    }
+                }))
+                .with_string_to_value(Arc::new(|s| s.trim().parse().ok())),
+
+            fine_tune: FloatParam::new(
+                "Fine",
+                0.0,
                 FloatRange::Linear {
-                    min: -24.0,
-                    max: 24.0,
+                    min: -50.0,
+                    max: 50.0,
                 },
             )
-            .with_unit(" st")
+            .with_unit(" ct")
             .with_value_to_string(formatters::v2s_f32_rounded(1)),
 
             mix: FloatParam::new("Mix", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
@@ -105,21 +126,17 @@ impl Default for FtsPitchParams {
                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
             pll_waveform: IntParam::new("PLL Wave", 1, IntRange::Linear { min: 0, max: 2 })
-                .with_value_to_string(Arc::new(|v| {
-                    match v {
-                        0 => "Square".to_string(),
-                        1 => "Saw".to_string(),
-                        2 => "Triangle".to_string(),
-                        _ => format!("{v}"),
-                    }
+                .with_value_to_string(Arc::new(|v| match v {
+                    0 => "Square".to_string(),
+                    1 => "Saw".to_string(),
+                    2 => "Triangle".to_string(),
+                    _ => format!("{v}"),
                 }))
-                .with_string_to_value(Arc::new(|s| {
-                    match s.trim().to_lowercase().as_str() {
-                        "square" | "sq" | "0" => Some(0),
-                        "saw" | "sawtooth" | "1" => Some(1),
-                        "triangle" | "tri" | "2" => Some(2),
-                        _ => s.parse().ok(),
-                    }
+                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+                    "square" | "sq" | "0" => Some(0),
+                    "saw" | "sawtooth" | "1" => Some(1),
+                    "triangle" | "tri" | "2" => Some(2),
+                    _ => s.parse().ok(),
                 })),
 
             grain_size: IntParam::new(
@@ -144,6 +161,8 @@ impl Default for FtsPitchParams {
             )
             .with_unit(" dB")
             .with_value_to_string(formatters::v2s_f32_rounded(1)),
+
+            live: BoolParam::new("Live", false),
         }
     }
 }
@@ -181,9 +200,13 @@ impl FtsPitch {
             2 => Algorithm::Granular,
             3 => Algorithm::Psola,
             4 => Algorithm::Wsola,
-            _ => Algorithm::Granular,
+            5 => Algorithm::Signalsmith,
+            6 => Algorithm::Rubberband,
+            7 => Algorithm::Allpass,
+            _ => Algorithm::Signalsmith,
         };
-        self.chain.semitones = self.params.semitones.value() as f64;
+        self.chain.semitones =
+            self.params.pitch.value() as f64 + self.params.fine_tune.value() as f64 / 100.0;
         self.chain.mix = self.params.mix.value() as f64;
         self.chain.pll_waveform = match self.params.pll_waveform.value() {
             0 => SubWaveform::Square,
@@ -192,6 +215,7 @@ impl FtsPitch {
             _ => SubWaveform::Saw,
         };
         self.chain.grain_size = self.params.grain_size.value() as usize;
+        self.chain.live = self.params.live.value();
     }
 }
 
@@ -287,7 +311,11 @@ impl Plugin for FtsPitch {
             } else {
                 -100.0
             };
-            let new_in = if in_db > prev_in { in_db } else { prev_in - 0.3 };
+            let new_in = if in_db > prev_in {
+                in_db
+            } else {
+                prev_in - 0.3
+            };
             self.ui_state.input_peak_db.store(new_in, Ordering::Relaxed);
 
             let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);

@@ -312,7 +312,9 @@ impl FormantVocoder {
             }
             if let Some(rp) = last_peak {
                 let lp = self.nearest_peak[i];
-                if (rp as isize - i as isize).unsigned_abs() < (lp as isize - i as isize).unsigned_abs() {
+                if (rp as isize - i as isize).unsigned_abs()
+                    < (lp as isize - i as isize).unsigned_abs()
+                {
                     self.nearest_peak[i] = rp;
                 }
             }
@@ -328,7 +330,8 @@ impl FormantVocoder {
             let src_i = (i as f64 / ratio).floor() as usize;
             let src_np = (np as f64 / ratio).floor() as usize;
             if src_i < NUM_BINS && src_np < NUM_BINS {
-                new_phase[i] = new_phase[np] + (self.phase[src_i.min(NUM_BINS - 1)] - self.phase[src_np.min(NUM_BINS - 1)]);
+                new_phase[i] = new_phase[np]
+                    + (self.phase[src_i.min(NUM_BINS - 1)] - self.phase[src_np.min(NUM_BINS - 1)]);
             }
         }
 

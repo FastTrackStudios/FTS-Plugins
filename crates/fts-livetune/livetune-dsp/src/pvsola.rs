@@ -324,8 +324,7 @@ impl PvsolaShifter {
             src_indices[i] = src_idx;
 
             if src_idx < NUM_BINS - 1 {
-                new_mag[i] =
-                    self.pv_mag[src_idx] * (1.0 - frac) + self.pv_mag[src_idx + 1] * frac;
+                new_mag[i] = self.pv_mag[src_idx] * (1.0 - frac) + self.pv_mag[src_idx + 1] * frac;
             }
         }
 
@@ -469,7 +468,11 @@ impl PvsolaShifter {
                     e2 += buf[idx_b] * buf[idx_b];
                 }
                 let denom = (e1 * e2).sqrt();
-                if denom > 1e-20 { corr / denom } else { 0.0 }
+                if denom > 1e-20 {
+                    corr / denom
+                } else {
+                    0.0
+                }
             };
             let c_prev = compute_corr(best_lag - 1);
             let c_next = compute_corr(best_lag + 1);

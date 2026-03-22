@@ -71,15 +71,13 @@ impl HpssProcessor {
         let fmw = freq_median_width | 1;
 
         let window: Vec<f64> = (0..fft_size)
-            .map(|i| {
-                0.5 * (1.0
-                    - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos())
-            })
+            .map(|i| 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos()))
             .collect();
 
         let frame_ring: Vec<Vec<f64>> = (0..tmw).map(|_| vec![0.0; num_bins]).collect();
-        let stft_ring: Vec<Vec<Complex<f64>>> =
-            (0..tmw).map(|_| vec![Complex::new(0.0, 0.0); num_bins]).collect();
+        let stft_ring: Vec<Vec<Complex<f64>>> = (0..tmw)
+            .map(|_| vec![Complex::new(0.0, 0.0); num_bins])
+            .collect();
 
         // Output ring needs to be large enough for overlap-add
         let output_ring_size = fft_size * 2;
