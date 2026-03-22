@@ -72,15 +72,10 @@ impl GainComputer {
             // Softplus knee: GR = slope * k * ln(1 + exp(x / k))
             let k = knee_db * 0.1;
             let x = level_db - threshold_db;
-            // Use a numerically stable version to avoid overflow for large x/k:
-            //   ln(1 + exp(z)) = z + ln(1 + exp(-z))  when z > 0
-            //   ln(1 + exp(z)) = ln(1 + exp(z))       when z <= 0
             let z = x / k;
             let softplus = if z > 20.0 {
-                // For very large z, exp(z) >> 1, so ln(1+exp(z)) ≈ z
                 z
             } else if z < -20.0 {
-                // For very negative z, exp(z) ≈ 0, so ln(1+exp(z)) ≈ 0
                 0.0
             } else if z > 0.0 {
                 z + (1.0 + (-z).exp()).ln()

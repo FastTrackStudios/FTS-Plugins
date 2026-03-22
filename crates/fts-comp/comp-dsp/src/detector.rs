@@ -1,9 +1,14 @@
-//! Linear-domain envelope detector with scaled time constants.
+//! Two-stage compressor detector: instant gain curve + GR smoothing.
 //!
-//! Single-stage asymmetric 1-pole filter operating on |input| in the linear
-//! domain, then converting to dB. The detector converges toward peak levels.
-//! The compressor compensates for the peak-vs-mean offset internally so that
-//! user-facing threshold values match Pro-C 3's mean-referenced thresholds.
+//! Architecture (DAFX textbook style):
+//! 1. Compute instantaneous level: 20*log10(|x|)
+//! 2. Apply gain curve (threshold/ratio/knee) → raw GR
+//! 3. Smooth the raw GR with asymmetric 1-pole (attack/release)
+//!
+//! This produces natural peak-weighted detection because the gain curve
+//! is nonlinear (soft knee). Averaging the nonlinear GR over a waveform
+//! cycle gives a result between peak and RMS detection, with the exact
+//! weighting controlled by the knee shape.
 
 use fts_dsp::db::{linear_to_db, DB_FLOOR};
 
@@ -11,29 +16,22 @@ use fts_dsp::db::{linear_to_db, DB_FLOOR};
 const MAX_CH: usize = 2;
 
 /// Scaling factor for attack time constant.
-/// Converts from user-facing "attack time" to 1-pole coefficient.
-const ATTACK_SCALE: f64 = 1.8;
+const ATTACK_SCALE: f64 = 2.0;
 
 /// Scaling factor for release time constant.
-const RELEASE_SCALE: f64 = 1.3;
+const RELEASE_SCALE: f64 = 2.0;
 
 /// Minimum release time in seconds to prevent zero-crossing collapse.
 const MIN_RELEASE_S: f64 = 0.009;
 
-// r[impl comp.chain.signal-flow]
-/// Linear-domain envelope detector.
-///
-/// Operates directly on |input| in the linear domain with user-controlled
-/// attack/release, then converts the smoothed envelope to dB. The linear
-/// domain gives frequency-independent detection since the 1-pole filter
-/// averages over zero crossings naturally.
+/// Two-stage detector: instant level → gain curve → smoothed GR.
 pub struct Detector {
-    /// Smoothed envelope (linear) per channel.
-    env: [f64; MAX_CH],
+    /// Smoothed GR (dB, positive = reducing) per channel.
+    smooth_gr: [f64; MAX_CH],
     /// Previous output sample per channel (for feedback detection).
     prev_output: [f64; MAX_CH],
 
-    // Coefficients (user-controlled, with scaling)
+    // Coefficients
     attack_coeff: f64,
     release_coeff: f64,
     sample_rate: f64,
@@ -42,7 +40,7 @@ pub struct Detector {
 impl Detector {
     pub fn new() -> Self {
         Self {
-            env: [0.0; MAX_CH],
+            smooth_gr: [0.0; MAX_CH],
             prev_output: [0.0; MAX_CH],
             attack_coeff: 0.0,
             release_coeff: 0.0,
@@ -51,15 +49,12 @@ impl Detector {
     }
 
     /// Update coefficients for new attack/release times or sample rate.
-    ///
-    /// `attack_s` and `release_s` are in seconds.
     pub fn set_params(&mut self, attack_s: f64, release_s: f64, sample_rate: f64) {
         self.sample_rate = sample_rate;
         self.attack_coeff = Self::coeff(attack_s, sample_rate, ATTACK_SCALE);
         self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, RELEASE_SCALE);
     }
 
-    /// Compute 1-pole filter coefficient with scaling.
     #[inline]
     fn coeff(time_s: f64, sample_rate: f64, scale: f64) -> f64 {
         if time_s > 0.0 {
@@ -69,25 +64,26 @@ impl Detector {
         }
     }
 
-    /// Feed a sample into the detector and return the smoothed level in dB.
-    ///
-    /// `input_abs` is the absolute value of the input sample.
-    /// `feedback` is the feedback amount (0.0 = pure feedforward, 1.0 = full feedback).
-    /// `ch` is the channel index (0 or 1).
+    /// Feed a sample and return the instantaneous level in dB.
     #[inline]
     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
         let combined = input_abs + self.prev_output[ch].abs() * feedback;
+        linear_to_db(combined).max(DB_FLOOR)
+    }
 
-        // Asymmetric 1-pole filter in linear domain
-        let c = if combined > self.env[ch] {
-            self.attack_coeff
+    /// Smooth a raw GR value with asymmetric attack/release.
+    ///
+    /// Attack = GR increasing (more compression, louder input).
+    /// Release = GR decreasing (less compression, quieter input).
+    #[inline]
+    pub fn smooth_gr(&mut self, raw_gr: f64, ch: usize) -> f64 {
+        let c = if raw_gr > self.smooth_gr[ch] {
+            self.attack_coeff // GR increasing → attack
         } else {
-            self.release_coeff
+            self.release_coeff // GR decreasing → release
         };
-        self.env[ch] = c * self.env[ch] + (1.0 - c) * combined;
-
-        // Convert to dB
-        linear_to_db(self.env[ch]).max(DB_FLOOR)
+        self.smooth_gr[ch] = c * self.smooth_gr[ch] + (1.0 - c) * raw_gr;
+        self.smooth_gr[ch]
     }
 
     /// Store the output sample for feedback detection on next tick.
@@ -96,13 +92,13 @@ impl Detector {
         self.prev_output[ch] = output;
     }
 
-    /// Get the current smoothed level in dB.
+    /// Get the current smoothed GR in dB.
     pub fn level_db(&self, ch: usize) -> f64 {
-        linear_to_db(self.env[ch]).max(DB_FLOOR)
+        self.smooth_gr[ch]
     }
 
     pub fn reset(&mut self) {
-        self.env = [0.0; MAX_CH];
+        self.smooth_gr = [0.0; MAX_CH];
         self.prev_output = [0.0; MAX_CH];
     }
 }

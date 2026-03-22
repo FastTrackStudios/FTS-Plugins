@@ -58,12 +58,12 @@ impl CompChain {
             let level_l = self.comp.detector.tick(sc_l.abs(), self.comp.feedback, 0);
             let level_r = self.comp.detector.tick(sc_r.abs(), self.comp.feedback, 1);
 
-            // Compute gain reduction from filtered levels and smooth with attack/release
+            // Compute gain reduction from filtered levels, then smooth GR
             let inertia_decay = 0.99 + (self.comp.inertia_decay * 0.01);
             let mut gr_db = [0.0_f64; 2];
             for ch in 0..2 {
                 let level = if ch == 0 { level_l } else { level_r };
-                gr_db[ch] = self.comp.gain_computer.compute(
+                let raw_gr = self.comp.gain_computer.compute(
                     level,
                     self.comp.threshold_db + PEAK_TO_MEAN_DB,
                     self.comp.ratio,
@@ -72,6 +72,7 @@ impl CompChain {
                     inertia_decay,
                     ch,
                 );
+                gr_db[ch] = self.comp.detector.smooth_gr(raw_gr, ch);
             }
 
             // Channel linking
@@ -167,7 +168,7 @@ impl Processor for CompChain {
                 let level_l = self.comp.detector.tick(sc_l.abs(), self.comp.feedback, 0);
                 let level_r = self.comp.detector.tick(sc_r.abs(), self.comp.feedback, 1);
 
-                // Compute gain reduction from filtered levels and smooth with attack/release
+                // Compute gain reduction from smoothed filtered levels
                 let inertia_decay = 0.99 + (self.comp.inertia_decay * 0.01);
                 let mut gr_db = [0.0_f64; 2];
                 for ch in 0..2 {

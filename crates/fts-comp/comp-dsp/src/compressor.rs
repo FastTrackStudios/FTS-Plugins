@@ -1,8 +1,10 @@
 //! Complete compressor — the core processing unit.
 //!
-//! Combines envelope detection, gain reduction computation, channel linking,
-//! output saturation, and parallel mix into a single stereo compressor.
-//! Based on APComp's versatile architecture.
+//! Two-stage architecture (DAFX textbook):
+//! 1. Compute instantaneous level in dB
+//! 2. Apply gain curve (threshold/ratio/knee) → raw GR
+//! 3. Smooth GR with attack/release
+//! 4. Apply smoothed GR, saturation, mix
 
 use fts_dsp::db::{db_to_linear, linear_to_db};
 
@@ -12,16 +14,12 @@ use crate::gain::GainComputer;
 /// Maximum number of stereo channels.
 const MAX_CH: usize = 2;
 
-/// Peak-to-mean threshold offset: empirically tuned to 4.2 dB.
+/// Threshold offset — set to 0 for 2-stage architecture.
 ///
-/// Theoretical value is 20*log10(π/2) ≈ 3.922 dB (ratio of peak to mean
-/// rectified sinewave). The extra ~0.28 dB accounts for discrete-time
-/// sampling effects in the asymmetric 1-pole detector.
-///
-/// Our asymmetric detector converges toward peak level, while Pro-C 3's
-/// thresholds are referenced to mean rectified level. This offset is applied
-/// internally so the same threshold value produces identical compression.
-pub const PEAK_TO_MEAN_DB: f64 = 4.2;
+/// The 2-stage approach (instant level → gain curve → smooth GR)
+/// naturally handles peak-vs-mean weighting through the nonlinear
+/// averaging of the gain curve over the waveform cycle.
+pub const PEAK_TO_MEAN_DB: f64 = 0.0;
 
 // r[impl comp.chain.signal-flow]
 /// Complete stereo compressor with all APComp features.
@@ -116,16 +114,15 @@ impl Compressor {
         // Apply input gain
         let samples = [*left * input_gain, *right * input_gain];
 
-        // Per-channel detection and gain reduction
+        // Per-channel: smoothed level → gain curve → GR
         let mut gr_db = [0.0_f64; MAX_CH];
 
         for ch in 0..MAX_CH {
-            // Detect envelope level
+            // Step 1: Instantaneous level in dB
             let level_db = self.detector.tick(samples[ch].abs(), self.feedback, ch);
 
-            // Compute gain reduction — offset threshold to account for
-            // peak-tracking detector vs mean-referenced threshold
-            gr_db[ch] = self.gain_computer.compute(
+            // Step 2: Apply gain curve to get raw (instantaneous) GR
+            let raw_gr = self.gain_computer.compute(
                 level_db,
                 self.threshold_db + PEAK_TO_MEAN_DB,
                 self.ratio,
@@ -134,6 +131,9 @@ impl Compressor {
                 inertia_decay,
                 ch,
             );
+
+            // Step 3: Smooth the GR with attack/release
+            gr_db[ch] = self.detector.smooth_gr(raw_gr, ch);
         }
 
         // Channel linking: blend individual GR with max GR
