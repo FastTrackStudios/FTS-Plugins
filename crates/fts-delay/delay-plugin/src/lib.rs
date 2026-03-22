@@ -7,7 +7,7 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use atomic_float::AtomicF32;
-use delay_dsp::chain::{DelayChain, StereoMode};
+use delay_dsp::chain::{DelayChain, HeadMode, StereoMode};
 use fts_dsp::note_sync::NoteValue;
 use fts_dsp::{AudioConfig, Processor};
 use fts_plugin_core::prelude::*;
@@ -63,6 +63,10 @@ pub struct FtsDelayParams {
     pub width: FloatParam,
     #[id = "pp_feedback"]
     pub pp_feedback: FloatParam,
+
+    // Head Mode (RE-201 style)
+    #[id = "head_mode"]
+    pub head_mode: FloatParam,
 
     // Feedback EQ
     #[id = "hicut"]
@@ -223,6 +227,17 @@ impl Default for FtsDelayParams {
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
             .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
+            // Head Mode (RE-201 style, matches Mateus Asato Echo)
+            head_mode: FloatParam::new("Head Mode", 0.0, FloatRange::Linear { min: 0.0, max: 3.0 })
+                .with_step_size(1.0)
+                .with_value_to_string(Arc::new(|v| match v as i32 {
+                    0 => "Mode 1".to_string(),
+                    1 => "Mode 2".to_string(),
+                    2 => "Mode 3".to_string(),
+                    3 => "Mode 4".to_string(),
+                    _ => "Mode 1".to_string(),
+                })),
 
             // Feedback EQ
             hicut: FloatParam::new(
@@ -432,6 +447,14 @@ impl FtsDelay {
         };
         c.width = p.width.value() as f64;
         c.pingpong_feedback = p.pp_feedback.value() as f64;
+
+        // Head mode (RE-201 style)
+        c.head_mode = match p.head_mode.value() as i32 {
+            1 => HeadMode::Mode2,
+            2 => HeadMode::Mode3,
+            3 => HeadMode::Mode4,
+            _ => HeadMode::Mode1,
+        };
 
         // Feedback EQ
         let hicut = p.hicut.value() as f64;

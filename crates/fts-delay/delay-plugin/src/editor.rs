@@ -28,6 +28,7 @@ pub fn App() -> Element {
 
     // State
     let mode = params.stereo_mode.value() as i32;
+    let head = params.head_mode.value() as i32;
     let link = params.link_lr.value() > 0.5;
     let sync = params.sync_enable.value() > 0.5;
     let diff_on = params.diff_enable.value() > 0.5;
@@ -41,6 +42,17 @@ pub fn App() -> Element {
             ctx.begin_set_raw(p.stereo_mode.as_ptr());
             ctx.set_normalized_raw(p.stereo_mode.as_ptr(), value / 2.0);
             ctx.end_set_raw(p.stereo_mode.as_ptr());
+        }
+    };
+
+    // Head mode setter
+    let head_setter = |value: f32| {
+        let ctx = ctx.clone();
+        let p = params.clone();
+        move |_: ()| {
+            ctx.begin_set_raw(p.head_mode.as_ptr());
+            ctx.set_normalized_raw(p.head_mode.as_ptr(), value / 3.0);
+            ctx.end_set_raw(p.head_mode.as_ptr());
         }
     };
 
@@ -243,6 +255,29 @@ pub fn App() -> Element {
                                 if mode == 1 {
                                     Knob { param_ptr: params.pp_feedback.as_ptr(), size: KnobSize::Small }
                                 }
+                            }
+                        }
+
+                        div {
+                            style: format!(
+                                "width:1px; background:{}; align-self:stretch;",
+                                theme::BORDER,
+                            ),
+                        }
+
+                        // Head Mode (RE-201 style)
+                        div {
+                            style: format!(
+                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
+                                theme::SPACING_SECTION,
+                            ),
+                            SectionLabel { text: "Heads" }
+                            div {
+                                style: format!("display:flex; gap:{};", theme::SPACING_LABEL),
+                                SegmentButton { label: "1", selected: head == 0, on_click: head_setter(0.0) }
+                                SegmentButton { label: "2", selected: head == 1, on_click: head_setter(1.0) }
+                                SegmentButton { label: "3", selected: head == 2, on_click: head_setter(2.0) }
+                                SegmentButton { label: "4", selected: head == 3, on_click: head_setter(3.0) }
                             }
                         }
 

@@ -12,4 +12,4 @@ pub mod modulation;
 pub mod pitch_delay;
 pub mod tape_delay;
 
-pub use chain::DelayChain;
+pub use chain::{DelayChain, HeadMode};

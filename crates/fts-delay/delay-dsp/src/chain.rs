@@ -18,6 +18,25 @@ pub enum StereoMode {
     Mono,
 }
 
+/// RE-201–style tape head configuration.
+///
+/// Controls which of the 3 playback heads are active.
+/// Head 1 is at base delay time, Head 2 at 1.94×, Head 3 at 2.85×
+/// (matching RE-201 physical head spacing).
+///
+/// Modes match the Neural DSP Archetype: Mateus Asato Echo module.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum HeadMode {
+    /// Head 3 only — single repetition at longest interval.
+    Mode1,
+    /// Heads 1 + 3 — dual repetition (short + long).
+    Mode2,
+    /// Heads 2 + 3 — syncopated dual repetition.
+    Mode3,
+    /// All three heads — three-repetition pattern.
+    Mode4,
+}
+
 /// Full stereo delay processing chain.
 ///
 /// Signal flow: Input → Tape Delay (L/R) → Diffusion → Duck → Stereo Width → Mix
@@ -33,6 +52,8 @@ pub struct DelayChain {
     pub stereo_mode: StereoMode,
     /// Stereo width (0.0 = mono, 1.0 = normal, 2.0 = extra wide).
     pub width: f64,
+    /// Tape head configuration (RE-201 style).
+    pub head_mode: HeadMode,
     /// Enable diffusion.
     pub diffusion_enabled: bool,
     /// Diffusion size (0.0–1.0).
@@ -59,6 +80,7 @@ impl DelayChain {
             mix: 0.5,
             stereo_mode: StereoMode::Stereo,
             width: 1.0,
+            head_mode: HeadMode::Mode1,
             diffusion_enabled: false,
             diffusion_size: 0.5,
             diffusion_smear: 0.5,
@@ -83,6 +105,21 @@ impl Processor for DelayChain {
 
     fn update(&mut self, config: AudioConfig) {
         self.sample_rate = config.sample_rate;
+
+        // Configure tape heads based on head mode
+        let (h1, h2, h3) = match self.head_mode {
+            HeadMode::Mode1 => (false, false, true), // Head 3 only
+            HeadMode::Mode2 => (true, false, true),  // Head 1 + 3
+            HeadMode::Mode3 => (false, true, true),  // Head 2 + 3
+            HeadMode::Mode4 => (true, true, true),   // All heads
+        };
+        self.delay_l.head1_enabled = h1;
+        self.delay_l.head2_enabled = h2;
+        self.delay_l.head3_enabled = h3;
+        self.delay_r.head1_enabled = h1;
+        self.delay_r.head2_enabled = h2;
+        self.delay_r.head3_enabled = h3;
+
         self.delay_l.update(config.sample_rate);
         self.delay_r.update(config.sample_rate);
 

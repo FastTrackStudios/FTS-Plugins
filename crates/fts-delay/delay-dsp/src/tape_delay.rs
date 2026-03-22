@@ -3,7 +3,8 @@
 //! Based on qdelay (tiagolr). Signal flow per channel:
 //! Input → DelayLine (cubic read) → Feedback EQ → Saturation → Hard Limit → Write back
 //!
-//! Wow/flutter modulates the read position via a separate modulation delay line.
+//! Supports up to 3 read heads (RE-201 Space Echo style). All heads read from
+//! the same delay buffer with shared wow/flutter modulation.
 
 use fts_dsp::biquad::{Biquad, FilterType};
 use fts_dsp::delay_line::DelayLine;
@@ -12,11 +13,21 @@ use fts_dsp::soft_clip::sin_clip;
 
 use crate::modulation::{Flutter, Wow};
 
+// RE-201 Space Echo head spacing ratios (relative to Head 1).
+// From Cherry Audio Stardust 201 documentation.
+pub const HEAD2_RATIO: f64 = 1.94;
+pub const HEAD3_RATIO: f64 = 2.85;
+
 // r[impl delay.tape.core]
 /// Single-channel tape delay with modulation, feedback filtering, and saturation.
+///
+/// Supports up to 3 read heads (like the Roland RE-201 Space Echo).
+/// Head 1 is at `time_ms`, Head 2 at 1.94×, Head 3 at 2.85×.
+/// All heads share wow/flutter modulation (same tape transport).
+/// Feedback is derived from the combined output of all active heads.
 pub struct TapeDelay {
     // Parameters
-    /// Delay time in milliseconds.
+    /// Delay time in milliseconds (base time for Head 1).
     pub time_ms: f64,
     /// Feedback amount (0.0 = no repeats, 1.0 = infinite).
     pub feedback: f64,
@@ -39,6 +50,20 @@ pub struct TapeDelay {
     /// Flutter rate in Hz.
     pub flutter_rate: f64,
 
+    // Multi-head (RE-201 style)
+    /// Enable Head 1 (reads at base time_ms).
+    pub head1_enabled: bool,
+    /// Enable Head 2 (reads at HEAD2_RATIO × time_ms).
+    pub head2_enabled: bool,
+    /// Enable Head 3 (reads at HEAD3_RATIO × time_ms).
+    pub head3_enabled: bool,
+    /// Head 1 output level (0.0–1.0).
+    pub head1_level: f64,
+    /// Head 2 output level (0.0–1.0).
+    pub head2_level: f64,
+    /// Head 3 output level (0.0–1.0).
+    pub head3_level: f64,
+
     // Internal state
     delay: DelayLine,
     wow: Wow,
@@ -51,7 +76,7 @@ pub struct TapeDelay {
 }
 
 impl TapeDelay {
-    /// Maximum delay time in seconds.
+    /// Maximum delay time in seconds (must accommodate Head 3 at 2.85× base).
     const MAX_DELAY_S: f64 = 5.0;
 
     pub fn new() -> Self {
@@ -67,6 +92,12 @@ impl TapeDelay {
             wow_drift: 0.3,
             flutter_depth: 0.0,
             flutter_rate: 6.0,
+            head1_enabled: true,
+            head2_enabled: false,
+            head3_enabled: false,
+            head1_level: 1.0,
+            head2_level: 1.0,
+            head3_level: 1.0,
             delay: DelayLine::new(48000 * 5 + 1024),
             wow: Wow::new(),
             flutter: Flutter::new(),
@@ -116,7 +147,12 @@ impl TapeDelay {
     }
 
     // r[impl delay.tape.tick]
-    /// Process one sample. Returns the delayed output.
+    // r[impl delay.tape.multihead]
+    /// Process one sample. Returns the combined output of all active heads.
+    ///
+    /// Each head reads at its ratio × base time. All heads share the same
+    /// wow/flutter modulation (physically correct — same tape transport).
+    /// Feedback is derived from the combined output.
     pub fn tick(&mut self, input: f64, ch: usize) -> f64 {
         // Update modulation parameters
         self.wow.depth = self.wow_depth;
@@ -125,22 +161,39 @@ impl TapeDelay {
         self.flutter.depth = self.flutter_depth;
         self.flutter.rate = self.flutter_rate;
 
-        // Smooth delay time
+        // Smooth delay time (base time for all heads)
         let target_delay = self.time_ms * 0.001 * self.sample_rate;
         self.smoother.set_target(target_delay);
         let smooth_delay = self.smoother.tick();
 
-        // Add wow/flutter modulation to read position
+        // Wow/flutter offset — shared across all heads (same tape transport)
         let wow_offset = self.wow.tick();
         let flutter_offset = self.flutter.tick();
-        let modulated_delay =
-            (smooth_delay + wow_offset + flutter_offset).clamp(1.0, self.delay.len() as f64 - 4.0);
+        let mod_offset = wow_offset + flutter_offset;
+        let max_read = self.delay.len() as f64 - 4.0;
 
-        // Read from delay line with cubic interpolation
-        let delayed = self.delay.read_cubic(modulated_delay);
+        let mut output = 0.0;
 
-        // Feedback path: filter → saturate → limit
-        let mut fb = delayed * self.feedback;
+        // Read Head 1 (at base time)
+        if self.head1_enabled {
+            let head1_delay = (smooth_delay + mod_offset).clamp(1.0, max_read);
+            output += self.delay.read_cubic(head1_delay) * self.head1_level;
+        }
+
+        // Read Head 2 (at HEAD2_RATIO × base time)
+        if self.head2_enabled {
+            let head2_delay = (smooth_delay * HEAD2_RATIO + mod_offset).clamp(1.0, max_read);
+            output += self.delay.read_cubic(head2_delay) * self.head2_level;
+        }
+
+        // Read Head 3 (at HEAD3_RATIO × base time)
+        if self.head3_enabled {
+            let head3_delay = (smooth_delay * HEAD3_RATIO + mod_offset).clamp(1.0, max_read);
+            output += self.delay.read_cubic(head3_delay) * self.head3_level;
+        }
+
+        // Feedback path: combined output → filter → saturate → limit
+        let mut fb = output * self.feedback;
 
         if self.hicut_freq > 0.0 {
             fb = self.hicut.tick(fb, ch);
@@ -162,7 +215,7 @@ impl TapeDelay {
         self.delay.write(input + fb);
         self.feedback_sample = fb;
 
-        delayed
+        output
     }
 
     pub fn last_feedback(&self) -> f64 {
@@ -207,8 +260,7 @@ mod tests {
     #[test]
     fn impulse_delayed() {
         let mut d = make_delay();
-        // 100ms = 4800 samples at 48kHz
-        let expected_delay = 4800;
+        let expected_delay = 4800; // 100ms at 48kHz
 
         let mut peak_pos = 0;
         let mut peak_val = 0.0;
@@ -235,10 +287,8 @@ mod tests {
         d.feedback = 0.5;
         d.update(SR);
 
-        // Send impulse
         d.tick(1.0, 0);
 
-        // Collect 3 seconds of output
         let mut peaks = Vec::new();
         for i in 1..144000 {
             let out = d.tick(0.0, 0);
@@ -264,6 +314,8 @@ mod tests {
         d.locut_freq = 100.0;
         d.wow_depth = 0.5;
         d.flutter_depth = 0.5;
+        d.head2_enabled = true;
+        d.head3_enabled = true;
         d.update(SR);
 
         for i in 0..96000 {
@@ -293,8 +345,6 @@ mod tests {
 
     #[test]
     fn hicut_darkens_repeats() {
-        // Compare with and without high-cut on the 3rd repeat
-        // (filter acts on feedback, so need multiple passes to see the effect)
         let mut d_clean = make_delay();
         d_clean.feedback = 0.6;
         d_clean.update(SR);
@@ -304,7 +354,6 @@ mod tests {
         d_dark.hicut_freq = 2000.0;
         d_dark.update(SR);
 
-        // Send a bright burst (high frequency content)
         let input: Vec<f64> = (0..200)
             .map(|i| (2.0 * PI * 10000.0 * i as f64 / SR).sin())
             .collect();
@@ -314,13 +363,11 @@ mod tests {
             d_dark.tick(s, 0);
         }
 
-        // Measure energy of 3rd repeat (~14400 samples after input, window 14000..15000)
         let mut energy_clean = 0.0;
         let mut energy_dark = 0.0;
         for i in 0..20000 {
             let c = d_clean.tick(0.0, 0);
             let d = d_dark.tick(0.0, 0);
-            // 3rd repeat: ~3 * 4800 = 14400 from input end
             if i > 13800 && i < 15200 {
                 energy_clean += c * c;
                 energy_dark += d * d;
@@ -339,15 +386,12 @@ mod tests {
         d.feedback = 0.0;
         d.update(SR);
 
-        // Process some silence
         for _ in 0..4800 {
             d.tick(0.0, 0);
         }
 
-        // Change delay time abruptly
         d.time_ms = 200.0;
 
-        // Verify no clicks (no large sample-to-sample jumps)
         let mut prev: f64 = 0.0;
         let mut max_jump: f64 = 0.0;
         for i in 0..4800 {
@@ -357,10 +401,146 @@ mod tests {
             max_jump = max_jump.max(jump);
             prev = out;
         }
-        // With smoothing, jumps should be reasonable
         assert!(
             max_jump < 1.0,
             "Time change should be smooth: max_jump={max_jump}"
         );
+    }
+
+    #[test]
+    fn multihead_mode1_head3_only() {
+        // Mode 1: Head 3 only — single tap at 2.85× base time
+        let mut d = TapeDelay::new();
+        d.time_ms = 100.0;
+        d.feedback = 0.0;
+        d.head1_enabled = false;
+        d.head2_enabled = false;
+        d.head3_enabled = true;
+        d.update(SR);
+
+        let mut outputs = Vec::with_capacity(20000);
+        for i in 0..20000 {
+            let input = if i == 0 { 1.0 } else { 0.0 };
+            outputs.push(d.tick(input, 0));
+        }
+
+        // Head 3 at 100ms * 2.85 = 285ms = 13680 samples
+        let head1_region = outputs[4700..4900]
+            .iter()
+            .map(|x| x.abs())
+            .fold(0.0f64, f64::max);
+        let head3_peak = outputs[13500..13900]
+            .iter()
+            .map(|x| x.abs())
+            .fold(0.0f64, f64::max);
+
+        assert!(
+            head1_region < 0.01,
+            "Head 1 should be silent in Mode 1: got {head1_region}"
+        );
+        assert!(
+            head3_peak > 0.5,
+            "Head 3 should produce peak near 13680: got {head3_peak}"
+        );
+    }
+
+    #[test]
+    fn multihead_mode2_head1_and_3() {
+        // Mode 2: Heads 1 + 3
+        let mut d = TapeDelay::new();
+        d.time_ms = 100.0;
+        d.feedback = 0.0;
+        d.head1_enabled = true;
+        d.head2_enabled = false;
+        d.head3_enabled = true;
+        d.update(SR);
+
+        let mut outputs = Vec::with_capacity(20000);
+        for i in 0..20000 {
+            let input = if i == 0 { 1.0 } else { 0.0 };
+            outputs.push(d.tick(input, 0));
+        }
+
+        let head1_peak = outputs[4700..4900]
+            .iter()
+            .map(|x| x.abs())
+            .fold(0.0f64, f64::max);
+        let head2_region = outputs[9200..9500]
+            .iter()
+            .map(|x| x.abs())
+            .fold(0.0f64, f64::max);
+        let head3_peak = outputs[13500..13900]
+            .iter()
+            .map(|x| x.abs())
+            .fold(0.0f64, f64::max);
+
+        assert!(
+            head1_peak > 0.5,
+            "Head 1 should be active: got {head1_peak}"
+        );
+        assert!(
+            head2_region < 0.01,
+            "Head 2 should be silent: got {head2_region}"
+        );
+        assert!(
+            head3_peak > 0.5,
+            "Head 3 should be active: got {head3_peak}"
+        );
+    }
+
+    #[test]
+    fn multihead_mode4_all_three() {
+        // Mode 4: All three heads
+        let mut d = TapeDelay::new();
+        d.time_ms = 100.0;
+        d.feedback = 0.0;
+        d.head1_enabled = true;
+        d.head2_enabled = true;
+        d.head3_enabled = true;
+        d.update(SR);
+
+        let mut outputs = Vec::with_capacity(20000);
+        for i in 0..20000 {
+            let input = if i == 0 { 1.0 } else { 0.0 };
+            outputs.push(d.tick(input, 0));
+        }
+
+        let head1_peak = outputs[4700..4900]
+            .iter()
+            .map(|x| x.abs())
+            .fold(0.0f64, f64::max);
+        let head2_peak = outputs[9200..9500]
+            .iter()
+            .map(|x| x.abs())
+            .fold(0.0f64, f64::max);
+        let head3_peak = outputs[13500..13900]
+            .iter()
+            .map(|x| x.abs())
+            .fold(0.0f64, f64::max);
+
+        assert!(head1_peak > 0.5, "Head 1: {head1_peak}");
+        assert!(head2_peak > 0.5, "Head 2: {head2_peak}");
+        assert!(head3_peak > 0.5, "Head 3: {head3_peak}");
+    }
+
+    #[test]
+    fn multihead_no_nan() {
+        let mut d = TapeDelay::new();
+        d.time_ms = 500.0;
+        d.feedback = 0.6;
+        d.drive = 0.5;
+        d.head2_enabled = true;
+        d.head3_enabled = true;
+        d.hicut_freq = 4000.0;
+        d.wow_depth = 0.3;
+        d.flutter_depth = 0.2;
+        d.update(SR);
+
+        for i in 0..96000 {
+            let input = (2.0 * PI * 440.0 * i as f64 / SR).sin() * 0.3;
+            let out = d.tick(input, 0);
+            assert!(out.is_finite(), "NaN/Inf at sample {i}");
+            assert!(out.abs() < 10.0, "Runaway at sample {i}: {out}");
+        }
     }
 }
