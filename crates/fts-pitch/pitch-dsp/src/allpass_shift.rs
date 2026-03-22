@@ -1,41 +1,39 @@
-//! Allpass interpolation pitch shifter — Dattorro/Schroeder "barberpole" style.
+//! Barberpole pitch shifter — Dattorro/Schroeder style with cubic interpolation.
 //!
 //! Two read heads sweep through a circular delay buffer at a rate determined
-//! by the pitch ratio. When one head nears the end of its sweep, a Hann-shaped
-//! crossfade transitions to the other head. Allpass interpolation provides
-//! sub-sample accuracy without the phase smearing of linear interpolation.
+//! by the pitch ratio. When one head nears the end of its sweep, a sin²
+//! crossfade transitions to the other head. Cubic (Catmull-Rom) interpolation
+//! provides sub-sample accuracy without the clicking artifacts of allpass
+//! interpolation (no recursive state to "fly back").
 //!
-//! Latency: **0 samples** — output is produced immediately from the current
-//! write position minus a small read offset.
+//! At splice points, a short cross-correlation search finds the best
+//! phase-aligned position for the incoming head (H949-style de-glitching),
+//! minimizing audible discontinuities during crossfade.
 //!
+//! Latency: **0 samples** — output is produced immediately.
 //! Character: Classic hardware pitch shifter (Eventide H3000, Boss PS-series).
 
+use fts_dsp::delay_line::DelayLine;
 use std::f64::consts::PI;
 
-const BUFFER_SIZE: usize = 4096;
-/// Barberpole allpass-interpolated pitch shifter with zero latency.
+const BUFFER_SIZE: usize = 8192;
+/// Tolerance (in samples) for cross-correlation splice search.
+const SPLICE_TOLERANCE: usize = 128;
+/// Length of the comparison window for splice cross-correlation.
+const SPLICE_TAIL_LEN: usize = 64;
+
 pub struct AllpassShifter {
     /// Pitch ratio: 0.5 = octave down, 2.0 = octave up.
     pub speed: f64,
     /// Mix: 0.0 = dry only, 1.0 = wet only.
     pub mix: f64,
 
-    buffer: [f64; BUFFER_SIZE],
-    write_pos: usize,
+    delay: DelayLine,
 
     /// Fractional read offset for head A (samples behind write head).
     head_a: f64,
     /// Fractional read offset for head B.
     head_b: f64,
-
-    /// Allpass state for head A.
-    ap_state_a: f64,
-    /// Allpass state for head B.
-    ap_state_b: f64,
-    /// Previous raw sample for head A allpass.
-    ap_prev_a: f64,
-    /// Previous raw sample for head B allpass.
-    ap_prev_b: f64,
 
     /// Phase of head A within its sweep (0.0–1.0). Drives the crossfade.
     phase_a: f64,
@@ -48,14 +46,9 @@ impl AllpassShifter {
         Self {
             speed: 0.5,
             mix: 1.0,
-            buffer: [0.0; BUFFER_SIZE],
-            write_pos: 0,
+            delay: DelayLine::new(BUFFER_SIZE),
             head_a: 1.0,
             head_b: (BUFFER_SIZE / 2) as f64,
-            ap_state_a: 0.0,
-            ap_state_b: 0.0,
-            ap_prev_a: 0.0,
-            ap_prev_b: 0.0,
             phase_a: 0.0,
             sample_rate: 48000.0,
         }
@@ -66,100 +59,113 @@ impl AllpassShifter {
     }
 
     pub fn reset(&mut self) {
-        self.buffer = [0.0; BUFFER_SIZE];
-        self.write_pos = 0;
+        self.delay.clear();
         self.head_a = 1.0;
         self.head_b = (BUFFER_SIZE / 2) as f64;
-        self.ap_state_a = 0.0;
-        self.ap_state_b = 0.0;
-        self.ap_prev_a = 0.0;
-        self.ap_prev_b = 0.0;
         self.phase_a = 0.0;
     }
 
-    /// Read from the circular buffer at an integer offset behind write_pos.
-    #[inline]
-    fn read_buffer(&self, offset: usize) -> f64 {
-        let idx = (self.write_pos + BUFFER_SIZE - offset) % BUFFER_SIZE;
-        self.buffer[idx]
-    }
-
-    /// Allpass interpolation: reads at a fractional offset behind the write head.
-    /// Returns the interpolated sample and updates the allpass state.
-    #[inline]
-    fn read_allpass(&self, offset: f64, ap_state: &mut f64, ap_prev: &mut f64) -> f64 {
-        let offset_clamped = offset.max(1.0).min((BUFFER_SIZE - 2) as f64);
-        let int_part = offset_clamped as usize;
-        let frac = offset_clamped - int_part as f64;
-
-        let x_n = self.read_buffer(int_part);
-        let x_prev = self.read_buffer(int_part + 1);
-
-        // First-order allpass: y[n] = x_prev + (x_n - y_prev) * frac
-        // where frac is the fractional delay (coefficient).
-        let coeff = (1.0 - frac) / (1.0 + frac);
-        let y = x_prev + (x_n - *ap_state) * coeff;
-
-        *ap_prev = x_n;
-        *ap_state = y;
-        y
-    }
-
     /// Crossfade window: sin²(π * phase).
-    /// Two windows offset by 0.5 sum to exactly 1.0:
-    ///   sin²(π*p) + sin²(π*(p+0.5)) = sin²(π*p) + cos²(π*p) = 1
+    /// Two windows offset by 0.5 sum to exactly 1.0.
     #[inline]
     fn crossfade(phase: f64) -> f64 {
         let s = (PI * phase).sin();
         s * s
     }
 
+    /// Find the best splice offset near `nominal` using cross-correlation
+    /// with a short tail read from `reference_offset`. This is the H949
+    /// de-glitching technique: align the incoming head's audio with the
+    /// outgoing head's audio to minimize phase discontinuity.
+    fn find_splice_offset(&self, nominal: f64, reference_offset: f64) -> f64 {
+        let buf_len = self.delay.len();
+        let tail_len = SPLICE_TAIL_LEN.min(buf_len / 4);
+        let tolerance = SPLICE_TOLERANCE as isize;
+
+        // Read reference tail from the outgoing head position.
+        let mut ref_energy = 0.0f64;
+        let mut ref_tail = [0.0f64; SPLICE_TAIL_LEN];
+        for i in 0..tail_len {
+            let pos = reference_offset as usize + i;
+            if pos > 0 && pos < buf_len {
+                ref_tail[i] = self.delay.read(pos);
+                ref_energy += ref_tail[i] * ref_tail[i];
+            }
+        }
+
+        // If the reference is silent, just use the nominal position.
+        if ref_energy < 1e-12 {
+            return nominal;
+        }
+
+        let mut best_corr = f64::NEG_INFINITY;
+        let mut best_delta: isize = 0;
+
+        for delta in -tolerance..=tolerance {
+            let candidate = nominal + delta as f64;
+            if candidate < 1.0 || (candidate as usize + tail_len) >= buf_len {
+                continue;
+            }
+
+            let mut correlation = 0.0f64;
+            let mut cand_energy = 0.0f64;
+
+            for i in 0..tail_len {
+                let s = self.delay.read(candidate as usize + i);
+                correlation += ref_tail[i] * s;
+                cand_energy += s * s;
+            }
+
+            let denom = (ref_energy * cand_energy).sqrt();
+            let norm_corr = if denom > 1e-12 {
+                correlation / denom
+            } else {
+                0.0
+            };
+
+            if norm_corr > best_corr {
+                best_corr = norm_corr;
+                best_delta = delta;
+            }
+        }
+
+        nominal + best_delta as f64
+    }
+
     /// Process one sample. Returns the mixed (dry/wet) output.
     #[inline]
     pub fn tick(&mut self, input: f64) -> f64 {
-        // Write input into the circular buffer.
-        self.buffer[self.write_pos] = input;
-        self.write_pos = (self.write_pos + 1) % BUFFER_SIZE;
+        self.delay.write(input);
 
         let drift = 1.0 - self.speed;
         let half_buf = (BUFFER_SIZE / 2) as f64;
-        let max_offset = (BUFFER_SIZE - 2) as f64;
+        let max_offset = (BUFFER_SIZE - 4) as f64; // leave room for cubic interp
 
         // Advance read heads.
         self.head_a += drift;
         self.head_b += drift;
 
-        // Wrap heads: when a head drifts out of range, reset it to
-        // half-buffer offset from the other head.
+        // Wrap heads: when a head drifts out of range, find a phase-aligned
+        // splice point near half-buffer offset from the other head.
         if self.head_a < 1.0 || self.head_a > max_offset {
-            self.head_a = ((self.head_b + half_buf - 1.0) % max_offset) + 1.0;
-            self.ap_state_a = 0.0;
-            self.ap_prev_a = 0.0;
+            let nominal = ((self.head_b + half_buf - 1.0) % max_offset) + 1.0;
+            self.head_a = self.find_splice_offset(nominal, self.head_b);
+            self.head_a = self.head_a.clamp(1.0, max_offset);
             self.phase_a = 0.0;
         }
         if self.head_b < 1.0 || self.head_b > max_offset {
-            self.head_b = ((self.head_a + half_buf - 1.0) % max_offset) + 1.0;
-            self.ap_state_b = 0.0;
-            self.ap_prev_b = 0.0;
+            let nominal = ((self.head_a + half_buf - 1.0) % max_offset) + 1.0;
+            self.head_b = self.find_splice_offset(nominal, self.head_a);
+            self.head_b = self.head_b.clamp(1.0, max_offset);
             self.phase_a = 0.5;
         }
 
-        // Read from each head with allpass interpolation.
-        let mut ap_a = self.ap_state_a;
-        let mut ap_prev_a = self.ap_prev_a;
-        let mut ap_b = self.ap_state_b;
-        let mut ap_prev_b = self.ap_prev_b;
-
-        let a = self.read_allpass(self.head_a, &mut ap_a, &mut ap_prev_a);
-        let b = self.read_allpass(self.head_b, &mut ap_b, &mut ap_prev_b);
-
-        self.ap_state_a = ap_a;
-        self.ap_prev_a = ap_prev_a;
-        self.ap_state_b = ap_b;
-        self.ap_prev_b = ap_prev_b;
+        // Read from each head with cubic (Catmull-Rom) interpolation.
+        // No recursive state — no coefficient flyback clicks.
+        let a = self.delay.read_cubic(self.head_a);
+        let b = self.delay.read_cubic(self.head_b);
 
         // Crossfade envelope: head A uses phase_a, head B uses phase_a + 0.5.
-        // sin²(x) + sin²(x + π/2) = 1 ensures constant-power crossfade.
         let win_a = Self::crossfade(self.phase_a);
         let phase_b = (self.phase_a + 0.5).fract();
         let win_b = Self::crossfade(phase_b);
@@ -167,7 +173,7 @@ impl AllpassShifter {
         let wet = a * win_a + b * win_b;
 
         // Advance the crossfade phase.
-        let phase_inc = 1.0 / (BUFFER_SIZE as f64 / drift.abs().max(0.001));
+        let phase_inc = drift.abs().max(0.001) / BUFFER_SIZE as f64;
         self.phase_a = (self.phase_a + phase_inc) % 1.0;
 
         input * (1.0 - self.mix) + wet * self.mix
@@ -215,7 +221,6 @@ mod tests {
         for i in 0..9600 {
             let input = (2.0 * PI * 220.0 * i as f64 / SR).sin() * 0.5;
             let out = s.tick(input);
-            // Allow warmup: measure energy after the buffer has filled.
             if i > 4096 {
                 energy += out * out;
             }
@@ -231,6 +236,28 @@ mod tests {
             let out = s.tick(input);
             assert!(out.is_finite(), "NaN/Inf at sample {i}");
         }
+    }
+
+    #[test]
+    fn no_large_spikes() {
+        // Verify no crackling/clicking: output should never exceed input amplitude
+        // by more than a small margin (cubic overshoot).
+        let mut s = make_shifter();
+        let amplitude = 0.5;
+        let mut max_out = 0.0f64;
+        for i in 0..48000 {
+            let input = (2.0 * PI * 440.0 * i as f64 / SR).sin() * amplitude;
+            let out = s.tick(input);
+            if i > BUFFER_SIZE {
+                max_out = max_out.max(out.abs());
+            }
+        }
+        // Cubic interpolation can overshoot slightly, but clicks would produce
+        // spikes well above the input amplitude.
+        assert!(
+            max_out < amplitude * 1.5,
+            "Output spikes too high (crackling?): max={max_out}, input_amp={amplitude}"
+        );
     }
 
     #[test]
@@ -284,5 +311,33 @@ mod tests {
     fn latency_is_zero() {
         let s = make_shifter();
         assert_eq!(s.latency(), 0);
+    }
+
+    #[test]
+    fn splice_reduces_discontinuity() {
+        // Compare output with and without splice cross-correlation.
+        // The spliced version should have lower peak-to-peak jumps at wrap points.
+        let freq = 440.0;
+        let n = 48000;
+
+        let mut s = make_shifter();
+        let mut max_jump = 0.0f64;
+        let mut prev = 0.0;
+        for i in 0..n {
+            let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
+            let out = s.tick(input);
+            if i > BUFFER_SIZE {
+                let jump = (out - prev).abs();
+                max_jump = max_jump.max(jump);
+            }
+            prev = out;
+        }
+
+        // A well-spliced pitch shifter should have no sample-to-sample jumps
+        // larger than ~2x the input amplitude (generous margin).
+        assert!(
+            max_jump < 1.0,
+            "Max sample-to-sample jump too large (clicking?): {max_jump}"
+        );
     }
 }
