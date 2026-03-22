@@ -85,29 +85,30 @@ pub fn App() -> Element {
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
-                    BORDER = theme::BORDER,
+                     padding-bottom:6px; border-bottom:1px solid {};",
+                    theme::BORDER,
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
-                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
+                        style: format!("font-size:{}; font-weight:700; letter-spacing:0.5px;", theme::FONT_SIZE_TITLE),
                         "FTS PITCH"
                     }
                     div {
                         style: format!(
-                            "font-size:12px; color:{}; font-variant-numeric:tabular-nums;",
+                            "{} color:{};",
+                            theme::STYLE_VALUE,
                             theme::TEXT_DIM,
                         ),
                         "{st_text}"
                     }
                     div {
-                        style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
+                        style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
                         "Latency: {latency_text}"
                     }
                 }
                 div {
-                    style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
+                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
                     "FastTrackStudio"
                 }
             }
@@ -115,9 +116,8 @@ pub fn App() -> Element {
             // ── Algorithm selector + Live toggle ─────────────────
             div {
                 style: format!(
-                    "display:flex; gap:8px; align-items:center; background:{CARD_BG}; \
-                     border-radius:6px; padding:8px;",
-                    CARD_BG = theme::CARD_BG,
+                    "{} display:flex; gap:8px; align-items:center;",
+                    theme::STYLE_CARD,
                 ),
                 SectionLabel { text: "Algorithm" }
                 div {
@@ -139,14 +139,13 @@ pub fn App() -> Element {
 
             // ── Main controls + Meters ───────────────────────────
             div {
-                style: "display:flex; gap:10px; flex:1; min-height:0;",
+                style: format!("display:flex; gap:{}; flex:1; min-height:0;", theme::SPACING_SECTION),
 
                 // Controls card
                 div {
                     style: format!(
-                        "flex:1; background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
-                         display:flex; flex-direction:column; gap:12px;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} flex:1; display:flex; flex-direction:column; gap:12px;",
+                        theme::STYLE_CARD,
                     ),
 
                     // Core controls
@@ -192,9 +191,8 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; gap:8px; align-items:stretch;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} display:flex; gap:8px; align-items:stretch;",
+                        theme::STYLE_CARD,
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 240.0 }
                     LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 240.0 }

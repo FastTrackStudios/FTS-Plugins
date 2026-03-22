@@ -68,38 +68,38 @@ pub fn App() -> Element {
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
-                    BORDER = theme::BORDER,
+                     padding-bottom:6px; border-bottom:1px solid {};",
+                    theme::BORDER,
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
-                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
+                        style: format!("font-size:{}; font-weight:700; letter-spacing:0.5px;", theme::FONT_SIZE_TITLE),
                         "FTS RIDER"
                     }
                     div {
                         style: format!(
-                            "font-size:12px; color:{gain_color}; font-variant-numeric:tabular-nums;",
+                            "{} color:{gain_color};",
+                            theme::STYLE_VALUE,
                         ),
                         "Gain: {gain_text}"
                     }
                 }
                 div {
-                    style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
+                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
                     "FastTrackStudio"
                 }
             }
 
             // ── Visualization row ────────────────────────────────
             div {
-                style: "display:flex; gap:10px; min-height:0;",
+                style: format!("display:flex; gap:{}; min-height:0;", theme::SPACING_SECTION),
 
                 // Waveform display
                 div {
                     style: format!(
-                        "flex:1; background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; flex-direction:column; gap:4px; min-width:0;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} flex:1; display:flex; flex-direction:column; gap:{}; min-width:0;",
+                        theme::STYLE_CARD, theme::SPACING_LABEL,
                     ),
                     SectionLabel { text: "Waveform / Gain Ride" }
                     PeakWaveform {
@@ -113,9 +113,8 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; gap:8px; align-items:stretch;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} display:flex; gap:8px; align-items:stretch;",
+                        theme::STYLE_CARD,
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 140.0 }
                     GrMeter { gain_reduction_db: -gain, height: 140.0 }
@@ -126,9 +125,8 @@ pub fn App() -> Element {
             // ── Controls ─────────────────────────────────────────
             div {
                 style: format!(
-                    "background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
-                     display:flex; flex-direction:column; gap:10px; flex:1; min-height:0;",
-                    CARD_BG = theme::CARD_BG,
+                    "{} display:flex; flex-direction:column; gap:{}; flex:1; min-height:0;",
+                    theme::STYLE_CARD, theme::SPACING_SECTION,
                 ),
 
                 // Row 1: Primary "Magic Ride" knobs (large)

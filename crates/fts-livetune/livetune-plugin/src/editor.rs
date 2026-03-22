@@ -140,25 +140,27 @@ pub fn App() -> Element {
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
-                    BORDER = theme::BORDER,
+                     padding-bottom:6px; border-bottom:1px solid {};",
+                    theme::BORDER,
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
-                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
+                        style: format!("font-size:{}; font-weight:700; letter-spacing:0.5px;", theme::FONT_SIZE_TITLE),
                         "FTS LIVETUNE"
                     }
                     div {
                         style: format!(
                             "font-size:14px; color:{confidence_color}; \
-                             font-variant-numeric:tabular-nums; font-weight:600;",
+                             font-family:{}; font-variant-numeric:tabular-nums; font-weight:600;",
+                            theme::FONT_MONO,
                         ),
                         "{pitch_text}"
                     }
                     div {
                         style: format!(
-                            "font-size:12px; color:{}; font-variant-numeric:tabular-nums;",
+                            "{} color:{};",
+                            theme::STYLE_VALUE,
                             if correction_st.abs() > 0.5 { theme::SIGNAL_WARN }
                             else { theme::TEXT_DIM },
                         ),
@@ -166,21 +168,20 @@ pub fn App() -> Element {
                     }
                 }
                 div {
-                    style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
+                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
                     "FastTrackStudio"
                 }
             }
 
             // ── Key & Scale row ──────────────────────────────────
             div {
-                style: "display:flex; gap:10px;",
+                style: format!("display:flex; gap:{};", theme::SPACING_SECTION),
 
                 // Key selector
                 div {
                     style: format!(
-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; flex-direction:column; gap:6px;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} display:flex; flex-direction:column; gap:6px;",
+                        theme::STYLE_CARD,
                     ),
                     SectionLabel { text: "Key" }
                     div {
@@ -198,9 +199,8 @@ pub fn App() -> Element {
                 // Scale selector
                 div {
                     style: format!(
-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; flex-direction:column; gap:6px;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} display:flex; flex-direction:column; gap:6px;",
+                        theme::STYLE_CARD,
                     ),
                     SectionLabel { text: "Scale" }
                     div {
@@ -218,14 +218,13 @@ pub fn App() -> Element {
 
             // ── Main controls + Meters ───────────────────────────
             div {
-                style: "display:flex; gap:10px; flex:1; min-height:0;",
+                style: format!("display:flex; gap:{}; flex:1; min-height:0;", theme::SPACING_SECTION),
 
                 // Main controls card
                 div {
                     style: format!(
-                        "flex:1; background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
-                         display:flex; flex-direction:column; gap:12px;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} flex:1; display:flex; flex-direction:column; gap:12px;",
+                        theme::STYLE_CARD,
                     ),
 
                     // Tuning controls
@@ -282,7 +281,7 @@ pub fn App() -> Element {
                             style: "display:flex; flex-direction:column; gap:6px; align-items:center;",
                             SectionLabel { text: "Advanced" }
                             div {
-                                style: "display:flex; gap:14px; align-items:flex-end;",
+                                style: format!("display:flex; gap:{}; align-items:flex-end;", theme::SPACING_CONTROL),
                                 Knob { param_ptr: confidence_ptr, size: KnobSize::Medium }
                                 Toggle { param_ptr: formants_ptr, label: "Formants" }
                             }
@@ -307,9 +306,8 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; gap:8px; align-items:stretch;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} display:flex; gap:8px; align-items:stretch;",
+                        theme::STYLE_CARD,
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 280.0 }
                     LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 280.0 }
