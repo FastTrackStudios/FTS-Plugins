@@ -8,8 +8,8 @@ use std::sync::atomic::Ordering;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{
-    theme, ControlGroup, Divider, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform,
-    SectionLabel,
+    use_init_theme, ControlGroup, Divider, DragProvider, GrMeter, KnobSize, LevelMeterDb,
+    PeakWaveform, SectionLabel,
 };
 use fts_plugin_core::prelude::*;
 
@@ -21,6 +21,9 @@ pub fn App() -> Element {
     let shared = use_context::<SharedState>();
     let ui = shared.get::<RiderUiState>().expect("RiderUiState missing");
     let params = &ui.params;
+
+    let t = use_init_theme();
+    let t = *t.read();
 
     // Read metering values
     let gain = ui.gain_db.load(Ordering::Relaxed);
@@ -47,59 +50,66 @@ pub fn App() -> Element {
     };
 
     let gain_color = if gain.abs() < 0.05 {
-        theme::TEXT_DIM
+        t.text_dim
     } else if gain > 0.0 {
-        theme::SIGNAL_SAFE // green = boost
+        t.signal_safe // green = boost
     } else {
-        theme::SIGNAL_WARN // amber = cut
+        t.signal_warn // amber = cut
     };
 
+    let base_css = t.base_css();
+    let root_style = t.root_style();
+    let style_card = t.style_card();
+    let style_value = t.style_value();
+    let spacing_section = t.spacing_section;
+    let border = t.border;
+    let font_size_title = t.font_size_title;
+    let font_size_label = t.font_size_label;
+    let text_dim = t.text_dim;
+    let spacing_label = t.spacing_label;
+
     rsx! {
-        document::Style { {theme::BASE_CSS} }
+        document::Style { {base_css} }
 
         DragProvider {
         div {
             style: format!(
-                "{} display:flex; flex-direction:column; gap:{}; overflow:hidden;",
-                theme::ROOT_STYLE, theme::SPACING_SECTION,
+                "{root_style} display:flex; flex-direction:column; gap:{spacing_section}; overflow:hidden;",
             ),
 
             // ── Header ───────────────────────────────────────────
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {};",
-                    theme::BORDER,
+                     padding-bottom:6px; border-bottom:1px solid {border};",
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
-                        style: format!("font-size:{}; font-weight:700; letter-spacing:0.5px;", theme::FONT_SIZE_TITLE),
+                        style: format!("font-size:{font_size_title}; font-weight:700; letter-spacing:0.5px;"),
                         "FTS RIDER"
                     }
                     div {
                         style: format!(
-                            "{} color:{gain_color};",
-                            theme::STYLE_VALUE,
+                            "{style_value} color:{gain_color};",
                         ),
                         "Gain: {gain_text}"
                     }
                 }
                 div {
-                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
+                    style: format!("font-size:{font_size_label}; color:{text_dim};"),
                     "FastTrackStudio"
                 }
             }
 
             // ── Visualization row ────────────────────────────────
             div {
-                style: format!("display:flex; gap:{}; min-height:0;", theme::SPACING_SECTION),
+                style: format!("display:flex; gap:{spacing_section}; min-height:0;"),
 
                 // Waveform display
                 div {
                     style: format!(
-                        "{} flex:1; display:flex; flex-direction:column; gap:{}; min-width:0;",
-                        theme::STYLE_CARD, theme::SPACING_LABEL,
+                        "{style_card} flex:1; display:flex; flex-direction:column; gap:{spacing_label}; min-width:0;",
                     ),
                     SectionLabel { text: "Waveform / Gain Ride" }
                     PeakWaveform {
@@ -113,8 +123,7 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "{} display:flex; gap:8px; align-items:stretch;",
-                        theme::STYLE_CARD,
+                        "{style_card} display:flex; gap:8px; align-items:stretch;",
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 140.0 }
                     GrMeter { gain_reduction_db: -gain, height: 140.0 }
@@ -125,8 +134,7 @@ pub fn App() -> Element {
             // ── Controls ─────────────────────────────────────────
             div {
                 style: format!(
-                    "{} display:flex; flex-direction:column; gap:{}; flex:1; min-height:0;",
-                    theme::STYLE_CARD, theme::SPACING_SECTION,
+                    "{style_card} display:flex; flex-direction:column; gap:{spacing_section}; flex:1; min-height:0;",
                 ),
 
                 // Row 1: Primary "Magic Ride" knobs (large)

@@ -2,7 +2,9 @@
 
 use atomic_float::AtomicF32;
 use fts_plugin_core::prelude::*;
-use fts_plugin_core::ui::prelude::*;
+use fts_plugin_core::ui::prelude::{
+    use_init_theme, ActionButton, Header, ParamSlider, Section, SegmentButton, StatusBar, Toggle,
+};
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::Arc;
 
@@ -48,6 +50,8 @@ pub fn create(
 
 /// Main app component
 fn App() -> Element {
+    let t = use_init_theme();
+    let t = *t.read();
     let shared = use_context::<SharedState>();
     let ui_state = shared
         .get::<GuideUiState>()
@@ -91,10 +95,10 @@ fn App() -> Element {
 
     rsx! {
         document::Style { {TAILWIND_CSS} }
-        document::Style { {theme::BASE_CSS} }
+        document::Style { {t.base_css()} }
 
         div {
-            style: theme::ROOT_STYLE,
+            style: t.root_style(),
 
             Header {
                 title: "FTS Guide",
@@ -109,7 +113,7 @@ fn App() -> Element {
                 style: "display:flex; align-items:center; gap:8px; margin-bottom:10px;",
                 Toggle { param_ptr: params.sync_to_transport.as_ptr() }
                 span { style: "font-size:12px; font-weight:600;", "Sync to Transport" }
-                span { style: format!("font-size:11px; color:{};", theme::TEXT_DIM), "(auto-click on playback)" }
+                span { style: format!("font-size:11px; color:{};", t.text_dim), "(auto-click on playback)" }
             }
 
             // Click

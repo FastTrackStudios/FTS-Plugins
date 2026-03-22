@@ -2,7 +2,7 @@
 
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::slider::ParamSlider;
-use audio_gui::prelude::{theme, KnobSize};
+use audio_gui::prelude::{use_theme, KnobSize};
 use fts_plugin_core::prelude::*;
 
 /// A single mixer channel strip for one sample slot.
@@ -21,6 +21,8 @@ pub fn MixerStrip(
     midi_note_ptr: ParamPtr,
     on_load: EventHandler<usize>,
 ) -> Element {
+    let t = use_theme();
+    let t = *t.read();
     let slot_num = slot + 1;
     let display_name = if name.is_empty() {
         "---".to_string()
@@ -30,11 +32,7 @@ pub fn MixerStrip(
         name.clone()
     };
 
-    let led_color = if playing {
-        theme::SIGNAL_SAFE
-    } else {
-        theme::TOGGLE_OFF
-    };
+    let led_color = if playing { t.signal_safe } else { t.toggle_off };
 
     let peak_text = if peak_db > -100.0 {
         format!("{:.0}", peak_db)
@@ -42,31 +40,32 @@ pub fn MixerStrip(
         "-inf".to_string()
     };
 
+    let style_inset = t.style_inset();
+    let style_value = t.style_value();
+
     rsx! {
         div {
             style: format!(
-                "{INSET} display:flex; flex-direction:column; align-items:center; gap:3px; \
+                "{style_inset} display:flex; flex-direction:column; align-items:center; gap:3px; \
                  padding:5px 3px; min-width:110px; flex:1;",
-                INSET = theme::STYLE_INSET,
             ),
 
             // Slot number + LED
             div {
                 style: format!(
-                    "display:flex; align-items:center; gap:{LABEL_GAP};",
-                    LABEL_GAP = theme::SPACING_LABEL,
+                    "display:flex; align-items:center; gap:{};",
+                    t.spacing_label,
                 ),
                 div {
                     style: format!(
-                        "width:8px; height:8px; border-radius:{ROUND}; background:{};",
-                        led_color,
-                        ROUND = theme::RADIUS_ROUND,
+                        "width:8px; height:8px; border-radius:{}; background:{};",
+                        t.radius_round, led_color,
                     ),
                 }
                 div {
                     style: format!(
                         "font-size:11px; font-weight:700; color:{};",
-                        theme::TEXT_BRIGHT,
+                        t.text_bright,
                     ),
                     "{slot_num}"
                 }
@@ -75,11 +74,11 @@ pub fn MixerStrip(
             // Sample name
             div {
                 style: format!(
-                    "font-size:{TINY}; color:{}; text-align:center; \
+                    "font-size:{}; color:{}; text-align:center; \
                      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; \
                      max-width:100px;",
-                    if name.is_empty() { theme::TEXT_DIM } else { theme::TEXT },
-                    TINY = theme::FONT_SIZE_TINY,
+                    t.font_size_tiny,
+                    if name.is_empty() { t.text_dim } else { t.text },
                 ),
                 title: "{name}",
                 "{display_name}"
@@ -88,14 +87,14 @@ pub fn MixerStrip(
             // Load button
             div {
                 style: format!(
-                    "padding:2px 8px; border-radius:{RADIUS}; cursor:pointer; \
-                     font-size:{TINY}; font-weight:600; text-transform:uppercase; \
+                    "padding:2px 8px; border-radius:{}; cursor:pointer; \
+                     font-size:{}; font-weight:600; text-transform:uppercase; \
                      letter-spacing:0.3px; \
-                     background:{SURFACE}; color:{DIM}; \
-                     border:1px solid {BORDER};",
-                    RADIUS = theme::RADIUS_SMALL, TINY = theme::FONT_SIZE_TINY,
-                    SURFACE = theme::SURFACE, DIM = theme::TEXT_DIM,
-                    BORDER = theme::BORDER,
+                     background:{}; color:{}; \
+                     border:1px solid {};",
+                    t.radius_small, t.font_size_tiny,
+                    t.surface, t.text_dim,
+                    t.border,
                 ),
                 onclick: move |_| on_load.call(slot),
                 "Load"
@@ -105,8 +104,8 @@ pub fn MixerStrip(
             div {
                 style: format!(
                     "flex:1; display:flex; flex-direction:column; align-items:center; \
-                     gap:{TIGHT}; min-height:60px; width:100%;",
-                    TIGHT = theme::SPACING_TIGHT,
+                     gap:{}; min-height:60px; width:100%;",
+                    t.spacing_tight,
                 ),
                 ParamSlider { param_ptr: gain_ptr, height: 60.0 }
             }
@@ -114,11 +113,11 @@ pub fn MixerStrip(
             // Peak readout
             div {
                 style: format!(
-                    "{VALUE} font-size:{TINY}; color:{};",
-                    if peak_db > -6.0 { theme::SIGNAL_WARN }
-                    else if peak_db > -60.0 { theme::TEXT_DIM }
-                    else { theme::TOGGLE_OFF },
-                    VALUE = theme::STYLE_VALUE, TINY = theme::FONT_SIZE_TINY,
+                    "{style_value} font-size:{}; color:{};",
+                    t.font_size_tiny,
+                    if peak_db > -6.0 { t.signal_warn }
+                    else if peak_db > -60.0 { t.text_dim }
+                    else { t.toggle_off },
                 ),
                 "{peak_text} dB"
             }
@@ -126,8 +125,8 @@ pub fn MixerStrip(
             // Pan + Pitch row
             div {
                 style: format!(
-                    "display:flex; gap:{LABEL_GAP};",
-                    LABEL_GAP = theme::SPACING_LABEL,
+                    "display:flex; gap:{};",
+                    t.spacing_label,
                 ),
                 Knob { param_ptr: pan_ptr, size: KnobSize::Small }
                 Knob { param_ptr: pitch_ptr, size: KnobSize::Small }
@@ -139,8 +138,8 @@ pub fn MixerStrip(
             // Mute / Solo row
             div {
                 style: format!(
-                    "display:flex; gap:{LABEL_GAP};",
-                    LABEL_GAP = theme::SPACING_LABEL,
+                    "display:flex; gap:{};",
+                    t.spacing_label,
                 ),
                 ParamSlider { param_ptr: mute_ptr, height: 20.0 }
                 ParamSlider { param_ptr: solo_ptr, height: 20.0 }

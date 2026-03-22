@@ -6,7 +6,7 @@ use std::sync::Arc;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::segment::SegmentButton;
 use audio_gui::controls::toggle::Toggle;
-use audio_gui::prelude::{theme, DragProvider, KnobSize, LevelMeterDb, SectionLabel};
+use audio_gui::prelude::{use_init_theme, DragProvider, KnobSize, LevelMeterDb, SectionLabel};
 use fts_plugin_core::prelude::*;
 
 use crate::{FtsPitchParams, PitchUiState};
@@ -14,6 +14,9 @@ use crate::{FtsPitchParams, PitchUiState};
 /// Root editor component.
 #[component]
 pub fn App() -> Element {
+    let t = use_init_theme();
+    let t = *t.read();
+
     let shared = use_context::<SharedState>();
     let ui: Arc<PitchUiState> = shared.get::<PitchUiState>().expect("PitchUiState missing");
     let params: Arc<FtsPitchParams> = ui.params.clone();
@@ -71,44 +74,60 @@ pub fn App() -> Element {
         }
     };
 
+    // Pre-compute composite styles that return String.
+    let base_css = t.base_css();
+    let root_style = t.root_style();
+    let style_card = t.style_card();
+    let style_value = t.style_value();
+
     rsx! {
-        document::Style { {theme::BASE_CSS} }
+        document::Style { {base_css} }
 
         DragProvider {
         div {
             style: format!(
-                "{} display:flex; flex-direction:column; gap:{}; overflow:hidden;",
-                theme::ROOT_STYLE, theme::SPACING_SECTION,
+                "{root_style} display:flex; flex-direction:column; gap:{spacing}; overflow:hidden;",
+                spacing = t.spacing_section,
             ),
 
             // ── Header ───────────────────────────────────────────
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {};",
-                    theme::BORDER,
+                     padding-bottom:6px; border-bottom:1px solid {border};",
+                    border = t.border,
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
-                        style: format!("font-size:{}; font-weight:700; letter-spacing:0.5px;", theme::FONT_SIZE_TITLE),
+                        style: format!(
+                            "font-size:{fs}; font-weight:700; letter-spacing:0.5px;",
+                            fs = t.font_size_title,
+                        ),
                         "FTS PITCH"
                     }
                     div {
                         style: format!(
-                            "{} color:{};",
-                            theme::STYLE_VALUE,
-                            theme::TEXT_DIM,
+                            "{style_value} color:{dim};",
+                            dim = t.text_dim,
                         ),
                         "{st_text}"
                     }
                     div {
-                        style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
+                        style: format!(
+                            "font-size:{fs}; color:{dim};",
+                            fs = t.font_size_label,
+                            dim = t.text_dim,
+                        ),
                         "Latency: {latency_text}"
                     }
                 }
                 div {
-                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
+                    style: format!(
+                        "font-size:{fs}; color:{dim};",
+                        fs = t.font_size_label,
+                        dim = t.text_dim,
+                    ),
                     "FastTrackStudio"
                 }
             }
@@ -116,8 +135,7 @@ pub fn App() -> Element {
             // ── Algorithm selector + Live toggle ─────────────────
             div {
                 style: format!(
-                    "{} display:flex; gap:8px; align-items:center;",
-                    theme::STYLE_CARD,
+                    "{style_card} display:flex; gap:8px; align-items:center;",
                 ),
                 SectionLabel { text: "Algorithm" }
                 div {
@@ -132,20 +150,25 @@ pub fn App() -> Element {
                     SegmentButton { label: "Allpass", selected: algo == 7, on_click: algo_setter(7) }
                 }
                 div {
-                    style: format!("width:1px; background:{}; align-self:stretch;", theme::BORDER),
+                    style: format!(
+                        "width:1px; background:{border}; align-self:stretch;",
+                        border = t.border,
+                    ),
                 }
                 Toggle { param_ptr: live_ptr, label: "Live" }
             }
 
             // ── Main controls + Meters ───────────────────────────
             div {
-                style: format!("display:flex; gap:{}; flex:1; min-height:0;", theme::SPACING_SECTION),
+                style: format!(
+                    "display:flex; gap:{spacing}; flex:1; min-height:0;",
+                    spacing = t.spacing_section,
+                ),
 
                 // Controls card
                 div {
                     style: format!(
-                        "{} flex:1; display:flex; flex-direction:column; gap:12px;",
-                        theme::STYLE_CARD,
+                        "{style_card} flex:1; display:flex; flex-direction:column; gap:12px;",
                     ),
 
                     // Core controls
@@ -191,8 +214,7 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "{} display:flex; gap:8px; align-items:stretch;",
-                        theme::STYLE_CARD,
+                        "{style_card} display:flex; gap:8px; align-items:stretch;",
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 240.0 }
                     LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 240.0 }

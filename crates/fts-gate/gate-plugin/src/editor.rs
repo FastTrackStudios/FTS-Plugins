@@ -9,7 +9,7 @@ use std::sync::atomic::Ordering;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{
-    theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, SectionLabel,
+    use_init_theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, SectionLabel,
 };
 use fts_plugin_core::prelude::*;
 
@@ -43,6 +43,8 @@ pub fn App() -> Element {
     let shared = use_context::<SharedState>();
     let ui = shared.get::<GateUiState>().expect("GateUiState missing");
     let params = &ui.params;
+    let t = use_init_theme();
+    let t = *t.read();
 
     // Read metering values
     let gate_gain = ui.gate_gain.load(Ordering::Relaxed);
@@ -87,43 +89,56 @@ pub fn App() -> Element {
         "—".to_string()
     };
 
+    let base_css = t.base_css();
+    let root_style = t.root_style();
+    let spacing_section = t.spacing_section;
+    let spacing_label = t.spacing_label;
+    let spacing_card = t.spacing_card;
+    let spacing_control = t.spacing_control;
+    let border = t.border;
+    let border_subtle = t.border_subtle;
+    let font_size_title = t.font_size_title;
+    let font_size_tiny = t.font_size_tiny;
+    let text_bright = t.text_bright;
+    let text_dim = t.text_dim;
+    let text = t.text;
+    let accent = t.accent;
+    let style_value = t.style_value();
+    let style_card = t.style_card();
+    let style_label = t.style_label();
+    let signal_warn = t.signal_warn;
+    let signal_safe = t.signal_safe;
+
     rsx! {
-        document::Style { {theme::BASE_CSS} }
+        document::Style { {base_css} }
 
         DragProvider {
         div {
             style: format!(
-                "{ROOT} display:flex; flex-direction:column; gap:{SECTION}; overflow:hidden;",
-                ROOT = theme::ROOT_STYLE,
-                SECTION = theme::SPACING_SECTION,
+                "{root_style} display:flex; flex-direction:column; gap:{spacing_section}; overflow:hidden;",
             ),
 
             // ── Header ───────────────────────────────────────────
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:{LABEL}; border-bottom:1px solid {BORDER};",
-                    LABEL = theme::SPACING_LABEL,
-                    BORDER = theme::BORDER,
+                     padding-bottom:{spacing_label}; border-bottom:1px solid {border};",
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
                         style: format!(
-                            "font-size:{TITLE}; font-weight:700; letter-spacing:0.5px; color:{BRIGHT};",
-                            TITLE = theme::FONT_SIZE_TITLE,
-                            BRIGHT = theme::TEXT_BRIGHT,
+                            "font-size:{font_size_title}; font-weight:700; letter-spacing:0.5px; color:{text_bright};",
                         ),
                         "FTS GATE"
                     }
                     // Gate state
                     div {
                         style: format!(
-                            "{STYLE} color:{COLOR};",
-                            STYLE = theme::STYLE_VALUE,
-                            COLOR = if gr_db > 6.0 { theme::SIGNAL_WARN }
-                                    else if gr_db > 0.1 { theme::SIGNAL_SAFE }
-                                    else { theme::TEXT_DIM },
+                            "{style_value} color:{COLOR};",
+                            COLOR = if gr_db > 6.0 { signal_warn }
+                                    else if gr_db > 0.1 { signal_safe }
+                                    else { text_dim },
                         ),
                         "{gate_text}"
                     }
@@ -142,9 +157,7 @@ pub fn App() -> Element {
                 }
                 div {
                     style: format!(
-                        "font-size:{TINY}; color:{DIM};",
-                        TINY = theme::FONT_SIZE_TINY,
-                        DIM = theme::TEXT_DIM,
+                        "font-size:{font_size_tiny}; color:{text_dim};",
                     ),
                     "FastTrackStudio"
                 }
@@ -153,16 +166,13 @@ pub fn App() -> Element {
             // ── Top row: Meters + Adaptive readouts ──────────────
             div {
                 style: format!(
-                    "display:flex; gap:{SECTION}; min-height:0;",
-                    SECTION = theme::SPACING_SECTION,
+                    "display:flex; gap:{spacing_section}; min-height:0;",
                 ),
 
                 // Meters
                 div {
                     style: format!(
-                        "{CARD} padding:{PAD}; display:flex; gap:8px; align-items:stretch;",
-                        CARD = theme::STYLE_CARD,
-                        PAD = theme::SPACING_CARD,
+                        "{style_card} padding:{spacing_card}; display:flex; gap:8px; align-items:stretch;",
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 140.0 }
                     GrMeter { gain_reduction_db: gr_db, height: 140.0 }
@@ -172,11 +182,8 @@ pub fn App() -> Element {
                 // Adaptive Decay readouts
                 div {
                     style: format!(
-                        "{CARD} padding:{PAD}; flex:1; display:flex; flex-direction:column; \
-                         gap:{LABEL}; min-width:0;",
-                        CARD = theme::STYLE_CARD,
-                        PAD = theme::SPACING_CARD,
-                        LABEL = theme::SPACING_LABEL,
+                        "{style_card} padding:{spacing_card}; flex:1; display:flex; flex-direction:column; \
+                         gap:{spacing_label}; min-width:0;",
                     ),
                     SectionLabel { text: "Adaptive Decay" }
 
@@ -189,17 +196,16 @@ pub fn App() -> Element {
                         div {
                             style: "display:flex; flex-direction:column; align-items:center; gap:4px;",
                             div {
-                                style: format!("{};", theme::STYLE_LABEL),
+                                style: format!("{style_label};"),
                                 "Resonance"
                             }
                             div {
                                 style: format!(
-                                    "{STYLE} font-size:16px; color:{COLOR};",
-                                    STYLE = theme::STYLE_VALUE,
+                                    "{style_value} font-size:16px; color:{COLOR};",
                                     COLOR = if adaptive_active && resonant_freq > 0.0 {
-                                        theme::ACCENT
+                                        accent
                                     } else {
-                                        theme::TEXT_DIM
+                                        text_dim
                                     },
                                 ),
                                 "{freq_text}"
@@ -210,14 +216,13 @@ pub fn App() -> Element {
                         div {
                             style: "display:flex; flex-direction:column; align-items:center; gap:4px;",
                             div {
-                                style: format!("{};", theme::STYLE_LABEL),
+                                style: format!("{style_label};"),
                                 "Hold"
                             }
                             div {
                                 style: format!(
-                                    "{STYLE} font-size:16px; color:{COLOR};",
-                                    STYLE = theme::STYLE_VALUE,
-                                    COLOR = if adaptive_active { theme::TEXT } else { theme::TEXT_DIM },
+                                    "{style_value} font-size:16px; color:{COLOR};",
+                                    COLOR = if adaptive_active { text } else { text_dim },
                                 ),
                                 if adaptive_active {
                                     "{adaptive_hold:.0} ms"
@@ -231,14 +236,13 @@ pub fn App() -> Element {
                         div {
                             style: "display:flex; flex-direction:column; align-items:center; gap:4px;",
                             div {
-                                style: format!("{};", theme::STYLE_LABEL),
+                                style: format!("{style_label};"),
                                 "Release"
                             }
                             div {
                                 style: format!(
-                                    "{STYLE} font-size:16px; color:{COLOR};",
-                                    STYLE = theme::STYLE_VALUE,
-                                    COLOR = if adaptive_active { theme::TEXT } else { theme::TEXT_DIM },
+                                    "{style_value} font-size:16px; color:{COLOR};",
+                                    COLOR = if adaptive_active { text } else { text_dim },
                                 ),
                                 if adaptive_active {
                                     "{adaptive_release:.0} ms"
@@ -254,16 +258,13 @@ pub fn App() -> Element {
             // ── Core Gate Controls (large knobs) ─────────────────
             div {
                 style: format!(
-                    "{CARD} padding:12px 16px; \
-                     display:flex; flex-direction:column; gap:{SECTION};",
-                    CARD = theme::STYLE_CARD,
-                    SECTION = theme::SPACING_SECTION,
+                    "{style_card} padding:12px 16px; \
+                     display:flex; flex-direction:column; gap:{spacing_section};",
                 ),
                 SectionLabel { text: "Gate" }
                 div {
                     style: format!(
-                        "display:flex; justify-content:center; gap:{CTL};",
-                        CTL = theme::SPACING_CONTROL,
+                        "display:flex; justify-content:center; gap:{spacing_control};",
                     ),
                     Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
                     Knob { param_ptr: params.hysteresis_db.as_ptr(), size: KnobSize::Large }
@@ -276,10 +277,8 @@ pub fn App() -> Element {
             // ── Secondary Controls Row ───────────────────────────
             div {
                 style: format!(
-                    "{CARD} padding:12px 16px; \
-                     display:flex; gap:{CTL}; justify-content:center;",
-                    CARD = theme::STYLE_CARD,
-                    CTL = theme::SPACING_CONTROL,
+                    "{style_card} padding:12px 16px; \
+                     display:flex; gap:{spacing_control}; justify-content:center;",
                 ),
 
                 // Depth group
@@ -292,8 +291,7 @@ pub fn App() -> Element {
                 // Divider
                 div {
                     style: format!(
-                        "width:1px; background:{}; align-self:stretch;",
-                        theme::BORDER_SUBTLE,
+                        "width:1px; background:{border_subtle}; align-self:stretch;",
                     ),
                 }
 
@@ -308,8 +306,7 @@ pub fn App() -> Element {
                 // Divider
                 div {
                     style: format!(
-                        "width:1px; background:{}; align-self:stretch;",
-                        theme::BORDER_SUBTLE,
+                        "width:1px; background:{border_subtle}; align-self:stretch;",
                     ),
                 }
 
@@ -323,8 +320,7 @@ pub fn App() -> Element {
                 // Divider
                 div {
                     style: format!(
-                        "width:1px; background:{}; align-self:stretch;",
-                        theme::BORDER_SUBTLE,
+                        "width:1px; background:{border_subtle}; align-self:stretch;",
                     ),
                 }
 
@@ -338,8 +334,7 @@ pub fn App() -> Element {
                 // Divider
                 div {
                     style: format!(
-                        "width:1px; background:{}; align-self:stretch;",
-                        theme::BORDER_SUBTLE,
+                        "width:1px; background:{border_subtle}; align-self:stretch;",
                     ),
                 }
 

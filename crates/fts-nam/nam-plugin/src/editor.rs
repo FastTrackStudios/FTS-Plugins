@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use audio_gui::controls::knob::Knob;
 use audio_gui::prelude::{
-    theme, ControlGroup, DragProvider, KnobSize, LevelMeterDb, SectionLabel,
+    use_init_theme, use_theme, ControlGroup, DragProvider, KnobSize, LevelMeterDb, SectionLabel,
 };
 use fts_plugin_core::prelude::*;
 
@@ -16,6 +16,9 @@ use crate::{NamLoadMessage, NamUiState};
 /// Root editor component.
 #[component]
 pub fn App() -> Element {
+    let t = use_init_theme();
+    let t = *t.read();
+
     let shared = use_context::<SharedState>();
     let ui = shared.get::<NamUiState>().expect("NamUiState missing");
     let ui_for_load = ui.clone();
@@ -28,26 +31,10 @@ pub fn App() -> Element {
     let gate_gain = ui.gate_gain.load(Ordering::Relaxed);
 
     // Read slot names
-    let slot_a_name = ui
-        .slot_a_name
-        .lock()
-        .map(|n| n.clone())
-        .unwrap_or_default();
-    let slot_b_name = ui
-        .slot_b_name
-        .lock()
-        .map(|n| n.clone())
-        .unwrap_or_default();
-    let ir_a_name = ui
-        .ir_a_name
-        .lock()
-        .map(|n| n.clone())
-        .unwrap_or_default();
-    let ir_b_name = ui
-        .ir_b_name
-        .lock()
-        .map(|n| n.clone())
-        .unwrap_or_default();
+    let slot_a_name = ui.slot_a_name.lock().map(|n| n.clone()).unwrap_or_default();
+    let slot_b_name = ui.slot_b_name.lock().map(|n| n.clone()).unwrap_or_default();
+    let ir_a_name = ui.ir_a_name.lock().map(|n| n.clone()).unwrap_or_default();
+    let ir_b_name = ui.ir_b_name.lock().map(|n| n.clone()).unwrap_or_default();
 
     // Format latency display
     let latency_text = if latency > 0.0 {
@@ -69,72 +56,80 @@ pub fn App() -> Element {
         "OFF"
     };
 
+    // Bind theme fields for use in format! strings
+    let spacing_root = t.spacing_root;
+    let bg = t.bg;
+    let text = t.text;
+    let font_family = t.font_family;
+    let spacing_section = t.spacing_section;
+    let border = t.border;
+    let font_size_title = t.font_size_title;
+    let font_size_tiny = t.font_size_tiny;
+    let text_dim = t.text_dim;
+    let accent = t.accent;
+    let spacing_card = t.spacing_card;
+    let spacing_control = t.spacing_control;
+    let style_card = t.style_card();
+    let style_label = t.style_label();
+    let _style_value = t.style_value();
+
     rsx! {
-        document::Style { {theme::BASE_CSS} }
+        document::Style { {t.base_css()} }
 
         DragProvider {
         div {
             style: format!(
-                "width:100vw; height:100vh; padding:{SPACING_ROOT}; \
-                 background:{BG}; color:{TEXT}; \
-                 font-family:{FONT}; font-size:13px; user-select:none; \
-                 display:flex; flex-direction:column; gap:{SPACING_SECTION}; overflow:hidden;",
-                SPACING_ROOT = theme::SPACING_ROOT,
-                BG = theme::BG, TEXT = theme::TEXT,
-                FONT = theme::FONT_FAMILY,
-                SPACING_SECTION = theme::SPACING_SECTION,
+                "width:100vw; height:100vh; padding:{spacing_root}; \
+                 background:{bg}; color:{text}; \
+                 font-family:{font_family}; font-size:13px; user-select:none; \
+                 display:flex; flex-direction:column; gap:{spacing_section}; overflow:hidden;",
             ),
 
             // ── Header ───────────────────────────────────────────
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
-                    BORDER = theme::BORDER,
+                     padding-bottom:6px; border-bottom:1px solid {border};",
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
-                        style: format!("font-size:{}; font-weight:700; letter-spacing:0.5px;", theme::FONT_SIZE_TITLE),
+                        style: format!("font-size:{font_size_title}; font-weight:700; letter-spacing:0.5px;"),
                         "FTS NAM"
                     }
                     div {
-                        style: format!("{} font-size:{};", theme::STYLE_LABEL, theme::FONT_SIZE_TINY),
+                        style: format!("{style_label} font-size:{font_size_tiny};"),
                         "Latency: {latency_text}"
                     }
                     div {
                         style: format!(
-                            "font-size:{}; color:{};",
-                            theme::FONT_SIZE_TINY,
-                            if gate_text == "OPEN" { theme::ACCENT } else { theme::TEXT_DIM }
+                            "font-size:{font_size_tiny}; color:{};",
+                            if gate_text == "OPEN" { accent } else { text_dim }
                         ),
                         "Gate: {gate_text}"
                     }
                 }
                 div {
-                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_TINY, theme::TEXT_DIM),
+                    style: format!("font-size:{font_size_tiny}; color:{text_dim};"),
                     "FastTrackStudio"
                 }
             }
 
             // ── Main content ─────────────────────────────────────
             div {
-                style: format!("display:flex; gap:{}; flex:1; min-height:0;", theme::SPACING_SECTION),
+                style: format!("display:flex; gap:{spacing_section}; flex:1; min-height:0;"),
 
                 // Left panel: Model & IR loading + controls
                 div {
                     style: format!(
-                        "flex:1; {STYLE_CARD} padding:{SPACING_CARD}; \
-                         display:flex; flex-direction:column; gap:{SPACING_CONTROL}; overflow-y:auto;",
-                        STYLE_CARD = theme::STYLE_CARD,
-                        SPACING_CARD = theme::SPACING_CARD,
-                        SPACING_CONTROL = theme::SPACING_CONTROL,
+                        "flex:1; {style_card} padding:{spacing_card}; \
+                         display:flex; flex-direction:column; gap:{spacing_control}; overflow-y:auto;",
                     ),
 
                     // Model slots
                     SectionLabel { text: "Models" }
                     div {
-                        style: format!("display:flex; gap:{};", theme::SPACING_SECTION),
+                        style: format!("display:flex; gap:{spacing_section};"),
                         LoadSlot {
                             label: "Model A",
                             name: slot_a_name,
@@ -156,7 +151,7 @@ pub fn App() -> Element {
                     // IR slots
                     SectionLabel { text: "Cabinet IRs" }
                     div {
-                        style: format!("display:flex; gap:{};", theme::SPACING_SECTION),
+                        style: format!("display:flex; gap:{spacing_section};"),
                         LoadSlot {
                             label: "IR A",
                             name: ir_a_name,
@@ -177,7 +172,7 @@ pub fn App() -> Element {
 
                     // NAM knob controls
                     div {
-                        style: format!("display:flex; gap:20px; justify-content:center; margin-top:{};", theme::SPACING_SECTION),
+                        style: format!("display:flex; gap:20px; justify-content:center; margin-top:{spacing_section};"),
 
                         ControlGroup {
                             label: "Models",
@@ -229,10 +224,8 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "{STYLE_CARD} padding:{SPACING_SECTION}; \
-                         display:flex; gap:{SPACING_SECTION}; align-items:stretch;",
-                        STYLE_CARD = theme::STYLE_CARD,
-                        SPACING_SECTION = theme::SPACING_SECTION,
+                        "{style_card} padding:{spacing_section}; \
+                         display:flex; gap:{spacing_section}; align-items:stretch;",
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 380.0 }
                     LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 380.0 }
@@ -247,38 +240,46 @@ pub fn App() -> Element {
 
 #[component]
 fn LoadSlot(label: String, name: String, on_click: EventHandler<()>) -> Element {
+    let t = use_theme();
+    let t = *t.read();
+
     let display = if name.is_empty() {
         "(empty)".to_string()
     } else {
         name
     };
 
+    // Bind theme fields for use in format! strings
+    let surface_raised = t.surface_raised;
+    let border = t.border;
+    let radius_button = t.radius_button;
+    let spacing_section = t.spacing_section;
+    let spacing_label = t.spacing_label;
+    let transition_fast = t.transition_fast;
+    let shadow_subtle = t.shadow_subtle;
+    let style_label = t.style_label();
+    let style_value = t.style_value();
+    let text_dim = t.text_dim;
+    let text = t.text;
+
     rsx! {
         div {
             style: format!(
-                "flex:1; background:{SURFACE_RAISED}; border:1px solid {BORDER}; \
-                 border-radius:{RADIUS_BUTTON}; padding:{SPACING_SECTION}; \
-                 cursor:pointer; display:flex; flex-direction:column; gap:{SPACING_LABEL}; \
-                 transition:{TRANSITION}; box-shadow:{SHADOW};",
-                SURFACE_RAISED = theme::SURFACE_RAISED,
-                BORDER = theme::BORDER,
-                RADIUS_BUTTON = theme::RADIUS_BUTTON,
-                SPACING_SECTION = theme::SPACING_SECTION,
-                SPACING_LABEL = theme::SPACING_LABEL,
-                TRANSITION = theme::TRANSITION_FAST,
-                SHADOW = theme::SHADOW_SUBTLE,
+                "flex:1; background:{surface_raised}; border:1px solid {border}; \
+                 border-radius:{radius_button}; padding:{spacing_section}; \
+                 cursor:pointer; display:flex; flex-direction:column; gap:{spacing_label}; \
+                 transition:{transition_fast}; box-shadow:{shadow_subtle};",
             ),
             onclick: move |_| on_click.call(()),
 
             div {
-                style: format!("{}", theme::STYLE_LABEL),
+                style: format!("{style_label}"),
                 "{label}"
             }
             div {
                 style: format!(
-                    "{STYLE_VALUE} color:{}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;",
-                    if display == "(empty)" { theme::TEXT_DIM } else { theme::TEXT },
-                    STYLE_VALUE = theme::STYLE_VALUE,
+                    "{style_value} color:{}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;",
+                    if display == "(empty)" { text_dim } else { text }
                 ),
                 "{display}"
             }

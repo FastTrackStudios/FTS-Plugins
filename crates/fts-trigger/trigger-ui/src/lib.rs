@@ -5,3 +5,4 @@
 
 pub mod control_view;
 pub mod profile_view;
+pub mod trigger_waveform;

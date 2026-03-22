@@ -8,7 +8,9 @@ use std::sync::Arc;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::segment::SegmentButton;
 use audio_gui::controls::toggle::Toggle;
-use audio_gui::prelude::{theme, ControlGroup, DragProvider, KnobSize, LevelMeterDb, SectionLabel};
+use audio_gui::prelude::{
+    use_init_theme, ControlGroup, DragProvider, KnobSize, LevelMeterDb, SectionLabel,
+};
 use fts_dsp::note_sync::NoteValue;
 use fts_plugin_core::prelude::*;
 
@@ -17,6 +19,9 @@ use crate::{DelayUiState, FtsDelayParams};
 /// Root editor component.
 #[component]
 pub fn App() -> Element {
+    let t = use_init_theme();
+    let t = *t.read();
+
     let shared = use_context::<SharedState>();
     let ui: Arc<DelayUiState> = shared.get::<DelayUiState>().expect("DelayUiState missing");
     let params: Arc<FtsDelayParams> = ui.params.clone();
@@ -91,49 +96,60 @@ pub fn App() -> Element {
         (NoteValue::Sixteenth.to_index() as i32, "1/16"),
     ];
 
+    let border = t.border;
+    let spacing_section = t.spacing_section;
+    let spacing_card = t.spacing_card;
+    let spacing_label = t.spacing_label;
+    let spacing_control = t.spacing_control;
+    let spacing_tight = t.spacing_tight;
+    let font_size_title = t.font_size_title;
+    let font_size_label = t.font_size_label;
+    let letter_spacing_label = t.letter_spacing_label;
+    let text_bright = t.text_bright;
+    let text_dim = t.text_dim;
+    let style_card = t.style_card();
+    let root_style = t.root_style();
+    let base_css = t.base_css();
+
     rsx! {
-        document::Style { {theme::BASE_CSS} }
+        document::Style { {base_css} }
 
         DragProvider {
         div {
             style: format!(
-                "{} display:flex; flex-direction:column; gap:{}; overflow:hidden;",
-                theme::ROOT_STYLE, theme::SPACING_SECTION,
+                "{root_style} display:flex; flex-direction:column; gap:{spacing_section}; overflow:hidden;",
             ),
 
             // ── Header ───────────────────────────────────────────
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {};",
-                    theme::BORDER,
+                     padding-bottom:6px; border-bottom:1px solid {border};",
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
                         style: format!(
-                            "font-size:{}; font-weight:700; letter-spacing:{}; color:{};",
-                            theme::FONT_SIZE_TITLE, theme::LETTER_SPACING_LABEL, theme::TEXT_BRIGHT,
+                            "font-size:{font_size_title}; font-weight:700; letter-spacing:{letter_spacing_label}; color:{text_bright};",
                         ),
                         "FTS DELAY"
                     }
                 }
                 div {
-                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
+                    style: format!("font-size:{font_size_label}; color:{text_dim};"),
                     "FastTrackStudio"
                 }
             }
 
             // ── Main content: controls + meters ──────────────────
             div {
-                style: format!("display:flex; gap:{}; flex:1; min-height:0;", theme::SPACING_SECTION),
+                style: format!("display:flex; gap:{spacing_section}; flex:1; min-height:0;"),
 
                 // Controls area
                 div {
                     style: format!(
-                        "flex:1; {} padding:{}; \
-                         display:flex; flex-direction:column; gap:{}; overflow-y:auto;",
-                        theme::STYLE_CARD, theme::SPACING_CARD, theme::SPACING_SECTION,
+                        "flex:1; {style_card} padding:{spacing_card}; \
+                         display:flex; flex-direction:column; gap:{spacing_section}; overflow-y:auto;",
                     ),
 
                     // ── Row 1: Time & Feedback & Mix ─────────────────
@@ -143,13 +159,11 @@ pub fn App() -> Element {
                         // Time section
                         div {
                             style: format!(
-                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
-                                theme::SPACING_SECTION,
+                                "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
                             ),
                             div {
                                 style: format!(
-                                    "display:flex; gap:{}; align-items:center;",
-                                    theme::SPACING_SECTION,
+                                    "display:flex; gap:{spacing_section}; align-items:center;",
                                 ),
                                 SectionLabel { text: "Time" }
                                 Toggle { param_ptr: params.sync_enable.as_ptr(), label: "Sync" }
@@ -160,14 +174,12 @@ pub fn App() -> Element {
                                 // Note value selectors
                                 div {
                                     style: format!(
-                                        "display:flex; flex-direction:column; gap:{}; align-items:center;",
-                                        theme::SPACING_LABEL,
+                                        "display:flex; flex-direction:column; gap:{spacing_label}; align-items:center;",
                                     ),
                                     // L note selector
                                     div {
                                         style: format!(
-                                            "display:flex; gap:{}; flex-wrap:wrap; justify-content:center;",
-                                            theme::SPACING_TIGHT,
+                                            "display:flex; gap:{spacing_tight}; flex-wrap:wrap; justify-content:center;",
                                         ),
                                         for &(idx, label) in common_notes.iter() {
                                             SegmentButton {
@@ -181,14 +193,12 @@ pub fn App() -> Element {
                                     if !link {
                                         div {
                                             style: format!(
-                                                "display:flex; gap:{}; flex-wrap:wrap; justify-content:center; \
-                                                 padding-top:{}; border-top:1px solid {};",
-                                                theme::SPACING_TIGHT, theme::SPACING_LABEL, theme::BORDER,
+                                                "display:flex; gap:{spacing_tight}; flex-wrap:wrap; justify-content:center; \
+                                                 padding-top:{spacing_label}; border-top:1px solid {border};",
                                             ),
                                             span {
                                                 style: format!(
-                                                    "font-size:{}; color:{}; margin-right:4px; align-self:center;",
-                                                    theme::FONT_SIZE_LABEL, theme::TEXT_DIM,
+                                                    "font-size:{font_size_label}; color:{text_dim}; margin-right:4px; align-self:center;",
                                                 ),
                                                 "R"
                                             }
@@ -206,8 +216,7 @@ pub fn App() -> Element {
                                 // Manual ms knobs
                                 div {
                                     style: format!(
-                                        "display:flex; gap:{}; justify-content:center;",
-                                        theme::SPACING_CONTROL,
+                                        "display:flex; gap:{spacing_control}; justify-content:center;",
                                     ),
                                     Knob { param_ptr: params.time_l.as_ptr(), size: KnobSize::Large }
                                     if !link {
@@ -220,8 +229,7 @@ pub fn App() -> Element {
                         // Divider
                         div {
                             style: format!(
-                                "width:1px; background:{}; align-self:stretch;",
-                                theme::BORDER,
+                                "width:1px; background:{border}; align-self:stretch;",
                             ),
                         }
 
@@ -239,18 +247,17 @@ pub fn App() -> Element {
                         // Stereo
                         div {
                             style: format!(
-                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
-                                theme::SPACING_SECTION,
+                                "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
                             ),
                             SectionLabel { text: "Stereo" }
                             div {
-                                style: format!("display:flex; gap:{};", theme::SPACING_LABEL),
+                                style: format!("display:flex; gap:{spacing_label};"),
                                 SegmentButton { label: "Stereo", selected: mode == 0, on_click: mode_setter(0.0) }
                                 SegmentButton { label: "PingPong", selected: mode == 1, on_click: mode_setter(1.0) }
                                 SegmentButton { label: "Mono", selected: mode == 2, on_click: mode_setter(2.0) }
                             }
                             div {
-                                style: format!("display:flex; gap:{};", theme::SPACING_CONTROL),
+                                style: format!("display:flex; gap:{spacing_control};"),
                                 Knob { param_ptr: params.width.as_ptr(), size: KnobSize::Small }
                                 if mode == 1 {
                                     Knob { param_ptr: params.pp_feedback.as_ptr(), size: KnobSize::Small }
@@ -260,20 +267,18 @@ pub fn App() -> Element {
 
                         div {
                             style: format!(
-                                "width:1px; background:{}; align-self:stretch;",
-                                theme::BORDER,
+                                "width:1px; background:{border}; align-self:stretch;",
                             ),
                         }
 
                         // Head Mode (RE-201 style)
                         div {
                             style: format!(
-                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
-                                theme::SPACING_SECTION,
+                                "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
                             ),
                             SectionLabel { text: "Heads" }
                             div {
-                                style: format!("display:flex; gap:{};", theme::SPACING_LABEL),
+                                style: format!("display:flex; gap:{spacing_label};"),
                                 SegmentButton { label: "1", selected: head == 0, on_click: head_setter(0.0) }
                                 SegmentButton { label: "2", selected: head == 1, on_click: head_setter(1.0) }
                                 SegmentButton { label: "3", selected: head == 2, on_click: head_setter(2.0) }
@@ -283,8 +288,7 @@ pub fn App() -> Element {
 
                         div {
                             style: format!(
-                                "width:1px; background:{}; align-self:stretch;",
-                                theme::BORDER,
+                                "width:1px; background:{border}; align-self:stretch;",
                             ),
                         }
 
@@ -297,8 +301,7 @@ pub fn App() -> Element {
 
                         div {
                             style: format!(
-                                "width:1px; background:{}; align-self:stretch;",
-                                theme::BORDER,
+                                "width:1px; background:{border}; align-self:stretch;",
                             ),
                         }
 
@@ -322,8 +325,7 @@ pub fn App() -> Element {
 
                         div {
                             style: format!(
-                                "width:1px; background:{}; align-self:stretch;",
-                                theme::BORDER,
+                                "width:1px; background:{border}; align-self:stretch;",
                             ),
                         }
 
@@ -341,20 +343,18 @@ pub fn App() -> Element {
                         // Diffusion
                         div {
                             style: format!(
-                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
-                                theme::SPACING_SECTION,
+                                "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
                             ),
                             div {
                                 style: format!(
-                                    "display:flex; gap:{}; align-items:center;",
-                                    theme::SPACING_SECTION,
+                                    "display:flex; gap:{spacing_section}; align-items:center;",
                                 ),
                                 SectionLabel { text: "Diffusion" }
                                 Toggle { param_ptr: params.diff_enable.as_ptr(), label: "" }
                             }
                             if diff_on {
                                 div {
-                                    style: format!("display:flex; gap:{};", theme::SPACING_CONTROL),
+                                    style: format!("display:flex; gap:{spacing_control};"),
                                     Knob { param_ptr: params.diff_size.as_ptr(), size: KnobSize::Small }
                                     Knob { param_ptr: params.diff_smear.as_ptr(), size: KnobSize::Small }
                                 }
@@ -363,28 +363,25 @@ pub fn App() -> Element {
 
                         div {
                             style: format!(
-                                "width:1px; background:{}; align-self:stretch;",
-                                theme::BORDER,
+                                "width:1px; background:{border}; align-self:stretch;",
                             ),
                         }
 
                         // Ducking
                         div {
                             style: format!(
-                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
-                                theme::SPACING_SECTION,
+                                "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
                             ),
                             div {
                                 style: format!(
-                                    "display:flex; gap:{}; align-items:center;",
-                                    theme::SPACING_SECTION,
+                                    "display:flex; gap:{spacing_section}; align-items:center;",
                                 ),
                                 SectionLabel { text: "Ducking" }
                                 Toggle { param_ptr: params.duck_enable.as_ptr(), label: "" }
                             }
                             if duck_on {
                                 div {
-                                    style: format!("display:flex; gap:{};", theme::SPACING_CONTROL),
+                                    style: format!("display:flex; gap:{spacing_control};"),
                                     Knob { param_ptr: params.duck_amount.as_ptr(), size: KnobSize::Small }
                                     Knob { param_ptr: params.duck_threshold.as_ptr(), size: KnobSize::Small }
                                     Knob { param_ptr: params.duck_attack.as_ptr(), size: KnobSize::Small }
@@ -398,8 +395,7 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "{} padding:8px; display:flex; gap:{}; align-items:stretch;",
-                        theme::STYLE_CARD, theme::SPACING_SECTION,
+                        "{style_card} padding:8px; display:flex; gap:{spacing_section}; align-items:stretch;",
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string() }
                     LevelMeterDb { level_db: output_db, label: "OUT".to_string() }

@@ -8,8 +8,8 @@ use std::sync::atomic::Ordering;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{
-    theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform, SectionLabel,
-    TransferCurve,
+    use_init_theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform,
+    SectionLabel, TransferCurve,
 };
 use fts_plugin_core::prelude::*;
 
@@ -18,6 +18,9 @@ use crate::{CompUiState, WAVEFORM_LEN};
 /// Root editor component.
 #[component]
 pub fn App() -> Element {
+    let t = use_init_theme();
+    let t = *t.read();
+
     let shared = use_context::<SharedState>();
     let ui = shared.get::<CompUiState>().expect("CompUiState missing");
     let params = &ui.params;
@@ -57,222 +60,222 @@ pub fn App() -> Element {
     };
 
     rsx! {
-        document::Style { {theme::BASE_CSS} }
+        document::Style { {t.base_css()} }
 
         DragProvider {
-        div {
-            style: format!(
-                "{ROOT} display:flex; flex-direction:column; gap:{SECTION};",
-                ROOT = theme::ROOT_STYLE,
-                SECTION = theme::SPACING_SECTION,
-            ),
-
-            // ── Header ───────────────────────────────────────────
             div {
                 style: format!(
-                    "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:{LABEL_GAP}; border-bottom:1px solid {BORDER};",
-                    LABEL_GAP = theme::SPACING_LABEL,
-                    BORDER = theme::BORDER,
-                ),
-                div {
-                    style: "display:flex; align-items:baseline; gap:12px;",
-                    div {
-                        style: format!(
-                            "font-size:{TITLE}; font-weight:700; letter-spacing:0.5px; \
-                             color:{BRIGHT};",
-                            TITLE = theme::FONT_SIZE_TITLE,
-                            BRIGHT = theme::TEXT_BRIGHT,
-                        ),
-                        "FTS COMPRESSOR"
-                    }
-                    // GR readout in header
-                    div {
-                        style: format!(
-                            "{STYLE} color:{COLOR};",
-                            STYLE = theme::STYLE_VALUE,
-                            COLOR = if gr_db > 6.0 { theme::SIGNAL_WARN }
-                                    else if gr_db > 0.1 { theme::SIGNAL_SAFE }
-                                    else { theme::TEXT_DIM },
-                        ),
-                        "GR: {gr_text}"
-                    }
-                }
-                div {
-                    style: format!(
-                        "font-size:{TINY}; color:{DIM};",
-                        TINY = theme::FONT_SIZE_TINY,
-                        DIM = theme::TEXT_DIM,
-                    ),
-                    "FastTrackStudio"
-                }
-            }
-
-            // ── Visualization row ────────────────────────────────
-            div {
-                style: format!(
-                    "display:flex; gap:{SECTION}; min-height:0;",
-                    SECTION = theme::SPACING_SECTION,
+                    "{} display:flex; flex-direction:column; gap:{};",
+                    t.root_style(),
+                    t.spacing_section,
                 ),
 
-                // Transfer curve
+                // ── Header ───────────────────────────────────────────
                 div {
                     style: format!(
-                        "{CARD} padding:{PAD}; \
-                         display:flex; flex-direction:column; gap:{LABEL};",
-                        CARD = theme::STYLE_CARD,
-                        PAD = theme::SPACING_CARD,
-                        LABEL = theme::SPACING_LABEL,
+                        "display:flex; justify-content:space-between; align-items:center; \
+                         padding-bottom:{}; border-bottom:1px solid {};",
+                        t.spacing_label,
+                        t.border,
                     ),
-                    SectionLabel { text: "Transfer Curve" }
-                    TransferCurve {
-                        threshold_db: threshold,
-                        ratio: ratio,
-                        knee_db: knee,
-                        input_level_db: input_level,
-                        width: 160.0,
-                        height: 160.0,
+                    div {
+                        style: "display:flex; align-items:baseline; gap:12px;",
+                        div {
+                            style: format!(
+                                "font-size:{}; font-weight:700; letter-spacing:0.5px; \
+                                 color:{};",
+                                t.font_size_title,
+                                t.text_bright,
+                            ),
+                            "FTS COMPRESSOR"
+                        }
+                        // GR readout in header
+                        div {
+                            style: format!(
+                                "{} color:{};",
+                                t.style_value(),
+                                if gr_db > 6.0 { t.signal_warn }
+                                else if gr_db > 0.1 { t.signal_safe }
+                                else { t.text_dim },
+                            ),
+                            "GR: {gr_text}"
+                        }
+                    }
+                    div {
+                        style: format!(
+                            "font-size:{}; color:{};",
+                            t.font_size_tiny,
+                            t.text_dim,
+                        ),
+                        "FastTrackStudio"
                     }
                 }
 
-                // Waveform display
+                // ── Visualization row ────────────────────────────────
                 div {
                     style: format!(
-                        "{CARD} flex:1; padding:{PAD}; \
-                         display:flex; flex-direction:column; gap:{LABEL}; min-width:0;",
-                        CARD = theme::STYLE_CARD,
-                        PAD = theme::SPACING_CARD,
-                        LABEL = theme::SPACING_LABEL,
+                        "display:flex; gap:{}; min-height:0;",
+                        t.spacing_section,
                     ),
-                    SectionLabel { text: "Waveform / Gain Reduction" }
-                    PeakWaveform {
-                        levels: waveform_in,
-                        gr_levels: waveform_gr,
-                        width: 340.0,
-                        height: 160.0,
+
+                    // Transfer curve
+                    div {
+                        style: format!(
+                            "{} padding:{}; \
+                             display:flex; flex-direction:column; gap:{};",
+                            t.style_card(),
+                            t.spacing_card,
+                            t.spacing_label,
+                        ),
+                        SectionLabel { text: "Transfer Curve" }
+                        TransferCurve {
+                            threshold_db: threshold,
+                            ratio: ratio,
+                            knee_db: knee,
+                            input_level_db: input_level,
+                            width: 160.0,
+                            height: 160.0,
+                        }
+                    }
+
+                    // Waveform display
+                    div {
+                        style: format!(
+                            "{} flex:1; padding:{}; \
+                             display:flex; flex-direction:column; gap:{}; min-width:0;",
+                            t.style_card(),
+                            t.spacing_card,
+                            t.spacing_label,
+                        ),
+                        SectionLabel { text: "Waveform / Gain Reduction" }
+                        PeakWaveform {
+                            levels: waveform_in,
+                            gr_levels: waveform_gr,
+                            width: 340.0,
+                            height: 160.0,
+                        }
+                    }
+
+                    // Meters
+                    div {
+                        style: format!(
+                            "{} padding:{}; \
+                             display:flex; gap:{}; align-items:stretch;",
+                            t.style_card(),
+                            t.spacing_card,
+                            t.spacing_section,
+                        ),
+                        LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 160.0 }
+                        GrMeter { gain_reduction_db: gr_db, height: 160.0 }
+                        LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 160.0 }
                     }
                 }
 
-                // Meters
+                // ── Controls ─────────────────────────────────────────
                 div {
                     style: format!(
-                        "{CARD} padding:{PAD}; \
-                         display:flex; gap:{SECTION}; align-items:stretch;",
-                        CARD = theme::STYLE_CARD,
-                        PAD = theme::SPACING_CARD,
-                        SECTION = theme::SPACING_SECTION,
+                        "{} padding:12px 16px; \
+                         display:flex; flex-direction:column; gap:{}; flex:1; min-height:0;",
+                        t.style_card(),
+                        t.spacing_section,
                     ),
-                    LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 160.0 }
-                    GrMeter { gain_reduction_db: gr_db, height: 160.0 }
-                    LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 160.0 }
+
+                    // Row 1: Core dynamics (large knobs)
+                    div {
+                        style: format!(
+                            "display:flex; flex-direction:column; gap:{};",
+                            t.spacing_section,
+                        ),
+                        SectionLabel { text: "Dynamics" }
+                        div {
+                            style: format!(
+                                "display:flex; justify-content:center; gap:{};",
+                                t.spacing_control,
+                            ),
+                            Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
+                            Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
+                            Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
+                            Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
+                            Knob { param_ptr: params.knee_db.as_ptr(), size: KnobSize::Large }
+                        }
+                    }
+
+                    // Row 2: Grouped secondary controls
+                    div {
+                        style: format!(
+                            "display:flex; gap:{}; justify-content:center;",
+                            t.spacing_control,
+                        ),
+
+                        // I/O group
+                        ControlGroup {
+                            label: "I/O",
+                            Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
+                            Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
+                            Toggle { param_ptr: params.auto_makeup.as_ptr(), label: "Auto" }
+                        }
+
+                        // Divider
+                        div {
+                            style: format!(
+                                "width:1px; background:{}; align-self:stretch;",
+                                t.border_subtle,
+                            ),
+                        }
+
+                        // Mix group
+                        ControlGroup {
+                            label: "Mix",
+                            Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
+                            Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
+                        }
+
+                        // Divider
+                        div {
+                            style: format!(
+                                "width:1px; background:{}; align-self:stretch;",
+                                t.border_subtle,
+                            ),
+                        }
+
+                        // Character group
+                        ControlGroup {
+                            label: "Character",
+                            Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
+                            Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
+                        }
+
+                        // Divider
+                        div {
+                            style: format!(
+                                "width:1px; background:{}; align-self:stretch;",
+                                t.border_subtle,
+                            ),
+                        }
+
+                        // Sidechain group
+                        ControlGroup {
+                            label: "Sidechain",
+                            Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
+                        }
+
+                        // Divider
+                        div {
+                            style: format!(
+                                "width:1px; background:{}; align-self:stretch;",
+                                t.border_subtle,
+                            ),
+                        }
+
+                        // Advanced group
+                        ControlGroup {
+                            label: "Advanced",
+                            Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
+                            Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
+                        }
+                    }
                 }
             }
-
-            // ── Controls ─────────────────────────────────────────
-            div {
-                style: format!(
-                    "{CARD} padding:12px 16px; \
-                     display:flex; flex-direction:column; gap:{SECTION}; flex:1; min-height:0;",
-                    CARD = theme::STYLE_CARD,
-                    SECTION = theme::SPACING_SECTION,
-                ),
-
-                // Row 1: Core dynamics (large knobs)
-                div {
-                    style: format!(
-                        "display:flex; flex-direction:column; gap:{SECTION};",
-                        SECTION = theme::SPACING_SECTION,
-                    ),
-                    SectionLabel { text: "Dynamics" }
-                    div {
-                        style: format!(
-                            "display:flex; justify-content:center; gap:{CTL};",
-                            CTL = theme::SPACING_CONTROL,
-                        ),
-                        Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
-                        Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
-                        Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
-                        Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
-                        Knob { param_ptr: params.knee_db.as_ptr(), size: KnobSize::Large }
-                    }
-                }
-
-                // Row 2: Grouped secondary controls
-                div {
-                    style: format!(
-                        "display:flex; gap:{CTL}; justify-content:center;",
-                        CTL = theme::SPACING_CONTROL,
-                    ),
-
-                    // I/O group
-                    ControlGroup {
-                        label: "I/O",
-                        Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
-                        Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
-                        Toggle { param_ptr: params.auto_makeup.as_ptr(), label: "Auto" }
-                    }
-
-                    // Divider
-                    div {
-                        style: format!(
-                            "width:1px; background:{}; align-self:stretch;",
-                            theme::BORDER_SUBTLE,
-                        ),
-                    }
-
-                    // Mix group
-                    ControlGroup {
-                        label: "Mix",
-                        Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
-                        Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
-                    }
-
-                    // Divider
-                    div {
-                        style: format!(
-                            "width:1px; background:{}; align-self:stretch;",
-                            theme::BORDER_SUBTLE,
-                        ),
-                    }
-
-                    // Character group
-                    ControlGroup {
-                        label: "Character",
-                        Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
-                        Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
-                    }
-
-                    // Divider
-                    div {
-                        style: format!(
-                            "width:1px; background:{}; align-self:stretch;",
-                            theme::BORDER_SUBTLE,
-                        ),
-                    }
-
-                    // Sidechain group
-                    ControlGroup {
-                        label: "Sidechain",
-                        Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
-                    }
-
-                    // Divider
-                    div {
-                        style: format!(
-                            "width:1px; background:{}; align-self:stretch;",
-                            theme::BORDER_SUBTLE,
-                        ),
-                    }
-
-                    // Advanced group
-                    ControlGroup {
-                        label: "Advanced",
-                        Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
-                        Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
-                    }
-                }
-            }
-        }
         } // DragProvider
     }
 }

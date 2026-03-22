@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::slider::ParamSlider;
-use audio_gui::prelude::{theme, Divider, DragProvider, KnobSize, LevelMeterDb};
+use audio_gui::prelude::{use_init_theme, Divider, DragProvider, KnobSize, LevelMeterDb};
 use fts_plugin_core::prelude::*;
 
 use crate::engine::NUM_SLOTS;
@@ -17,6 +17,9 @@ use trigger_ui::trigger_waveform::TriggerWaveform;
 /// Root editor component.
 #[component]
 pub fn App() -> Element {
+    let t = use_init_theme();
+    let t = *t.read();
+
     let shared = use_context::<SharedState>();
     let ui = shared
         .get::<TriggerUiState>()
@@ -42,12 +45,17 @@ pub fn App() -> Element {
     }
 
     let vel_text = format!("{:.2}", velocity);
+    let signal_danger = t.signal_danger;
+    let signal_warn = t.signal_warn;
+    let signal_safe = t.signal_safe;
+    let toggle_off = t.toggle_off;
+    let text_dim = t.text_dim;
     let trig_color = if triggered > 0.5 {
-        theme::SIGNAL_DANGER
+        signal_danger
     } else if triggered > 0.01 {
-        theme::SIGNAL_WARN
+        signal_warn
     } else {
-        theme::TOGGLE_OFF
+        toggle_off
     };
 
     // Slot data
@@ -66,18 +74,31 @@ pub fn App() -> Element {
         .map(|s| ui.slot_playing[s].load(Ordering::Relaxed) > 0.5)
         .collect();
 
+    let base_css = t.base_css();
+    let spacing_root = t.spacing_root;
+    let bg = t.bg;
+    let text = t.text;
+    let spacing_section = t.spacing_section;
+    let spacing_card = t.spacing_card;
+    let spacing_label = t.spacing_label;
+    let spacing_control = t.spacing_control;
+    let font_size_title = t.font_size_title;
+    let text_bright = t.text_bright;
+    let radius_round = t.radius_round;
+    let style_card = t.style_card();
+    let style_value = t.style_value();
+    let style_label = t.style_label();
+
     rsx! {
-        document::Style { {theme::BASE_CSS} }
+        document::Style { {base_css} }
 
         DragProvider {
         div {
             style: format!(
-                "width:100vw; height:100vh; padding:{SPACING}; \
-                 background:{BG}; color:{TEXT}; \
+                "width:100vw; height:100vh; padding:{spacing_root}; \
+                 background:{bg}; color:{text}; \
                  font-family:system-ui,sans-serif; font-size:13px; user-select:none; \
-                 display:flex; flex-direction:column; gap:{GAP}; overflow:hidden;",
-                SPACING = theme::SPACING_ROOT, BG = theme::BG, TEXT = theme::TEXT,
-                GAP = theme::SPACING_SECTION,
+                 display:flex; flex-direction:column; gap:{spacing_section}; overflow:hidden;",
             ),
 
             // ══════════════════════════════════════════════════════════
@@ -85,9 +106,8 @@ pub fn App() -> Element {
             // ══════════════════════════════════════════════════════════
             div {
                 style: format!(
-                    "{CARD} display:flex; gap:8px; align-items:stretch; \
-                     padding:{PADDING};",
-                    CARD = theme::STYLE_CARD, PADDING = theme::SPACING_CARD,
+                    "{style_card} display:flex; gap:8px; align-items:stretch; \
+                     padding:{spacing_card};",
                 ),
 
                 // ── Left Panel: Title + Detection + Sidechain ──────
@@ -98,14 +118,12 @@ pub fn App() -> Element {
                     // Title + trigger indicator
                     div {
                         style: format!(
-                            "display:flex; flex-direction:column; gap:{LABEL_GAP};",
-                            LABEL_GAP = theme::SPACING_LABEL,
+                            "display:flex; flex-direction:column; gap:{spacing_label};",
                         ),
                         div {
                             style: format!(
-                                "font-size:{SIZE}; font-weight:700; \
-                                 letter-spacing:0.5px; color:{BRIGHT};",
-                                SIZE = theme::FONT_SIZE_TITLE, BRIGHT = theme::TEXT_BRIGHT,
+                                "font-size:{font_size_title}; font-weight:700; \
+                                 letter-spacing:0.5px; color:{text_bright};",
                             ),
                             "FTS TRIGGER"
                         }
@@ -113,18 +131,15 @@ pub fn App() -> Element {
                             style: "display:flex; align-items:center; gap:6px;",
                             div {
                                 style: format!(
-                                    "width:10px; height:10px; border-radius:{ROUND}; background:{};",
-                                    trig_color,
-                                    ROUND = theme::RADIUS_ROUND,
+                                    "width:10px; height:10px; border-radius:{radius_round}; background:{trig_color};",
                                 ),
                             }
                             div {
                                 style: format!(
-                                    "{VALUE} font-size:11px; color:{};",
-                                    if velocity > 0.8 { theme::SIGNAL_WARN }
-                                    else if velocity > 0.01 { theme::SIGNAL_SAFE }
-                                    else { theme::TEXT_DIM },
-                                    VALUE = theme::STYLE_VALUE,
+                                    "{style_value} font-size:11px; color:{vel_color};",
+                                    vel_color = if velocity > 0.8 { signal_warn }
+                                    else if velocity > 0.01 { signal_safe }
+                                    else { text_dim },
                                 ),
                                 "Vel: {vel_text}"
                             }
@@ -135,14 +150,10 @@ pub fn App() -> Element {
                     div {
                         style: format!(
                             "display:flex; flex-direction:column; align-items:center; \
-                             gap:{LABEL_GAP};",
-                            LABEL_GAP = theme::SPACING_LABEL,
+                             gap:{spacing_label};",
                         ),
                         div {
-                            style: format!(
-                                "{LABEL}",
-                                LABEL = theme::STYLE_LABEL,
-                            ),
+                            style: format!("{style_label}"),
                             "DETECTION"
                         }
                         div {
@@ -157,14 +168,10 @@ pub fn App() -> Element {
                     div {
                         style: format!(
                             "display:flex; flex-direction:column; align-items:center; \
-                             gap:{LABEL_GAP};",
-                            LABEL_GAP = theme::SPACING_LABEL,
+                             gap:{spacing_label};",
                         ),
                         div {
-                            style: format!(
-                                "{LABEL}",
-                                LABEL = theme::STYLE_LABEL,
-                            ),
+                            style: format!("{style_label}"),
                             "SIDECHAIN"
                         }
                         div {
@@ -181,8 +188,7 @@ pub fn App() -> Element {
                 // ── Center: Large Waveform ─────────────────────────
                 div {
                     style: format!(
-                        "flex:1; display:flex; flex-direction:column; gap:{LABEL_GAP}; min-width:0;",
-                        LABEL_GAP = theme::SPACING_LABEL,
+                        "flex:1; display:flex; flex-direction:column; gap:{spacing_label}; min-width:0;",
                     ),
                     TriggerWaveform {
                         levels: waveform_in,
@@ -195,18 +201,14 @@ pub fn App() -> Element {
                     // Controls below waveform
                     div {
                         style: format!(
-                            "display:flex; gap:{GAP}; align-items:center; justify-content:center;",
-                            GAP = theme::SPACING_CONTROL,
+                            "display:flex; gap:{spacing_control}; align-items:center; justify-content:center;",
                         ),
 
                         // Algorithm
                         div {
                             style: "display:flex; gap:6px; align-items:center;",
                             div {
-                                style: format!(
-                                    "{LABEL}",
-                                    LABEL = theme::STYLE_LABEL,
-                                ),
+                                style: format!("{style_label}"),
                                 "ALGORITHM"
                             }
                             ParamSlider { param_ptr: params.detect_algorithm.as_ptr() }
@@ -218,10 +220,7 @@ pub fn App() -> Element {
                         div {
                             style: "display:flex; gap:6px; align-items:center;",
                             div {
-                                style: format!(
-                                    "{LABEL}",
-                                    LABEL = theme::STYLE_LABEL,
-                                ),
+                                style: format!("{style_label}"),
                                 "MIDI"
                             }
                             ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
@@ -253,14 +252,10 @@ pub fn App() -> Element {
                     div {
                         style: format!(
                             "display:flex; flex-direction:column; align-items:center; \
-                             gap:{LABEL_GAP};",
-                            LABEL_GAP = theme::SPACING_LABEL,
+                             gap:{spacing_label};",
                         ),
                         div {
-                            style: format!(
-                                "{LABEL}",
-                                LABEL = theme::STYLE_LABEL,
-                            ),
+                            style: format!("{style_label}"),
                             "VELOCITY"
                         }
                         Knob { param_ptr: params.dynamics.as_ptr(), size: KnobSize::Medium }
@@ -271,21 +266,16 @@ pub fn App() -> Element {
                     div {
                         style: format!(
                             "display:flex; flex-direction:column; align-items:center; \
-                             gap:{LABEL_GAP};",
-                            LABEL_GAP = theme::SPACING_LABEL,
+                             gap:{spacing_label};",
                         ),
                         div {
-                            style: format!(
-                                "{LABEL}",
-                                LABEL = theme::STYLE_LABEL,
-                            ),
+                            style: format!("{style_label}"),
                             "OUTPUT"
                         }
                         Knob { param_ptr: params.output_gain.as_ptr(), size: KnobSize::Medium }
                         div {
                             style: format!(
-                                "display:flex; gap:{LABEL_GAP};",
-                                LABEL_GAP = theme::SPACING_LABEL,
+                                "display:flex; gap:{spacing_label};",
                             ),
                             ParamSlider { param_ptr: params.mix_mode.as_ptr() }
                             Knob { param_ptr: params.mix_amount.as_ptr(), size: KnobSize::Small }
@@ -308,9 +298,8 @@ pub fn App() -> Element {
             // ══════════════════════════════════════════════════════════
             div {
                 style: format!(
-                    "{CARD} display:flex; gap:3px; flex:1; min-height:0; \
+                    "{style_card} display:flex; gap:3px; flex:1; min-height:0; \
                      padding:6px;",
-                    CARD = theme::STYLE_CARD,
                 ),
                 for slot in 0..NUM_SLOTS {
                     MixerStrip {
