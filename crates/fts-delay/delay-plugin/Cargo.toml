@@ -14,4 +14,7 @@ fts-plugin-core = { path = "../../fts-plugin-core" }
 delay-dsp = { path = "../delay-dsp" }
 delay-profiles = { path = "../delay-profiles" }
 delay-ui = { path = "../delay-ui" }
+audio-gui = { workspace = true }
+atomic_float = { workspace = true }
+fts-dsp = { workspace = true }
 nih_plug = { workspace = true }

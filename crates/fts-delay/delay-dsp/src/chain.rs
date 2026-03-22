@@ -47,7 +47,7 @@ pub struct DelayChain {
     // Internal
     diffuser_l: Diffuser,
     diffuser_r: Diffuser,
-    ducker: DuckingFollower,
+    pub ducker: DuckingFollower,
     sample_rate: f64,
 }
 
