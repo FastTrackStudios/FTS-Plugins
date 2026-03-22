@@ -1,19 +1,18 @@
-//! FTS Trigger — Dioxus GUI editor.
+//! FTS Trigger — Dioxus GUI editor (Trigger 2-inspired layout).
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::slider::ParamSlider;
-use audio_gui::prelude::{
-    theme, ControlGroup, Divider, DragProvider, KnobSize, LevelMeterDb, PeakWaveform,
-};
+use audio_gui::prelude::{theme, Divider, DragProvider, KnobSize, LevelMeterDb};
 use fts_plugin_core::prelude::*;
 
 use crate::engine::NUM_SLOTS;
 use crate::loader;
 use crate::{TriggerUiState, WAVEFORM_LEN};
 use trigger_ui::control_view::MixerStrip;
+use trigger_ui::trigger_waveform::TriggerWaveform;
 
 /// Root editor component.
 #[component]
@@ -30,6 +29,7 @@ pub fn App() -> Element {
     let triggered = ui.triggered.load(Ordering::Relaxed);
     let input_db = ui.input_peak_db.load(Ordering::Relaxed);
     let output_db = ui.output_peak_db.load(Ordering::Relaxed);
+    let threshold_db = params.threshold.value();
 
     // Build waveform from ring buffer
     let pos = ui.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
@@ -72,68 +72,245 @@ pub fn App() -> Element {
         DragProvider {
         div {
             style: format!(
-                "width:100vw; height:100vh; padding:10px 14px; \
+                "width:100vw; height:100vh; padding:{SPACING}; \
                  background:{BG}; color:{TEXT}; \
                  font-family:system-ui,sans-serif; font-size:13px; user-select:none; \
-                 display:flex; flex-direction:column; gap:8px; overflow:hidden;",
-                BG = theme::BG, TEXT = theme::TEXT,
+                 display:flex; flex-direction:column; gap:{GAP}; overflow:hidden;",
+                SPACING = theme::SPACING_ROOT, BG = theme::BG, TEXT = theme::TEXT,
+                GAP = theme::SPACING_SECTION,
             ),
 
-            // ── Header ───────────────────────────────────────────
+            // ══════════════════════════════════════════════════════════
+            // TOP ROW: Controls | Waveform | Controls | Output
+            // ══════════════════════════════════════════════════════════
             div {
                 style: format!(
-                    "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
-                    BORDER = theme::BORDER,
+                    "{CARD} display:flex; gap:8px; align-items:stretch; \
+                     padding:{PADDING};",
+                    CARD = theme::STYLE_CARD, PADDING = theme::SPACING_CARD,
                 ),
+
+                // ── Left Panel: Title + Detection + Sidechain ──────
                 div {
-                    style: "display:flex; align-items:baseline; gap:12px;",
-                    div {
-                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
-                        "FTS TRIGGER"
-                    }
-                    div {
-                        style: format!(
-                            "font-size:12px; color:{}; font-variant-numeric:tabular-nums;",
-                            if velocity > 0.8 { theme::SIGNAL_WARN }
-                            else if velocity > 0.01 { theme::SIGNAL_SAFE }
-                            else { theme::TEXT_DIM }
-                        ),
-                        "Vel: {vel_text}"
-                    }
+                    style: "display:flex; flex-direction:column; gap:8px; \
+                            min-width:140px; justify-content:space-between;",
+
+                    // Title + trigger indicator
                     div {
                         style: format!(
-                            "width:12px; height:12px; border-radius:50%; background:{};",
-                            trig_color,
+                            "display:flex; flex-direction:column; gap:{LABEL_GAP};",
+                            LABEL_GAP = theme::SPACING_LABEL,
                         ),
+                        div {
+                            style: format!(
+                                "font-size:{SIZE}; font-weight:700; \
+                                 letter-spacing:0.5px; color:{BRIGHT};",
+                                SIZE = theme::FONT_SIZE_TITLE, BRIGHT = theme::TEXT_BRIGHT,
+                            ),
+                            "FTS TRIGGER"
+                        }
+                        div {
+                            style: "display:flex; align-items:center; gap:6px;",
+                            div {
+                                style: format!(
+                                    "width:10px; height:10px; border-radius:{ROUND}; background:{};",
+                                    trig_color,
+                                    ROUND = theme::RADIUS_ROUND,
+                                ),
+                            }
+                            div {
+                                style: format!(
+                                    "{VALUE} font-size:11px; color:{};",
+                                    if velocity > 0.8 { theme::SIGNAL_WARN }
+                                    else if velocity > 0.01 { theme::SIGNAL_SAFE }
+                                    else { theme::TEXT_DIM },
+                                    VALUE = theme::STYLE_VALUE,
+                                ),
+                                "Vel: {vel_text}"
+                            }
+                        }
+                    }
+
+                    // Detection controls
+                    div {
+                        style: format!(
+                            "display:flex; flex-direction:column; align-items:center; \
+                             gap:{LABEL_GAP};",
+                            LABEL_GAP = theme::SPACING_LABEL,
+                        ),
+                        div {
+                            style: format!(
+                                "{LABEL}",
+                                LABEL = theme::STYLE_LABEL,
+                            ),
+                            "DETECTION"
+                        }
+                        div {
+                            style: "display:flex; gap:6px; flex-wrap:wrap; justify-content:center;",
+                            Knob { param_ptr: params.sensitivity.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.reactivity.as_ptr(), size: KnobSize::Small }
+                        }
+                        ParamSlider { param_ptr: params.detect_mode.as_ptr() }
+                    }
+
+                    // Sidechain
+                    div {
+                        style: format!(
+                            "display:flex; flex-direction:column; align-items:center; \
+                             gap:{LABEL_GAP};",
+                            LABEL_GAP = theme::SPACING_LABEL,
+                        ),
+                        div {
+                            style: format!(
+                                "{LABEL}",
+                                LABEL = theme::STYLE_LABEL,
+                            ),
+                            "SIDECHAIN"
+                        }
+                        div {
+                            style: "display:flex; gap:6px;",
+                            Knob { param_ptr: params.sc_hpf.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.sc_lpf.as_ptr(), size: KnobSize::Small }
+                        }
+                        ParamSlider { param_ptr: params.sc_listen.as_ptr() }
                     }
                 }
+
+                Divider {}
+
+                // ── Center: Large Waveform ─────────────────────────
                 div {
-                    style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
-                    "FastTrackStudio"
+                    style: format!(
+                        "flex:1; display:flex; flex-direction:column; gap:{LABEL_GAP}; min-width:0;",
+                        LABEL_GAP = theme::SPACING_LABEL,
+                    ),
+                    TriggerWaveform {
+                        levels: waveform_in,
+                        triggers: waveform_trig,
+                        threshold_db: threshold_db,
+                        threshold_ptr: params.threshold.as_ptr(),
+                        width: 700.0,
+                        height: 210.0,
+                    }
+                    // Controls below waveform
+                    div {
+                        style: format!(
+                            "display:flex; gap:{GAP}; align-items:center; justify-content:center;",
+                            GAP = theme::SPACING_CONTROL,
+                        ),
+
+                        // Algorithm
+                        div {
+                            style: "display:flex; gap:6px; align-items:center;",
+                            div {
+                                style: format!(
+                                    "{LABEL}",
+                                    LABEL = theme::STYLE_LABEL,
+                                ),
+                                "ALGORITHM"
+                            }
+                            ParamSlider { param_ptr: params.detect_algorithm.as_ptr() }
+                        }
+
+                        Divider {}
+
+                        // MIDI output controls
+                        div {
+                            style: "display:flex; gap:6px; align-items:center;",
+                            div {
+                                style: format!(
+                                    "{LABEL}",
+                                    LABEL = theme::STYLE_LABEL,
+                                ),
+                                "MIDI"
+                            }
+                            ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
+                            Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
+                        }
+                    }
+                }
+
+                Divider {}
+
+                // ── Right Panel: Sensitivity/Retrigger + Output ────
+                div {
+                    style: "display:flex; flex-direction:column; gap:8px; \
+                            min-width:140px; justify-content:space-between;",
+
+                    // Sensitivity / Retrigger / Detail
+                    div {
+                        style: "display:flex; flex-direction:column; align-items:center; gap:6px;",
+                        Knob { param_ptr: params.retrigger.as_ptr(), size: KnobSize::Medium }
+                        div {
+                            style: "display:flex; gap:6px;",
+                            Knob { param_ptr: params.release_time.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.release_ratio.as_ptr(), size: KnobSize::Small }
+                        }
+                    }
+
+                    // Velocity
+                    div {
+                        style: format!(
+                            "display:flex; flex-direction:column; align-items:center; \
+                             gap:{LABEL_GAP};",
+                            LABEL_GAP = theme::SPACING_LABEL,
+                        ),
+                        div {
+                            style: format!(
+                                "{LABEL}",
+                                LABEL = theme::STYLE_LABEL,
+                            ),
+                            "VELOCITY"
+                        }
+                        Knob { param_ptr: params.dynamics.as_ptr(), size: KnobSize::Medium }
+                        ParamSlider { param_ptr: params.vel_curve.as_ptr() }
+                    }
+
+                    // Output
+                    div {
+                        style: format!(
+                            "display:flex; flex-direction:column; align-items:center; \
+                             gap:{LABEL_GAP};",
+                            LABEL_GAP = theme::SPACING_LABEL,
+                        ),
+                        div {
+                            style: format!(
+                                "{LABEL}",
+                                LABEL = theme::STYLE_LABEL,
+                            ),
+                            "OUTPUT"
+                        }
+                        Knob { param_ptr: params.output_gain.as_ptr(), size: KnobSize::Medium }
+                        div {
+                            style: format!(
+                                "display:flex; gap:{LABEL_GAP};",
+                                LABEL_GAP = theme::SPACING_LABEL,
+                            ),
+                            ParamSlider { param_ptr: params.mix_mode.as_ptr() }
+                            Knob { param_ptr: params.mix_amount.as_ptr(), size: KnobSize::Small }
+                        }
+                    }
+                }
+
+                Divider {}
+
+                // ── Far Right: Level Meters ────────────────────────
+                div {
+                    style: "display:flex; gap:6px; align-items:stretch;",
+                    LevelMeterDb { level_db: input_db, label: "IN".to_string() }
+                    LevelMeterDb { level_db: output_db, label: "OUT".to_string() }
                 }
             }
 
-            // ── Waveform ─────────────────────────────────────────
+            // ══════════════════════════════════════════════════════════
+            // BOTTOM: Mixer Section (8 strips)
+            // ══════════════════════════════════════════════════════════
             div {
                 style: format!(
-                    "background:{SURFACE}; border-radius:4px; padding:4px; min-height:60px;",
-                    SURFACE = theme::SURFACE,
-                ),
-                PeakWaveform {
-                    levels: waveform_in,
-                    gr_levels: waveform_trig,
-                    width: 1020.0,
-                    height: 56.0,
-                }
-            }
-
-            // ── Mixer Section (8 strips) ─────────────────────────
-            div {
-                style: format!(
-                    "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                     display:flex; gap:4px; flex:1; min-height:0;",
-                    CARD_BG = theme::CARD_BG,
+                    "{CARD} display:flex; gap:3px; flex:1; min-height:0; \
+                     padding:6px;",
+                    CARD = theme::STYLE_CARD,
                 ),
                 for slot in 0..NUM_SLOTS {
                     MixerStrip {
@@ -148,6 +325,7 @@ pub fn App() -> Element {
                         enabled_ptr: params.slots[slot].enabled.as_ptr(),
                         mute_ptr: params.slots[slot].mute.as_ptr(),
                         solo_ptr: params.slots[slot].solo.as_ptr(),
+                        midi_note_ptr: params.slots[slot].midi_note.as_ptr(),
                         on_load: {
                             let ui = ui_for_load.clone();
                             move |slot: usize| {
@@ -155,67 +333,6 @@ pub fn App() -> Element {
                             }
                         },
                     }
-                }
-            }
-
-            // ── Bottom Controls ──────────────────────────────────
-            div {
-                style: format!(
-                    "background:{CARD_BG}; border-radius:6px; padding:10px 16px; \
-                     display:flex; gap:20px; align-items:flex-start;",
-                    CARD_BG = theme::CARD_BG,
-                ),
-
-                ControlGroup {
-                    label: "Detection",
-                    Knob { param_ptr: params.threshold.as_ptr(), size: KnobSize::Medium }
-                    Knob { param_ptr: params.sensitivity.as_ptr(), size: KnobSize::Small }
-                    Knob { param_ptr: params.retrigger.as_ptr(), size: KnobSize::Small }
-                    Knob { param_ptr: params.reactivity.as_ptr(), size: KnobSize::Small }
-                    Knob { param_ptr: params.release_time.as_ptr(), size: KnobSize::Small }
-                    Knob { param_ptr: params.release_ratio.as_ptr(), size: KnobSize::Small }
-                    ParamSlider { param_ptr: params.detect_mode.as_ptr() }
-                }
-
-                Divider {}
-
-                ControlGroup {
-                    label: "Algorithm",
-                    ParamSlider { param_ptr: params.detect_algorithm.as_ptr() }
-                }
-
-                Divider {}
-
-                ControlGroup {
-                    label: "Sidechain",
-                    Knob { param_ptr: params.sc_hpf.as_ptr(), size: KnobSize::Small }
-                    Knob { param_ptr: params.sc_lpf.as_ptr(), size: KnobSize::Small }
-                    ParamSlider { param_ptr: params.sc_listen.as_ptr() }
-                }
-
-                Divider {}
-
-                ControlGroup {
-                    label: "Velocity",
-                    Knob { param_ptr: params.dynamics.as_ptr(), size: KnobSize::Medium }
-                    ParamSlider { param_ptr: params.vel_curve.as_ptr() }
-                }
-
-                Divider {}
-
-                ControlGroup {
-                    label: "Output",
-                    ParamSlider { param_ptr: params.mix_mode.as_ptr() }
-                    Knob { param_ptr: params.mix_amount.as_ptr(), size: KnobSize::Small }
-                    Knob { param_ptr: params.output_gain.as_ptr(), size: KnobSize::Medium }
-                }
-
-                Divider {}
-
-                div {
-                    style: "display:flex; gap:8px; align-items:flex-end;",
-                    LevelMeterDb { level_db: input_db, label: "IN".to_string() }
-                    LevelMeterDb { level_db: output_db, label: "OUT".to_string() }
                 }
             }
         }

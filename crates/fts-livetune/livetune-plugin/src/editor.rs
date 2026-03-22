@@ -132,11 +132,8 @@ pub fn App() -> Element {
         DragProvider {
         div {
             style: format!(
-                "width:100vw; height:100vh; padding:10px 14px; \
-                 background:{BG}; color:{TEXT}; \
-                 font-family:system-ui,sans-serif; font-size:13px; user-select:none; \
-                 display:flex; flex-direction:column; gap:8px; overflow:hidden;",
-                BG = theme::BG, TEXT = theme::TEXT,
+                "{} display:flex; flex-direction:column; gap:{}; overflow:hidden;",
+                theme::ROOT_STYLE, theme::SPACING_SECTION,
             ),
 
             // ── Header ───────────────────────────────────────────

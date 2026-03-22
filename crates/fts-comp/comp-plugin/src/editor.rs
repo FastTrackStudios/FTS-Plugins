@@ -62,53 +62,67 @@ pub fn App() -> Element {
         DragProvider {
         div {
             style: format!(
-                "width:100vw; height:100vh; padding:10px 14px; \
-                 background:{BG}; color:{TEXT}; \
-                 font-family:system-ui,sans-serif; font-size:13px; user-select:none; \
-                 display:flex; flex-direction:column; gap:8px; overflow:hidden;",
-                BG = theme::BG, TEXT = theme::TEXT,
+                "{ROOT} display:flex; flex-direction:column; gap:{SECTION};",
+                ROOT = theme::ROOT_STYLE,
+                SECTION = theme::SPACING_SECTION,
             ),
 
             // ── Header ───────────────────────────────────────────
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
+                     padding-bottom:{LABEL_GAP}; border-bottom:1px solid {BORDER};",
+                    LABEL_GAP = theme::SPACING_LABEL,
                     BORDER = theme::BORDER,
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
-                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
+                        style: format!(
+                            "font-size:{TITLE}; font-weight:700; letter-spacing:0.5px; \
+                             color:{BRIGHT};",
+                            TITLE = theme::FONT_SIZE_TITLE,
+                            BRIGHT = theme::TEXT_BRIGHT,
+                        ),
                         "FTS COMPRESSOR"
                     }
                     // GR readout in header
                     div {
                         style: format!(
-                            "font-size:12px; color:{}; font-variant-numeric:tabular-nums;",
-                            if gr_db > 6.0 { theme::SIGNAL_WARN }
-                            else if gr_db > 0.1 { theme::SIGNAL_SAFE }
-                            else { theme::TEXT_DIM }
+                            "{STYLE} color:{COLOR};",
+                            STYLE = theme::STYLE_VALUE,
+                            COLOR = if gr_db > 6.0 { theme::SIGNAL_WARN }
+                                    else if gr_db > 0.1 { theme::SIGNAL_SAFE }
+                                    else { theme::TEXT_DIM },
                         ),
                         "GR: {gr_text}"
                     }
                 }
                 div {
-                    style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
+                    style: format!(
+                        "font-size:{TINY}; color:{DIM};",
+                        TINY = theme::FONT_SIZE_TINY,
+                        DIM = theme::TEXT_DIM,
+                    ),
                     "FastTrackStudio"
                 }
             }
 
             // ── Visualization row ────────────────────────────────
             div {
-                style: "display:flex; gap:10px; min-height:0;",
+                style: format!(
+                    "display:flex; gap:{SECTION}; min-height:0;",
+                    SECTION = theme::SPACING_SECTION,
+                ),
 
                 // Transfer curve
                 div {
                     style: format!(
-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; flex-direction:column; gap:4px;",
-                        CARD_BG = theme::CARD_BG,
+                        "{CARD} padding:{PAD}; \
+                         display:flex; flex-direction:column; gap:{LABEL};",
+                        CARD = theme::STYLE_CARD,
+                        PAD = theme::SPACING_CARD,
+                        LABEL = theme::SPACING_LABEL,
                     ),
                     SectionLabel { text: "Transfer Curve" }
                     TransferCurve {
@@ -124,9 +138,11 @@ pub fn App() -> Element {
                 // Waveform display
                 div {
                     style: format!(
-                        "flex:1; background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; flex-direction:column; gap:4px; min-width:0;",
-                        CARD_BG = theme::CARD_BG,
+                        "{CARD} flex:1; padding:{PAD}; \
+                         display:flex; flex-direction:column; gap:{LABEL}; min-width:0;",
+                        CARD = theme::STYLE_CARD,
+                        PAD = theme::SPACING_CARD,
+                        LABEL = theme::SPACING_LABEL,
                     ),
                     SectionLabel { text: "Waveform / Gain Reduction" }
                     PeakWaveform {
@@ -140,9 +156,11 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; gap:8px; align-items:stretch;",
-                        CARD_BG = theme::CARD_BG,
+                        "{CARD} padding:{PAD}; \
+                         display:flex; gap:{SECTION}; align-items:stretch;",
+                        CARD = theme::STYLE_CARD,
+                        PAD = theme::SPACING_CARD,
+                        SECTION = theme::SPACING_SECTION,
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 160.0 }
                     GrMeter { gain_reduction_db: gr_db, height: 160.0 }
@@ -153,17 +171,24 @@ pub fn App() -> Element {
             // ── Controls ─────────────────────────────────────────
             div {
                 style: format!(
-                    "background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
-                     display:flex; flex-direction:column; gap:10px; flex:1; min-height:0;",
-                    CARD_BG = theme::CARD_BG,
+                    "{CARD} padding:12px 16px; \
+                     display:flex; flex-direction:column; gap:{SECTION}; flex:1; min-height:0;",
+                    CARD = theme::STYLE_CARD,
+                    SECTION = theme::SPACING_SECTION,
                 ),
 
                 // Row 1: Core dynamics (large knobs)
                 div {
-                    style: "display:flex; flex-direction:column; gap:8px;",
+                    style: format!(
+                        "display:flex; flex-direction:column; gap:{SECTION};",
+                        SECTION = theme::SPACING_SECTION,
+                    ),
                     SectionLabel { text: "Dynamics" }
                     div {
-                        style: "display:flex; justify-content:center; gap:24px;",
+                        style: format!(
+                            "display:flex; justify-content:center; gap:{CTL};",
+                            CTL = theme::SPACING_CONTROL,
+                        ),
                         Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
                         Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
                         Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
@@ -174,7 +199,10 @@ pub fn App() -> Element {
 
                 // Row 2: Grouped secondary controls
                 div {
-                    style: "display:flex; gap:20px; justify-content:center;",
+                    style: format!(
+                        "display:flex; gap:{CTL}; justify-content:center;",
+                        CTL = theme::SPACING_CONTROL,
+                    ),
 
                     // I/O group
                     ControlGroup {
@@ -188,7 +216,7 @@ pub fn App() -> Element {
                     div {
                         style: format!(
                             "width:1px; background:{}; align-self:stretch;",
-                            theme::BORDER,
+                            theme::BORDER_SUBTLE,
                         ),
                     }
 
@@ -203,7 +231,7 @@ pub fn App() -> Element {
                     div {
                         style: format!(
                             "width:1px; background:{}; align-self:stretch;",
-                            theme::BORDER,
+                            theme::BORDER_SUBTLE,
                         ),
                     }
 
@@ -218,7 +246,7 @@ pub fn App() -> Element {
                     div {
                         style: format!(
                             "width:1px; background:{}; align-self:stretch;",
-                            theme::BORDER,
+                            theme::BORDER_SUBTLE,
                         ),
                     }
 
@@ -232,7 +260,7 @@ pub fn App() -> Element {
                     div {
                         style: format!(
                             "width:1px; background:{}; align-self:stretch;",
-                            theme::BORDER,
+                            theme::BORDER_SUBTLE,
                         ),
                     }
 

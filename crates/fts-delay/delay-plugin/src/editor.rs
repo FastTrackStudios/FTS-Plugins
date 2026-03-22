@@ -85,43 +85,43 @@ pub fn App() -> Element {
         DragProvider {
         div {
             style: format!(
-                "width:100vw; height:100vh; padding:10px 14px; \
-                 background:{BG}; color:{TEXT}; \
-                 font-family:system-ui,sans-serif; font-size:13px; user-select:none; \
-                 display:flex; flex-direction:column; gap:8px; overflow:hidden;",
-                BG = theme::BG, TEXT = theme::TEXT,
+                "{} display:flex; flex-direction:column; gap:{}; overflow:hidden;",
+                theme::ROOT_STYLE, theme::SPACING_SECTION,
             ),
 
             // ── Header ───────────────────────────────────────────
             div {
                 style: format!(
                     "display:flex; justify-content:space-between; align-items:center; \
-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
-                    BORDER = theme::BORDER,
+                     padding-bottom:6px; border-bottom:1px solid {};",
+                    theme::BORDER,
                 ),
                 div {
                     style: "display:flex; align-items:baseline; gap:12px;",
                     div {
-                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
+                        style: format!(
+                            "font-size:{}; font-weight:700; letter-spacing:{}; color:{};",
+                            theme::FONT_SIZE_TITLE, theme::LETTER_SPACING_LABEL, theme::TEXT_BRIGHT,
+                        ),
                         "FTS DELAY"
                     }
                 }
                 div {
-                    style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
+                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
                     "FastTrackStudio"
                 }
             }
 
             // ── Main content: controls + meters ──────────────────
             div {
-                style: "display:flex; gap:10px; flex:1; min-height:0;",
+                style: format!("display:flex; gap:{}; flex:1; min-height:0;", theme::SPACING_SECTION),
 
                 // Controls area
                 div {
                     style: format!(
-                        "flex:1; background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
-                         display:flex; flex-direction:column; gap:10px; overflow-y:auto;",
-                        CARD_BG = theme::CARD_BG,
+                        "flex:1; {} padding:{}; \
+                         display:flex; flex-direction:column; gap:{}; overflow-y:auto;",
+                        theme::STYLE_CARD, theme::SPACING_CARD, theme::SPACING_SECTION,
                     ),
 
                     // ── Row 1: Time & Feedback & Mix ─────────────────
@@ -130,9 +130,15 @@ pub fn App() -> Element {
 
                         // Time section
                         div {
-                            style: "display:flex; flex-direction:column; gap:8px; align-items:center;",
+                            style: format!(
+                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
+                                theme::SPACING_SECTION,
+                            ),
                             div {
-                                style: "display:flex; gap:8px; align-items:center;",
+                                style: format!(
+                                    "display:flex; gap:{}; align-items:center;",
+                                    theme::SPACING_SECTION,
+                                ),
                                 SectionLabel { text: "Time" }
                                 Toggle { param_ptr: params.sync_enable.as_ptr(), label: "Sync" }
                                 Toggle { param_ptr: params.link_lr.as_ptr(), label: "Link" }
@@ -141,10 +147,16 @@ pub fn App() -> Element {
                             if sync {
                                 // Note value selectors
                                 div {
-                                    style: "display:flex; flex-direction:column; gap:4px; align-items:center;",
+                                    style: format!(
+                                        "display:flex; flex-direction:column; gap:{}; align-items:center;",
+                                        theme::SPACING_LABEL,
+                                    ),
                                     // L note selector
                                     div {
-                                        style: "display:flex; gap:2px; flex-wrap:wrap; justify-content:center;",
+                                        style: format!(
+                                            "display:flex; gap:{}; flex-wrap:wrap; justify-content:center;",
+                                            theme::SPACING_TIGHT,
+                                        ),
                                         for &(idx, label) in common_notes.iter() {
                                             SegmentButton {
                                                 label: label,
@@ -156,10 +168,16 @@ pub fn App() -> Element {
                                     // R note selector (only when unlinked)
                                     if !link {
                                         div {
-                                            style: format!("display:flex; gap:2px; flex-wrap:wrap; justify-content:center; \
-                                                            padding-top:4px; border-top:1px solid {};", theme::BORDER),
+                                            style: format!(
+                                                "display:flex; gap:{}; flex-wrap:wrap; justify-content:center; \
+                                                 padding-top:{}; border-top:1px solid {};",
+                                                theme::SPACING_TIGHT, theme::SPACING_LABEL, theme::BORDER,
+                                            ),
                                             span {
-                                                style: format!("font-size:10px; color:{}; margin-right:4px; align-self:center;", theme::TEXT_DIM),
+                                                style: format!(
+                                                    "font-size:{}; color:{}; margin-right:4px; align-self:center;",
+                                                    theme::FONT_SIZE_LABEL, theme::TEXT_DIM,
+                                                ),
                                                 "R"
                                             }
                                             for &(idx, label) in common_notes.iter() {
@@ -175,7 +193,10 @@ pub fn App() -> Element {
                             } else {
                                 // Manual ms knobs
                                 div {
-                                    style: "display:flex; gap:16px; justify-content:center;",
+                                    style: format!(
+                                        "display:flex; gap:{}; justify-content:center;",
+                                        theme::SPACING_CONTROL,
+                                    ),
                                     Knob { param_ptr: params.time_l.as_ptr(), size: KnobSize::Large }
                                     if !link {
                                         Knob { param_ptr: params.time_r.as_ptr(), size: KnobSize::Large }
@@ -205,16 +226,19 @@ pub fn App() -> Element {
 
                         // Stereo
                         div {
-                            style: "display:flex; flex-direction:column; gap:8px; align-items:center;",
+                            style: format!(
+                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
+                                theme::SPACING_SECTION,
+                            ),
                             SectionLabel { text: "Stereo" }
                             div {
-                                style: "display:flex; gap:4px;",
+                                style: format!("display:flex; gap:{};", theme::SPACING_LABEL),
                                 SegmentButton { label: "Stereo", selected: mode == 0, on_click: mode_setter(0.0) }
                                 SegmentButton { label: "PingPong", selected: mode == 1, on_click: mode_setter(1.0) }
                                 SegmentButton { label: "Mono", selected: mode == 2, on_click: mode_setter(2.0) }
                             }
                             div {
-                                style: "display:flex; gap:16px;",
+                                style: format!("display:flex; gap:{};", theme::SPACING_CONTROL),
                                 Knob { param_ptr: params.width.as_ptr(), size: KnobSize::Small }
                                 if mode == 1 {
                                     Knob { param_ptr: params.pp_feedback.as_ptr(), size: KnobSize::Small }
@@ -281,15 +305,21 @@ pub fn App() -> Element {
 
                         // Diffusion
                         div {
-                            style: "display:flex; flex-direction:column; gap:8px; align-items:center;",
+                            style: format!(
+                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
+                                theme::SPACING_SECTION,
+                            ),
                             div {
-                                style: "display:flex; gap:8px; align-items:center;",
+                                style: format!(
+                                    "display:flex; gap:{}; align-items:center;",
+                                    theme::SPACING_SECTION,
+                                ),
                                 SectionLabel { text: "Diffusion" }
                                 Toggle { param_ptr: params.diff_enable.as_ptr(), label: "" }
                             }
                             if diff_on {
                                 div {
-                                    style: "display:flex; gap:16px;",
+                                    style: format!("display:flex; gap:{};", theme::SPACING_CONTROL),
                                     Knob { param_ptr: params.diff_size.as_ptr(), size: KnobSize::Small }
                                     Knob { param_ptr: params.diff_smear.as_ptr(), size: KnobSize::Small }
                                 }
@@ -305,15 +335,21 @@ pub fn App() -> Element {
 
                         // Ducking
                         div {
-                            style: "display:flex; flex-direction:column; gap:8px; align-items:center;",
+                            style: format!(
+                                "display:flex; flex-direction:column; gap:{}; align-items:center;",
+                                theme::SPACING_SECTION,
+                            ),
                             div {
-                                style: "display:flex; gap:8px; align-items:center;",
+                                style: format!(
+                                    "display:flex; gap:{}; align-items:center;",
+                                    theme::SPACING_SECTION,
+                                ),
                                 SectionLabel { text: "Ducking" }
                                 Toggle { param_ptr: params.duck_enable.as_ptr(), label: "" }
                             }
                             if duck_on {
                                 div {
-                                    style: "display:flex; gap:16px;",
+                                    style: format!("display:flex; gap:{};", theme::SPACING_CONTROL),
                                     Knob { param_ptr: params.duck_amount.as_ptr(), size: KnobSize::Small }
                                     Knob { param_ptr: params.duck_threshold.as_ptr(), size: KnobSize::Small }
                                     Knob { param_ptr: params.duck_attack.as_ptr(), size: KnobSize::Small }
@@ -327,9 +363,8 @@ pub fn App() -> Element {
                 // Meters
                 div {
                     style: format!(
-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
-                         display:flex; gap:8px; align-items:stretch;",
-                        CARD_BG = theme::CARD_BG,
+                        "{} padding:8px; display:flex; gap:{}; align-items:stretch;",
+                        theme::STYLE_CARD, theme::SPACING_SECTION,
                     ),
                     LevelMeterDb { level_db: input_db, label: "IN".to_string() }
                     LevelMeterDb { level_db: output_db, label: "OUT".to_string() }
