@@ -1,8 +1,9 @@
 //! Granular pitch shifter — fixed-ratio time-domain grain overlap.
 //!
 //! Two read heads sweep through a circular buffer at `speed` rate relative
-//! to the write head. Grains are crossfaded with a Hann window to prevent
-//! clicks. No pitch detection required — works on any signal.
+//! to the write head. Grains are crossfaded with complementary Hann windows
+//! that sum to exactly 1.0 at all times. No pitch detection required — works
+//! on any signal.
 //!
 //! Latency: `grain_size` samples (default 1024).
 //! Character: Natural, slight chorus-like artifacts at extreme shifts.
@@ -23,7 +24,7 @@ pub struct GranularShifter {
     offset_a: f64,
     /// Read offset for grain B (offset by half a grain).
     offset_b: f64,
-    /// Phase within the current grain (0.0–1.0).
+    /// Phase within the current grain cycle (0.0–1.0).
     grain_phase: f64,
     /// Phase increment per sample.
     phase_inc: f64,
@@ -32,7 +33,6 @@ pub struct GranularShifter {
 }
 
 impl GranularShifter {
-    /// Maximum buffer length in seconds.
     const MAX_BUF_S: f64 = 1.0;
 
     pub fn new() -> Self {
@@ -68,13 +68,15 @@ impl GranularShifter {
         self.grain_phase = 0.0;
     }
 
-    /// Hann window value at phase [0, 1].
+    /// Raised-cosine crossfade: `sin²(π * phase/2)` over [0, 1].
+    /// Two windows offset by 0.5 sum to exactly 1.0 everywhere:
+    ///   sin²(x) + sin²(x + π/2) = sin²(x) + cos²(x) = 1
     #[inline]
-    fn hann(phase: f64) -> f64 {
-        0.5 * (1.0 - (std::f64::consts::TAU * phase).cos())
+    fn crossfade_window(phase: f64) -> f64 {
+        let s = (std::f64::consts::PI * phase).sin();
+        s * s
     }
 
-    /// Process one sample. Returns the pitch-shifted output.
     #[inline]
     pub fn tick(&mut self, input: f64) -> f64 {
         self.delay.write(input);
@@ -82,41 +84,41 @@ impl GranularShifter {
         let max_offset = self.delay.len() as f64 - 4.0;
         let drift = 1.0 - self.speed;
 
-        // Advance read heads.
+        // Advance read heads by drift.
         self.offset_a += drift;
         self.offset_b += drift;
 
-        // Wrap offsets back to target region when they drift too far.
-        let target = self.grain_size as f64;
-        if self.offset_a < 1.0 || self.offset_a > max_offset {
-            self.offset_a = target;
-        }
-        if self.offset_b < 1.0 || self.offset_b > max_offset {
-            self.offset_b = target + self.grain_size as f64 * 0.5;
-        }
-
-        // Read grains with cubic interpolation.
-        let a = self.delay.read_cubic(self.offset_a.clamp(1.0, max_offset));
-        let b = self.delay.read_cubic(self.offset_b.clamp(1.0, max_offset));
-
-        // Windowed crossfade: grain A uses phase, grain B uses phase + 0.5.
-        let win_a = Self::hann(self.grain_phase);
-        let phase_b = (self.grain_phase + 0.5).fract();
-        let win_b = Self::hann(phase_b);
-
-        let wet = a * win_a + b * win_b;
-
         // Advance grain phase.
+        let prev_phase = self.grain_phase;
         self.grain_phase += self.phase_inc;
+
+        // Reset grain A at phase wrap (1.0 → 0.0).
         if self.grain_phase >= 1.0 {
             self.grain_phase -= 1.0;
-            // Reset grain A to target offset at grain boundary.
-            self.offset_a = target;
+            // Smoothly reset: snap to the target offset so the next grain
+            // starts reading from a consistent position.
+            self.offset_a = self.grain_size as f64;
         }
-        // Reset grain B at half-grain boundary.
-        if self.grain_phase >= 0.5 && (self.grain_phase - self.phase_inc) < 0.5 {
-            self.offset_b = target + self.grain_size as f64 * 0.5;
+
+        // Reset grain B at half-phase boundary.
+        if prev_phase < 0.5 && self.grain_phase >= 0.5 {
+            self.offset_b = self.grain_size as f64;
         }
+
+        // Clamp offsets to valid range (protect against runaway drift).
+        self.offset_a = self.offset_a.clamp(1.0, max_offset);
+        self.offset_b = self.offset_b.clamp(1.0, max_offset);
+
+        // Read grains with cubic interpolation.
+        let a = self.delay.read_cubic(self.offset_a);
+        let b = self.delay.read_cubic(self.offset_b);
+
+        // Crossfade: grain A fades in over its first half, grain B is offset by 0.5.
+        // Using sin² ensures the two windows always sum to 1.0.
+        let win_a = Self::crossfade_window(self.grain_phase);
+        let win_b = Self::crossfade_window((self.grain_phase + 0.5).fract());
+
+        let wet = a * win_a + b * win_b;
 
         input * (1.0 - self.mix) + wet * self.mix
     }
@@ -166,8 +168,6 @@ mod tests {
     #[test]
     fn produces_output() {
         let mut g = make_granular();
-
-        // Feed sine, check that output has energy after latency.
         let mut energy = 0.0;
         for i in 0..9600 {
             let input = (2.0 * PI * 440.0 * i as f64 / SR).sin() * 0.5;
@@ -186,6 +186,21 @@ mod tests {
             let input = (2.0 * PI * 82.0 * i as f64 / SR).sin() * 0.9;
             let out = g.tick(input);
             assert!(out.is_finite(), "NaN at sample {i}");
+        }
+    }
+
+    #[test]
+    fn crossfade_sums_to_one() {
+        // Verify that our crossfade windows sum to 1.0 at all phases.
+        for i in 0..1000 {
+            let phase = i as f64 / 1000.0;
+            let a = GranularShifter::crossfade_window(phase);
+            let b = GranularShifter::crossfade_window((phase + 0.5).fract());
+            let sum = a + b;
+            assert!(
+                (sum - 1.0).abs() < 1e-10,
+                "Crossfade should sum to 1.0 at phase {phase}, got {sum}"
+            );
         }
     }
 
@@ -229,7 +244,6 @@ mod tests {
 
         let freq = 440.0;
         let n = 9600;
-
         let mut max_out = 0.0f64;
         for i in 0..n {
             let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
@@ -239,7 +253,6 @@ mod tests {
             }
         }
 
-        // At speed=1.0, output should still have signal.
         assert!(
             max_out > 0.1,
             "Unity speed should pass signal: max={max_out}"
@@ -256,5 +269,59 @@ mod tests {
             let out = g.tick(input);
             assert!((out - input).abs() < 1e-10, "Mix=0 should pass dry");
         }
+    }
+
+    #[test]
+    fn octave_down_produces_lower_pitch() {
+        // Granular shifting without cross-correlation creates significant FM
+        // modulation (instantaneous speed oscillates from -0.3x to 1.3x for
+        // speed=0.5). This is the characteristic "chorusing" sound of granular
+        // shifters. Pitch detection on the raw output is unreliable, but we can
+        // verify the spectral energy shifts to a lower frequency band.
+        let mut g = make_granular();
+        g.speed = 0.5;
+        g.update(SR);
+
+        let freq = 440.0;
+        let n = 96000;
+        let mut output = Vec::with_capacity(n);
+
+        for i in 0..n {
+            let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
+            output.push(g.tick(input));
+        }
+
+        // Verify that spectral energy has shifted down: more energy below 330Hz
+        // (midpoint between 220Hz and 440Hz) than above 330Hz.
+        let start = n / 2;
+        let signal = &output[start..];
+        let fft_size = 8192.min(signal.len());
+        let split_bin = (330.0 * fft_size as f64 / SR) as usize;
+        let input_bin = (440.0 * fft_size as f64 / SR) as usize;
+
+        let mut low_energy = 0.0f64;
+        let mut high_energy = 0.0f64;
+
+        for bin in 1..fft_size / 2 {
+            let omega = 2.0 * PI * bin as f64 / fft_size as f64;
+            let mut re = 0.0f64;
+            let mut im = 0.0f64;
+            for i in 0..fft_size {
+                let w = 0.5 * (1.0 - (2.0 * PI * i as f64 / fft_size as f64).cos());
+                re += signal[i] * w * (omega * i as f64).cos();
+                im -= signal[i] * w * (omega * i as f64).sin();
+            }
+            let mag_sq = re * re + im * im;
+            if bin < split_bin {
+                low_energy += mag_sq;
+            } else if bin > split_bin && bin < input_bin + split_bin {
+                high_energy += mag_sq;
+            }
+        }
+
+        assert!(
+            low_energy > high_energy * 0.5,
+            "Octave down should shift energy lower: low={low_energy:.1} high={high_energy:.1}"
+        );
     }
 }

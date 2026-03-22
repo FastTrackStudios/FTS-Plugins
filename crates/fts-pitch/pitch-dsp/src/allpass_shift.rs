@@ -105,10 +105,13 @@ impl AllpassShifter {
         y
     }
 
-    /// Hann window value at phase [0, 1].
+    /// Crossfade window: sin²(π * phase).
+    /// Two windows offset by 0.5 sum to exactly 1.0:
+    ///   sin²(π*p) + sin²(π*(p+0.5)) = sin²(π*p) + cos²(π*p) = 1
     #[inline]
-    fn hann(phase: f64) -> f64 {
-        0.5 * (1.0 - (PI * phase).cos())
+    fn crossfade(phase: f64) -> f64 {
+        let s = (PI * phase).sin();
+        s * s
     }
 
     /// Process one sample. Returns the mixed (dry/wet) output.
@@ -156,9 +159,10 @@ impl AllpassShifter {
         self.ap_prev_b = ap_prev_b;
 
         // Crossfade envelope: head A uses phase_a, head B uses phase_a + 0.5.
-        let win_a = Self::hann(self.phase_a);
+        // sin²(x) + sin²(x + π/2) = 1 ensures constant-power crossfade.
+        let win_a = Self::crossfade(self.phase_a);
         let phase_b = (self.phase_a + 0.5).fract();
-        let win_b = Self::hann(phase_b);
+        let win_b = Self::crossfade(phase_b);
 
         let wet = a * win_a + b * win_b;
 
