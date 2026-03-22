@@ -9,3 +9,4 @@ description = "Noise gate processing engine — zero-crossing-aware gating with 
 [dependencies]
 fts-dsp = { path = "../../fts-dsp" }
 eq-dsp = { path = "../../fts-eq/eq-dsp" }
+rustfft = "6.2"

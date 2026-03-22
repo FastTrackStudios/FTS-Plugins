@@ -1,24 +1,36 @@
-//! GateChain — complete gate processing chain with sidechain EQ and lookahead.
+//! GateChain — complete gate processing chain with sidechain EQ, lookahead,
+//! timbre classification, adaptive resonant decay, and multi-instance sync.
 
 use eq_dsp::band::Band;
 use eq_dsp::filter_type::{FilterStructure, FilterType};
 use fts_dsp::{AudioConfig, Processor};
 
+use crate::adaptive_decay::AdaptiveDecayTracker;
+use crate::classifier::{DrumClass, TimbreClassifier};
 use crate::detector::GateDetector;
 use crate::envelope::GateEnvelope;
+use crate::sync::PhaseAligner;
 
 // r[impl gate.chain.signal-flow]
 // r[impl gate.detector.lookahead]
 /// Complete gate processing chain.
 ///
-/// Signal flow: Input → Lookahead delay → gain modulation by envelope.
-/// Sidechain: Input → HPF/LPF → detector → envelope.
+/// Signal flow:
+/// ```text
+/// Input → SC HPF/LPF → [Timbre Classifier] → Detector → Envelope → Gain
+///                              ↓                  ↓           ↑
+///                         classify drum       onset event   adaptive
+///                         reject bleed            ↓        hold/release
+///                                         AdaptiveDecay ───┘
 ///
-/// The sidechain path is separate from the audio path, so the filters
-/// only affect detection, not the audio itself.
+/// Audio path: Input → Lookahead delay → Phase alignment delay → × gain → Output
+/// ```
 pub struct GateChain {
     pub detector: GateDetector,
     pub envelope: GateEnvelope,
+    pub classifier: TimbreClassifier,
+    pub decay_tracker: AdaptiveDecayTracker,
+    pub aligner: PhaseAligner,
 
     // Sidechain filters
     sc_hpf: Band,
@@ -44,6 +56,12 @@ pub struct GateChain {
     config: AudioConfig,
     /// Last gate gain per channel (for metering).
     pub last_gain: [f64; 2],
+    /// Last detected drum class (for UI).
+    pub last_drum_class: DrumClass,
+    /// Whether the gate just opened (onset event this sample).
+    onset_this_frame: bool,
+    /// Previous gate-open state for onset edge detection.
+    prev_gate_open: bool,
 }
 
 impl GateChain {
@@ -67,6 +85,9 @@ impl GateChain {
         Self {
             detector: GateDetector::new(),
             envelope: GateEnvelope::new(),
+            classifier: TimbreClassifier::new(),
+            decay_tracker: AdaptiveDecayTracker::new(),
+            aligner: PhaseAligner::new(),
             sc_hpf,
             sc_lpf,
             lookahead_buf: Vec::new(),
@@ -87,6 +108,9 @@ impl GateChain {
                 max_buffer_size: 512,
             },
             last_gain: [0.0; 2],
+            last_drum_class: DrumClass::Unknown,
+            onset_this_frame: false,
+            prev_gate_open: false,
         }
     }
 
@@ -140,9 +164,9 @@ impl GateChain {
         (delayed[0], delayed[1])
     }
 
-    /// Get the latency in samples introduced by lookahead.
+    /// Get the total latency in samples (lookahead + alignment).
     pub fn latency_samples(&self) -> usize {
-        self.lookahead_samples
+        self.lookahead_samples + self.aligner.alignment_samples()
     }
 }
 
@@ -150,6 +174,9 @@ impl Processor for GateChain {
     fn reset(&mut self) {
         self.detector.reset();
         self.envelope.reset();
+        self.classifier.reset();
+        self.decay_tracker.reset();
+        self.aligner.reset();
         self.sc_hpf.reset();
         self.sc_lpf.reset();
         for s in &mut self.lookahead_buf {
@@ -157,6 +184,9 @@ impl Processor for GateChain {
         }
         self.lookahead_pos = 0;
         self.last_gain = [0.0; 2];
+        self.last_drum_class = DrumClass::Unknown;
+        self.onset_this_frame = false;
+        self.prev_gate_open = false;
     }
 
     fn update(&mut self, config: AudioConfig) {
@@ -169,6 +199,9 @@ impl Processor for GateChain {
             self.range_db,
             config.sample_rate,
         );
+        self.classifier.set_sample_rate(config.sample_rate);
+        self.decay_tracker.set_sample_rate(config.sample_rate);
+        self.aligner.set_sample_rate(config.sample_rate);
         if self.sc_hpf.enabled {
             self.sc_hpf.update(config);
         }
@@ -180,7 +213,7 @@ impl Processor for GateChain {
 
     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
         for i in 0..left.len() {
-            // Sidechain path: filter for detection
+            // ── Sidechain path: filter for detection ──
             let mut sc_l = left[i];
             let mut sc_r = right[i];
 
@@ -193,7 +226,7 @@ impl Processor for GateChain {
                 sc_r = self.sc_lpf.tick(sc_r, 1);
             }
 
-            // Sidechain listen mode: output the filtered sidechain
+            // Sidechain listen mode
             // r[impl gate.plugin.sidechain-listen]
             if self.sc_listen {
                 left[i] = sc_l;
@@ -203,19 +236,63 @@ impl Processor for GateChain {
 
             // Detection (mono sum for stereo-linked gate)
             let sc_mono = (sc_l + sc_r) * 0.5;
-            let gate_open =
+
+            // ── Layer 1: Timbre classification ──
+            let (timbre_pass, drum_class) = self.classifier.tick(sc_mono);
+            if drum_class != DrumClass::Unknown {
+                self.last_drum_class = drum_class;
+            }
+
+            // Standard detector
+            let mut gate_open =
                 self.detector
                     .tick(sc_mono, self.open_threshold_db, self.close_threshold_db, 0);
 
-            // Envelope shaping
+            // If timbre classifier rejects this sound, force gate closed
+            if !timbre_pass {
+                gate_open = false;
+            }
+
+            // ── Onset edge detection ──
+            self.onset_this_frame = gate_open && !self.prev_gate_open;
+            self.prev_gate_open = gate_open;
+
+            if self.onset_this_frame {
+                // ── Layer 2: Start adaptive decay measurement ──
+                self.decay_tracker.on_onset(self.last_drum_class);
+
+                // ── Layer 3: Publish onset to session ──
+                let amplitude = sc_mono.abs() as f32;
+                self.aligner.publish_onset(amplitude, self.last_drum_class);
+            }
+
+            // ── Layer 2: Tick adaptive decay tracker ──
+            if self.decay_tracker.enabled {
+                let updated = self.decay_tracker.tick(sc_mono);
+                if updated {
+                    // Update envelope with adaptive hold/release
+                    self.envelope.set_params(
+                        self.attack_ms,
+                        self.decay_tracker.computed_hold_ms,
+                        self.decay_tracker.computed_release_ms,
+                        self.range_db,
+                        self.config.sample_rate,
+                    );
+                }
+            }
+
+            // ── Envelope shaping ──
             let gain = self.envelope.tick(gate_open, 0);
 
-            // Apply lookahead delay to audio (detection uses current sample)
+            // ── Audio path: lookahead delay ──
             let (delayed_l, delayed_r) = self.lookahead_delay(left[i], right[i]);
 
-            // Apply gain
-            left[i] = delayed_l * gain;
-            right[i] = delayed_r * gain;
+            // ── Layer 3: Phase alignment delay ──
+            let (aligned_l, aligned_r) = self.aligner.tick(delayed_l, delayed_r);
+
+            // ── Apply gain ──
+            left[i] = aligned_l * gain;
+            right[i] = aligned_r * gain;
 
             self.last_gain[0] = gain;
             self.last_gain[1] = gain;

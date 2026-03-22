@@ -7,11 +7,14 @@ edition.workspace = true
 description = "FTS Gate — CLAP/VST3 audio plugin entry point"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
+audio-gui = { workspace = true }
 fts-plugin-core = { path = "../../fts-plugin-core" }
+fts-dsp = { workspace = true }
 gate-dsp = { path = "../gate-dsp" }
 gate-profiles = { path = "../gate-profiles" }
 gate-ui = { path = "../gate-ui" }
 nih_plug = { workspace = true }
+atomic_float = { workspace = true }
