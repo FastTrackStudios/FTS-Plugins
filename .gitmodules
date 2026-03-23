@@ -1,0 +1,3 @@
+[submodule "forks/nih-plug"]
+	path = forks/nih-plug
+	url = https://github.com/FastTrackStudios/nih-plug.git

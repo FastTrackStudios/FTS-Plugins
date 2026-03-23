@@ -95,6 +95,10 @@ members = [
     "crates/fts-midi-guitar/midi-guitar-plugin",
     "crates/fts-midi-guitar/midi-guitar-analysis",
 
+    # Saturate plugin (tape saturation)
+    "crates/fts-saturate/saturate-dsp",
+    "crates/fts-saturate/saturate-plugin",
+
     "apps/*",
     "xtask",
 ]
@@ -120,14 +124,14 @@ eq-dsp = { path = "crates/fts-eq/eq-dsp" }
 eq-profiles = { path = "crates/fts-eq/eq-profiles" }
 comp-dsp = { path = "crates/fts-comp/comp-dsp" }
 fts-ui = { git = "https://github.com/FastTrackStudios/fts-ui.git", branch = "main" }
-macromod = { git = "https://github.com/FastTrackStudios/FastTrackStudio.git", branch = "main" }
+macromod = { git = "https://github.com/FastTrackStudios/signal.git", branch = "main" }
 daw-control = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 daw-control-sync = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 daw-proto = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 daw-reaper = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 
 # Dependencies shared with daw workspace
-# Use crates.io facet 0.43.x to match roam's requirement
+# Use crates.io facet 0.43.x to match vox's requirement
 facet = { version = "0.44" }
 facet-core = { version = "0.44" }
 facet-postcard = { version = "0.44" }
@@ -138,9 +142,9 @@ facet-json = { version = "0.44" }
 facet-value = { version = "0.44" }
 facet-yaml = { version = "0.44" }
 
-roam = { git = "https://github.com/bearcove/roam.git", branch = "main" }
-roam-inprocess = { git = "https://github.com/bearcove/roam.git", branch = "main" }
-roam-stream = { git = "https://github.com/bearcove/roam.git", branch = "main" }
+vox = { git = "https://github.com/bearcove/vox.git", rev = "53bff48" }
+vox-inprocess = { git = "https://github.com/bearcove/vox.git", rev = "53bff48" }
+vox-stream = { git = "https://github.com/bearcove/vox.git", rev = "53bff48" }
 
 # DAW facade crate (for reaper-test)
 daw = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
@@ -192,7 +196,7 @@ tokio = { version = "1", features = ["sync", "rt"] }
 #
 # [patch."https://github.com/FastTrackStudios/FastTrackStudio.git"]
 # macromod = { path = "../FastTrackStudio/crates/macromod/macromod" }
-#
+
 # [patch."https://github.com/FastTrackStudios/daw.git"]
 # daw = { path = "../daw/crates/daw" }
 # daw-control = { path = "../daw/crates/daw-control" }
@@ -201,10 +205,10 @@ tokio = { version = "1", features = ["sync", "rt"] }
 # daw-reaper = { path = "../daw/crates/daw-reaper" }
 # fts-audio-proto = { path = "../daw/crates/fts-audio-proto" }
 # reaper-test = { path = "../daw/crates/reaper-test" }
-#
-[patch."https://github.com/FastTrackStudios/nih-plug.git"]
-nih_plug = { path = "forks/nih-plug" }
-nih_plug_dioxus = { path = "forks/nih-plug/nih_plug_dioxus" }
+
+# [patch."https://github.com/FastTrackStudios/nih-plug.git"]
+# nih_plug = { path = "forks/nih-plug" }
+# nih_plug_dioxus = { path = "forks/nih-plug/nih_plug_dioxus" }
 
 # Override blitz crates from upstream git to use our FTS fork with post-processing support
 # Fork: https://github.com/FastTrackStudios/blitz (branch: post-processing)
@@ -240,7 +244,7 @@ anyrender_vello_cpu = { git = "https://github.com/FastTrackStudios/anyrender.git
 anyrender_vello_hybrid = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 anyrender_svg = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 wgpu_context = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
-# moire: unify crates.io moire with the git rev that roam pulls in,
+# moire: unify crates.io moire with the git rev that vox pulls in,
 # avoiding duplicate moire-runtime #[ctor] registrations that crash.
 moire = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
 moire-macros-noop = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
@@ -252,5 +256,5 @@ moire-wasm = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
 moire-wire = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
 
 # moire-trace-capture: tolerate broken frame-pointer chains (NixOS glibc).
-[patch."https://github.com/bearcove/moire"]
-moire-trace-capture = { path = "../forks/moire-trace-capture" }
+# [patch."https://github.com/bearcove/moire"]
+# moire-trace-capture = { path = "../forks/moire-trace-capture" }
