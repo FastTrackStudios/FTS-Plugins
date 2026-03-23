@@ -10,6 +10,7 @@ description = "FTS Reverb — CLAP/VST3 audio plugin entry point"
 crate-type = ["cdylib"]
 
 [dependencies]
+fts-dsp = { path = "../../fts-dsp" }
 fts-plugin-core = { path = "../../fts-plugin-core" }
 reverb-dsp = { path = "../reverb-dsp" }
 reverb-profiles = { path = "../reverb-profiles" }
