@@ -23,9 +23,18 @@ struct FtsReverbParams {
     #[id = "algorithm"]
     pub algorithm: IntParam,
 
-    // Sub-type variant selector
-    #[id = "variant"]
-    pub variant: IntParam,
+    // Per-algorithm variant selectors (each remembers its own sub-type)
+    #[id = "room_variant"]
+    pub room_variant: IntParam,
+
+    #[id = "hall_variant"]
+    pub hall_variant: IntParam,
+
+    #[id = "plate_variant"]
+    pub plate_variant: IntParam,
+
+    #[id = "spring_variant"]
+    pub spring_variant: IntParam,
 
     // Shared controls
     #[id = "decay"]
@@ -85,18 +94,52 @@ impl Default for FtsReverbParams {
                 AlgorithmType::from_index(v as usize).name().to_string()
             })),
 
-            variant: IntParam::new(
-                "Variant",
+            room_variant: IntParam::new(
+                "Room Type",
                 0,
                 IntRange::Linear {
                     min: 0,
-                    max: (AlgorithmType::max_variant_count() - 1) as i32,
+                    max: (AlgorithmType::Room.variant_count() - 1) as i32,
                 },
             )
             .with_value_to_string(Arc::new(|v| {
-                // Show variant name for current algorithm (defaults to Room at param init)
-                // The UI should update this display based on current algorithm
-                format!("Variant {}", v + 1)
+                AlgorithmType::Room.variant_name(v as usize).to_string()
+            })),
+
+            hall_variant: IntParam::new(
+                "Hall Type",
+                0,
+                IntRange::Linear {
+                    min: 0,
+                    max: (AlgorithmType::Hall.variant_count() - 1) as i32,
+                },
+            )
+            .with_value_to_string(Arc::new(|v| {
+                AlgorithmType::Hall.variant_name(v as usize).to_string()
+            })),
+
+            plate_variant: IntParam::new(
+                "Plate Type",
+                0,
+                IntRange::Linear {
+                    min: 0,
+                    max: (AlgorithmType::Plate.variant_count() - 1) as i32,
+                },
+            )
+            .with_value_to_string(Arc::new(|v| {
+                AlgorithmType::Plate.variant_name(v as usize).to_string()
+            })),
+
+            spring_variant: IntParam::new(
+                "Spring Type",
+                0,
+                IntRange::Linear {
+                    min: 0,
+                    max: (AlgorithmType::Spring.variant_count() - 1) as i32,
+                },
+            )
+            .with_value_to_string(Arc::new(|v| {
+                AlgorithmType::Spring.variant_name(v as usize).to_string()
             })),
 
             decay: FloatParam::new("Decay", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
@@ -190,9 +233,15 @@ impl Default for FtsReverb {
 
 impl FtsReverb {
     fn sync_params(&mut self) {
-        // Algorithm + variant selection
+        // Algorithm + per-algorithm variant selection
         let algo = AlgorithmType::from_index(self.params.algorithm.value() as usize);
-        let variant = self.params.variant.value() as usize;
+        let variant = match algo {
+            AlgorithmType::Room => self.params.room_variant.value() as usize,
+            AlgorithmType::Hall => self.params.hall_variant.value() as usize,
+            AlgorithmType::Plate => self.params.plate_variant.value() as usize,
+            AlgorithmType::Spring => self.params.spring_variant.value() as usize,
+            _ => 0,
+        };
         self.chain.set_algorithm_variant(algo, variant);
 
         // Shared params
