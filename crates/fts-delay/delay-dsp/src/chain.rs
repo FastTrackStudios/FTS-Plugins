@@ -1,10 +1,12 @@
-//! Delay chain — composes tape delay, pitch delay, ducking, and diffusion
+//! Delay chain — composes delay engines, ducking, and diffusion
 //! into a full stereo processor.
 
+use fts_dsp::delay_line::DelayLine;
+use fts_dsp::smoothing::ParamSmoother;
 use fts_dsp::{AudioConfig, Processor};
 
+use crate::engine::{DelayEngine, DelayStyle};
 use crate::modulation::{Diffuser, DuckingFollower};
-use crate::tape_delay::TapeDelay;
 
 // r[impl delay.chain.signal-flow]
 /// Stereo mode for the delay chain.
@@ -39,11 +41,12 @@ pub enum HeadMode {
 
 /// Full stereo delay processing chain.
 ///
-/// Signal flow: Input → Tape Delay (L/R) → Diffusion → Duck → Stereo Width → Mix
+/// Signal flow: Input → InputLevel → Diffusion(loop) → Stereo Routing →
+/// Engine → Diffusion(post) → Accent → Duck → LR Offset → Width → OutputLevel → Mix
 pub struct DelayChain {
     // Delay engines
-    pub delay_l: TapeDelay,
-    pub delay_r: TapeDelay,
+    pub delay_l: DelayEngine,
+    pub delay_r: DelayEngine,
 
     // Global parameters
     /// Dry/wet mix (0.0 = fully dry, 1.0 = fully wet).
@@ -52,7 +55,7 @@ pub struct DelayChain {
     pub stereo_mode: StereoMode,
     /// Stereo width (0.0 = mono, 1.0 = normal, 2.0 = extra wide).
     pub width: f64,
-    /// Tape head configuration (RE-201 style).
+    /// Tape head configuration (RE-201 style, only applies to Tape style).
     pub head_mode: HeadMode,
     /// Enable diffusion.
     pub diffusion_enabled: bool,
@@ -65,18 +68,66 @@ pub struct DelayChain {
     /// Ping-pong feedback (used when stereo_mode == PingPong).
     pub pingpong_feedback: f64,
 
+    // --- New parameters ---
+    /// Accent: alternating repeat volume. Bipolar -1.0 to 1.0, 0.0 = off.
+    /// Positive emphasizes odd repeats, negative emphasizes even repeats.
+    pub accent: f64,
+
+    /// Groove: shuffle/swing. Bipolar -1.0 to 1.0, 0.0 = off.
+    /// Negative = shuffle, positive = swing.
+    pub groove: f64,
+
+    /// Feel: draggin'/rushin'. Bipolar -1.0 to 1.0, 0.0 = neutral.
+    /// Negative = draggin' (adds pre-delay), positive = rushin' (subtracts pre-delay).
+    pub feel: f64,
+    /// Maximum feel offset in ms.
+    pub feel_max_ms: f64,
+
+    /// Prime numbers: anti-resonance toggle.
+    /// Multiplies delay time by (1.0 + 0.0013) to prevent comb filtering.
+    pub prime_numbers: bool,
+
+    /// L/R offset in ms (0.0–25.0). Delays the R channel for stereo spread.
+    pub lr_offset_ms: f64,
+
+    /// Diffusion placement: false = post (default), true = loop (before delay).
+    pub diffusion_in_loop: bool,
+
+    /// Input level: scales signal going INTO the delay (0.0–2.0, default 1.0).
+    pub input_level: f64,
+    /// Output level: scales the wet signal before mixing (0.0–2.0, default 1.0).
+    pub output_level: f64,
+
     // Internal
     diffuser_l: Diffuser,
     diffuser_r: Diffuser,
     pub ducker: DuckingFollower,
     sample_rate: f64,
+
+    // Accent internal state
+    accent_phase_l: f64,
+    accent_phase_r: f64,
+    accent_flip_l: bool,
+    accent_flip_r: bool,
+
+    // Groove internal state
+    groove_phase_l: f64,
+    groove_phase_r: f64,
+
+    // LR offset internal state
+    lr_offset_delay: DelayLine,
+    lr_offset_smoother: ParamSmoother,
 }
 
 impl DelayChain {
     pub fn new() -> Self {
+        let mut lr_smoother = ParamSmoother::new(8.0);
+        lr_smoother.set_time_ms(5.0, 48000.0);
+        lr_smoother.set_epsilon(0.01);
+
         Self {
-            delay_l: TapeDelay::new(),
-            delay_r: TapeDelay::new(),
+            delay_l: DelayEngine::new(),
+            delay_r: DelayEngine::new(),
             mix: 0.5,
             stereo_mode: StereoMode::Stereo,
             width: 1.0,
@@ -86,11 +137,40 @@ impl DelayChain {
             diffusion_smear: 0.5,
             ducking_enabled: false,
             pingpong_feedback: 0.5,
+
+            accent: 0.0,
+            groove: 0.0,
+            feel: 0.0,
+            feel_max_ms: 50.0,
+            prime_numbers: false,
+            lr_offset_ms: 8.0,
+            diffusion_in_loop: false,
+            input_level: 1.0,
+            output_level: 1.0,
+
             diffuser_l: Diffuser::new(48000.0, false),
             diffuser_r: Diffuser::new(48000.0, true),
             ducker: DuckingFollower::new(),
             sample_rate: 48000.0,
+
+            accent_phase_l: 0.0,
+            accent_phase_r: 0.0,
+            accent_flip_l: false,
+            accent_flip_r: false,
+
+            groove_phase_l: 0.0,
+            groove_phase_r: 0.0,
+
+            // 25ms at 48kHz = 1200 samples, add margin
+            lr_offset_delay: DelayLine::new(2048),
+            lr_offset_smoother: lr_smoother,
         }
+    }
+
+    /// Switch both engines to a new delay style.
+    pub fn set_style(&mut self, style: DelayStyle) {
+        self.delay_l.set_style(style);
+        self.delay_r.set_style(style);
     }
 }
 
@@ -101,12 +181,23 @@ impl Processor for DelayChain {
         self.diffuser_l.reset();
         self.diffuser_r.reset();
         self.ducker.reset();
+
+        self.accent_phase_l = 0.0;
+        self.accent_phase_r = 0.0;
+        self.accent_flip_l = false;
+        self.accent_flip_r = false;
+
+        self.groove_phase_l = 0.0;
+        self.groove_phase_r = 0.0;
+
+        self.lr_offset_delay.clear();
+        self.lr_offset_smoother.reset(self.lr_offset_ms);
     }
 
     fn update(&mut self, config: AudioConfig) {
         self.sample_rate = config.sample_rate;
 
-        // Configure tape heads based on head mode
+        // Configure tape heads based on head mode (only applies to Tape style)
         let (h1, h2, h3) = match self.head_mode {
             HeadMode::Mode1 => (false, false, true), // Head 3 only
             HeadMode::Mode2 => (true, false, true),  // Head 1 + 3
@@ -134,26 +225,58 @@ impl Processor for DelayChain {
 
         self.ducker.set_sample_rate(config.sample_rate);
         self.ducker.update_coeffs();
+
+        // Update LR offset smoother and delay line
+        self.lr_offset_smoother.set_time_ms(5.0, config.sample_rate);
+        self.lr_offset_smoother.set_target(self.lr_offset_ms);
+
+        // Ensure delay line is large enough for max offset at this sample rate
+        let max_offset_samples = (25.0 * config.sample_rate / 1000.0) as usize + 64;
+        if self.lr_offset_delay.len() < max_offset_samples {
+            self.lr_offset_delay = DelayLine::new(max_offset_samples);
+        }
     }
 
     // r[impl delay.chain.process]
     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
         let n = left.len().min(right.len());
 
+        // Cache delay times in samples for accent/groove phase tracking
+        let delay_time_samples_l = self.delay_l.time_ms * self.sample_rate / 1000.0;
+        let delay_time_samples_r = self.delay_r.time_ms * self.sample_rate / 1000.0;
+
+        // Store original delay times so we can restore after process
+        let orig_time_l = self.delay_l.time_ms;
+        let orig_time_r = self.delay_r.time_ms;
+
         for i in 0..n {
             let dry_l = left[i];
             let dry_r = right[i];
 
+            // --- Input level ---
+            let scaled_l = dry_l * self.input_level;
+            let scaled_r = dry_r * self.input_level;
+
+            // --- Diffusion (loop mode: applied to input before delay) ---
+            let (diff_in_l, diff_in_r) = if self.diffusion_in_loop && self.diffusion_enabled {
+                (
+                    self.diffuser_l.tick(scaled_l),
+                    self.diffuser_r.tick(scaled_r),
+                )
+            } else {
+                (scaled_l, scaled_r)
+            };
+
             // Compute delay input based on stereo mode
             let (in_l, in_r) = match self.stereo_mode {
-                StereoMode::Stereo => (dry_l, dry_r),
+                StereoMode::Stereo => (diff_in_l, diff_in_r),
                 StereoMode::Mono => {
-                    let mono = (dry_l + dry_r) * 0.5;
+                    let mono = (diff_in_l + diff_in_r) * 0.5;
                     (mono, mono)
                 }
                 StereoMode::PingPong => {
                     // In ping-pong, we feed mono to L and cross-feed from outputs
-                    let mono = (dry_l + dry_r) * 0.5;
+                    let mono = (diff_in_l + diff_in_r) * 0.5;
                     let fb_r = self.delay_r.last_feedback();
                     let fb_l = self.delay_l.last_feedback();
                     (
@@ -163,13 +286,81 @@ impl Processor for DelayChain {
                 }
             };
 
+            // --- Feel: offset delay time ---
+            let feel_offset = self.feel * self.feel_max_ms;
+            let mut time_l = orig_time_l + feel_offset;
+            let mut time_r = orig_time_r + feel_offset;
+
+            // --- Prime numbers: anti-resonance ---
+            if self.prime_numbers {
+                time_l *= 1.0 + 0.0013;
+                time_r *= 1.0 + 0.0013;
+            }
+
+            // --- Groove: modulate delay time based on phase ---
+            if self.groove.abs() > 1e-6 && delay_time_samples_l > 1.0 {
+                // L channel groove
+                if self.groove_phase_l > delay_time_samples_l * 0.5 {
+                    time_l += self.groove * time_l * 0.333;
+                }
+                // R channel groove
+                if self.groove_phase_r > delay_time_samples_r * 0.5 {
+                    time_r += self.groove * time_r * 0.333;
+                }
+            }
+
+            // Clamp to positive
+            time_l = time_l.max(0.1);
+            time_r = time_r.max(0.1);
+
+            // Set modulated delay times
+            self.delay_l.time_ms = time_l;
+            self.delay_r.time_ms = time_r;
+
             let mut wet_l = self.delay_l.tick(in_l, 0);
             let mut wet_r = self.delay_r.tick(in_r, 1);
 
-            // Diffusion
-            if self.diffusion_enabled {
+            // --- Diffusion (post mode: applied after delay output) ---
+            if !self.diffusion_in_loop && self.diffusion_enabled {
                 wet_l = self.diffuser_l.tick(wet_l);
                 wet_r = self.diffuser_r.tick(wet_r);
+            }
+
+            // --- Accent: alternating repeat volume ---
+            if self.accent.abs() > 1e-6 && delay_time_samples_l > 1.0 {
+                // L channel accent
+                let accent_gain_l = 1.0 + self.accent * if self.accent_flip_l { 1.0 } else { -1.0 };
+                wet_l *= accent_gain_l;
+
+                // R channel accent
+                let accent_gain_r = 1.0 + self.accent * if self.accent_flip_r { 1.0 } else { -1.0 };
+                wet_r *= accent_gain_r;
+
+                // Advance accent phases
+                self.accent_phase_l += 1.0;
+                if self.accent_phase_l >= delay_time_samples_l {
+                    self.accent_phase_l -= delay_time_samples_l;
+                    self.accent_flip_l = !self.accent_flip_l;
+                }
+                self.accent_phase_r += 1.0;
+                if self.accent_phase_r >= delay_time_samples_r {
+                    self.accent_phase_r -= delay_time_samples_r;
+                    self.accent_flip_r = !self.accent_flip_r;
+                }
+            }
+
+            // --- Groove phase tracking ---
+            if delay_time_samples_l > 1.0 {
+                self.groove_phase_l += 1.0;
+                if self.groove_phase_l >= delay_time_samples_l {
+                    self.groove_phase_l -= delay_time_samples_l;
+                }
+            }
+            if delay_time_samples_r > 1.0 {
+                self.groove_phase_r += 1.0;
+                if self.groove_phase_r >= delay_time_samples_r {
+                    self.groove_phase_r -= delay_time_samples_r;
+                }
             }
 
             // Ducking
@@ -180,6 +371,17 @@ impl Processor for DelayChain {
                 wet_r *= duck_gain;
             }
 
+            // --- LR offset: delay the R channel ---
+            if self.width > 0.001 {
+                self.lr_offset_smoother.set_target(self.lr_offset_ms);
+                let offset_ms = self.lr_offset_smoother.tick();
+                let offset_samples = offset_ms * self.sample_rate / 1000.0;
+                self.lr_offset_delay.write(wet_r);
+                if offset_samples > 0.5 {
+                    wet_r = self.lr_offset_delay.read_linear(offset_samples);
+                }
+            }
+
             // Stereo width (mid-side)
             if (self.width - 1.0).abs() > 0.001 {
                 let mid = (wet_l + wet_r) * 0.5;
@@ -188,10 +390,18 @@ impl Processor for DelayChain {
                 wet_r = mid - side * self.width;
             }
 
+            // --- Output level ---
+            wet_l *= self.output_level;
+            wet_r *= self.output_level;
+
             // Mix dry/wet
             left[i] = dry_l * (1.0 - self.mix) + wet_l * self.mix;
             right[i] = dry_r * (1.0 - self.mix) + wet_r * self.mix;
         }
+
+        // Restore original delay times
+        self.delay_l.time_ms = orig_time_l;
+        self.delay_r.time_ms = orig_time_r;
     }
 }
 
@@ -378,6 +588,86 @@ mod tests {
         assert!(
             diff > 0.001,
             "Width should create stereo difference: avg_diff={diff}"
+        );
+    }
+
+    #[test]
+    fn style_switching_works() {
+        for i in 0..DelayStyle::COUNT {
+            let style = DelayStyle::from_index(i);
+            let mut c = DelayChain::new();
+            c.set_style(style);
+            c.delay_l.time_ms = 30.0;
+            c.delay_r.time_ms = 30.0;
+            c.delay_l.feedback = 0.3;
+            c.delay_r.feedback = 0.3;
+            c.head_mode = HeadMode::Mode4;
+            c.mix = 1.0;
+            c.update(config());
+
+            let n = 48000;
+            let mut l: Vec<f64> = (0..n).map(|s| if s < 100 { 0.8 } else { 0.0 }).collect();
+            let mut r = l.clone();
+
+            c.process(&mut l, &mut r);
+
+            let energy: f64 = l.iter().map(|x| x * x).sum();
+            assert!(
+                energy > 0.001,
+                "{:?} style should produce output in chain: energy={energy}",
+                style
+            );
+        }
+    }
+
+    #[test]
+    fn lr_offset_creates_stereo_difference() {
+        let mut c = make_chain();
+        c.delay_l.time_ms = 50.0;
+        c.delay_r.time_ms = 50.0;
+        c.lr_offset_ms = 10.0; // 10ms offset on R channel
+        c.width = 1.0;
+        c.mix = 1.0;
+        c.update(config());
+
+        let n = 19200;
+        let mut l: Vec<f64> = (0..n).map(|i| if i < 100 { 0.8 } else { 0.0 }).collect();
+        let mut r = l.clone();
+
+        c.process(&mut l, &mut r);
+
+        // Find the sample index of peak output in each channel (after the delay)
+        let l_peak_idx = l
+            .iter()
+            .enumerate()
+            .skip(2000) // skip past initial transient
+            .max_by(|(_, a), (_, b)| a.abs().partial_cmp(&b.abs()).unwrap())
+            .map(|(i, _)| i)
+            .unwrap();
+        let r_peak_idx = r
+            .iter()
+            .enumerate()
+            .skip(2000)
+            .max_by(|(_, a), (_, b)| a.abs().partial_cmp(&b.abs()).unwrap())
+            .map(|(i, _)| i)
+            .unwrap();
+
+        // The R channel peak should be offset from L channel peak
+        // 10ms at 48kHz = 480 samples
+        let idx_diff = (r_peak_idx as i64 - l_peak_idx as i64).unsigned_abs();
+
+        // Also verify L and R differ in content
+        let sample_diff: f64 = l
+            .iter()
+            .zip(r.iter())
+            .skip(2000)
+            .take(4800)
+            .map(|(a, b)| (a - b).abs())
+            .sum::<f64>();
+
+        assert!(
+            sample_diff > 0.01 || idx_diff > 100,
+            "LR offset should make channels differ: sample_diff={sample_diff}, idx_diff={idx_diff}"
         );
     }
 }

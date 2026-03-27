@@ -8,11 +8,13 @@ use std::sync::Arc;
 
 use atomic_float::AtomicF32;
 use delay_dsp::chain::{DelayChain, HeadMode, StereoMode};
+use delay_dsp::engine::DelayStyle;
+use delay_dsp::SaturationType;
 use fts_dsp::note_sync::NoteValue;
 use fts_dsp::{AudioConfig, Processor};
 use fts_plugin_core::prelude::*;
 
-mod editor;
+pub mod editor;
 
 // ── UI State ────────────────────────────────────────────────────────
 
@@ -34,6 +36,10 @@ fn note_value_formatter() -> Arc<dyn Fn(i32) -> String + Send + Sync> {
 
 #[derive(Params)]
 pub struct FtsDelayParams {
+    // Style
+    #[id = "style"]
+    pub style: FloatParam,
+
     // Time & Rhythm
     #[id = "time_l"]
     pub time_l: FloatParam,
@@ -77,6 +83,28 @@ pub struct FtsDelayParams {
     // Saturation
     #[id = "drive"]
     pub drive: FloatParam,
+    #[id = "sat_type"]
+    pub sat_type: FloatParam,
+
+    // Accent / Groove / Feel
+    #[id = "accent"]
+    pub accent: FloatParam,
+    #[id = "groove"]
+    pub groove: FloatParam,
+    #[id = "feel"]
+    pub feel: FloatParam,
+    #[id = "prime_numbers"]
+    pub prime_numbers: FloatParam,
+
+    // L/R Offset
+    #[id = "lr_offset"]
+    pub lr_offset: FloatParam,
+
+    // Input/Output levels (wet-only)
+    #[id = "input_level"]
+    pub input_level: FloatParam,
+    #[id = "output_level"]
+    pub output_level: FloatParam,
 
     // Tape Modulation
     #[id = "wow_depth"]
@@ -97,6 +125,8 @@ pub struct FtsDelayParams {
     pub diff_size: FloatParam,
     #[id = "diff_smear"]
     pub diff_smear: FloatParam,
+    #[id = "diff_loop"]
+    pub diff_loop: FloatParam,
 
     // Ducking
     #[id = "duck_enable"]
@@ -147,6 +177,20 @@ impl Default for FtsDelayParams {
         let default_note = NoteValue::Quarter.to_index() as i32;
 
         Self {
+            // Style
+            style: FloatParam::new(
+                "Style",
+                0.0,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: (DelayStyle::COUNT - 1) as f32,
+                },
+            )
+            .with_step_size(1.0)
+            .with_value_to_string(Arc::new(|v| {
+                DelayStyle::from_index(v as usize).label().to_string()
+            })),
+
             // Time & Rhythm
             time_l: FloatParam::new(
                 "Time L",
@@ -268,6 +312,81 @@ impl Default for FtsDelayParams {
             drive: FloatParam::new("Drive", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
+            sat_type: FloatParam::new(
+                "Sat Type",
+                1.0, // Tape default
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: (SaturationType::COUNT - 1) as f32,
+                },
+            )
+            .with_step_size(1.0)
+            .with_value_to_string(Arc::new(|v| {
+                SaturationType::from_index(v as usize).label().to_string()
+            })),
+
+            // Accent / Groove / Feel
+            accent: FloatParam::new(
+                "Accent",
+                0.0,
+                FloatRange::Linear {
+                    min: -1.0,
+                    max: 1.0,
+                },
+            )
+            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
+            groove: FloatParam::new(
+                "Groove",
+                0.0,
+                FloatRange::Linear {
+                    min: -1.0,
+                    max: 1.0,
+                },
+            )
+            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
+            feel: FloatParam::new(
+                "Feel",
+                0.0,
+                FloatRange::Linear {
+                    min: -1.0,
+                    max: 1.0,
+                },
+            )
+            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
+            prime_numbers: FloatParam::new("Prime", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(bool_formatter())
+                .with_string_to_value(bool_parser()),
+
+            // L/R Offset
+            lr_offset: FloatParam::new(
+                "L/R Offset",
+                8.0,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 25.0,
+                },
+            )
+            .with_unit(" ms")
+            .with_value_to_string(formatters::v2s_f32_rounded(1)),
+
+            // Input/Output levels
+            input_level: FloatParam::new(
+                "In Level",
+                1.0,
+                FloatRange::Linear { min: 0.0, max: 2.0 },
+            )
+            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
+            output_level: FloatParam::new(
+                "Out Level",
+                1.0,
+                FloatRange::Linear { min: 0.0, max: 2.0 },
+            )
+            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
             // Tape Modulation
             wow_depth: FloatParam::new("Wow", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
@@ -324,6 +443,10 @@ impl Default for FtsDelayParams {
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
             .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
+            diff_loop: FloatParam::new("Diff Loop", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(bool_formatter())
+                .with_string_to_value(bool_parser()),
 
             // Ducking
             duck_enable: FloatParam::new("Ducking", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
@@ -407,6 +530,10 @@ impl FtsDelay {
         let p = &self.params;
         let c = &mut self.chain;
 
+        // Style
+        let style = DelayStyle::from_index(p.style.value() as usize);
+        c.set_style(style);
+
         // Time — either manual ms or tempo-synced
         let sync = p.sync_enable.value() > 0.5;
         let link = p.link_lr.value() > 0.5;
@@ -469,6 +596,22 @@ impl FtsDelay {
         let drive = p.drive.value() as f64;
         c.delay_l.drive = drive;
         c.delay_r.drive = drive;
+        let sat = SaturationType::from_index(p.sat_type.value() as usize);
+        c.delay_l.saturation_type = sat;
+        c.delay_r.saturation_type = sat;
+
+        // Accent / Groove / Feel / Prime
+        c.accent = p.accent.value() as f64;
+        c.groove = p.groove.value() as f64;
+        c.feel = p.feel.value() as f64;
+        c.prime_numbers = p.prime_numbers.value() > 0.5;
+
+        // L/R Offset
+        c.lr_offset_ms = p.lr_offset.value() as f64;
+
+        // Input/Output levels
+        c.input_level = p.input_level.value() as f64;
+        c.output_level = p.output_level.value() as f64;
 
         // Wow
         let wow_depth = p.wow_depth.value() as f64;
@@ -493,6 +636,7 @@ impl FtsDelay {
         c.diffusion_enabled = p.diff_enable.value() > 0.5;
         c.diffusion_size = p.diff_size.value() as f64;
         c.diffusion_smear = p.diff_smear.value() as f64;
+        c.diffusion_in_loop = p.diff_loop.value() > 0.5;
 
         // Ducking
         c.ducking_enabled = p.duck_enable.value() > 0.5;

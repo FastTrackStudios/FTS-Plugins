@@ -13,6 +13,66 @@ use fts_dsp::soft_clip::sin_clip;
 
 use crate::modulation::{Flutter, Wow};
 
+/// Saturation character types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SaturationType {
+    /// Clean — no saturation, just limiting at high drive.
+    Clean,
+    /// Tape — high-frequency compression + low-end warmth (sin clip).
+    Tape,
+    /// Warm — smooth even-harmonic distortion (tanh).
+    Warm,
+    /// Dirt — asymmetric odd-harmonic grit.
+    Dirt,
+    /// Pump — hard limiter that creates pumping compression.
+    Pump,
+    /// Hard Limit — brickwall limiting.
+    HardLimit,
+    /// Soft Limit — gentle smooth limiting.
+    SoftLimit,
+}
+
+impl SaturationType {
+    pub const COUNT: usize = 7;
+
+    pub fn from_index(i: usize) -> Self {
+        match i {
+            0 => Self::Clean,
+            1 => Self::Tape,
+            2 => Self::Warm,
+            3 => Self::Dirt,
+            4 => Self::Pump,
+            5 => Self::HardLimit,
+            6 => Self::SoftLimit,
+            _ => Self::Tape,
+        }
+    }
+
+    pub fn to_index(self) -> usize {
+        match self {
+            Self::Clean => 0,
+            Self::Tape => 1,
+            Self::Warm => 2,
+            Self::Dirt => 3,
+            Self::Pump => 4,
+            Self::HardLimit => 5,
+            Self::SoftLimit => 6,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Clean => "Clean",
+            Self::Tape => "Tape",
+            Self::Warm => "Warm",
+            Self::Dirt => "Dirt",
+            Self::Pump => "Pump",
+            Self::HardLimit => "Hard",
+            Self::SoftLimit => "Soft",
+        }
+    }
+}
+
 // RE-201 Space Echo head spacing ratios (relative to Head 1).
 // From Cherry Audio Stardust 201 documentation.
 pub const HEAD2_RATIO: f64 = 1.94;
@@ -33,6 +93,8 @@ pub struct TapeDelay {
     pub feedback: f64,
     /// Saturation drive (0.0 = clean, 1.0 = heavy).
     pub drive: f64,
+    /// Saturation type.
+    pub saturation_type: SaturationType,
     /// High-cut filter frequency in Hz (0 = disabled).
     pub hicut_freq: f64,
     /// Low-cut filter frequency in Hz (0 = disabled).
@@ -84,6 +146,7 @@ impl TapeDelay {
             time_ms: 250.0,
             feedback: 0.4,
             drive: 0.0,
+            saturation_type: SaturationType::Tape,
             hicut_freq: 8000.0,
             locut_freq: 0.0,
             filter_q: 0.707,
@@ -202,10 +265,53 @@ impl TapeDelay {
             fb = self.locut.tick(fb, ch);
         }
 
-        // Saturation in feedback path (cubic soft clip scaled by drive)
+        // Saturation in feedback path
         if self.drive > 0.0 {
-            let driven = fb * (1.0 + self.drive * 3.0);
-            fb = sin_clip(driven);
+            let drive_gain = 1.0 + self.drive * 3.0;
+            fb = match self.saturation_type {
+                SaturationType::Clean => {
+                    // Just gain + soft limit
+                    (fb * drive_gain).clamp(-1.0, 1.0)
+                }
+                SaturationType::Tape => {
+                    // Sin clip — HF compression + warmth
+                    sin_clip(fb * drive_gain)
+                }
+                SaturationType::Warm => {
+                    // Tanh — smooth even-harmonic warmth
+                    (fb * drive_gain).tanh()
+                }
+                SaturationType::Dirt => {
+                    // Asymmetric cubic — odd harmonic grit
+                    let x = fb * drive_gain;
+                    let y = x - x * x * x / 3.0;
+                    y.clamp(-1.0, 1.0)
+                }
+                SaturationType::Pump => {
+                    // Hard compression with gain reduction
+                    let x = fb * drive_gain;
+                    let level = x.abs();
+                    if level > 0.5 {
+                        let reduction = 0.5 + (level - 0.5) * 0.2;
+                        x.signum() * reduction
+                    } else {
+                        x
+                    }
+                }
+                SaturationType::HardLimit => {
+                    // Brickwall
+                    (fb * drive_gain).clamp(-1.0, 1.0)
+                }
+                SaturationType::SoftLimit => {
+                    // Gentle polynomial limiting
+                    let x = (fb * drive_gain).clamp(-2.0, 2.0);
+                    if x.abs() > 1.0 {
+                        x.signum() * (1.0 - 0.25 * (2.0 - x.abs()).powi(2))
+                    } else {
+                        x * (1.5 - 0.5 * x * x)
+                    }
+                }
+            };
         }
 
         // Hard limit feedback to prevent runaway

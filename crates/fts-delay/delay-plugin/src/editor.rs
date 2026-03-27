@@ -14,6 +14,9 @@ use audio_gui::prelude::{
 use fts_dsp::note_sync::NoteValue;
 use fts_plugin_core::prelude::*;
 
+use delay_dsp::engine::DelayStyle;
+use delay_dsp::SaturationType;
+
 use crate::{DelayUiState, FtsDelayParams};
 
 /// Root editor component.
@@ -32,12 +35,27 @@ pub fn App() -> Element {
     let output_db = ui.output_peak_db.load(Ordering::Relaxed);
 
     // State
+    let style_idx = params.style.value() as usize;
+    let style = DelayStyle::from_index(style_idx);
+    let is_tape = style == DelayStyle::Tape;
     let mode = params.stereo_mode.value() as i32;
     let head = params.head_mode.value() as i32;
     let link = params.link_lr.value() > 0.5;
     let sync = params.sync_enable.value() > 0.5;
     let diff_on = params.diff_enable.value() > 0.5;
     let duck_on = params.duck_enable.value() > 0.5;
+
+    // Style setter
+    let style_setter = |value: f32| {
+        let ctx = ctx.clone();
+        let p = params.clone();
+        move |_: ()| {
+            let max = (DelayStyle::COUNT - 1) as f32;
+            ctx.begin_set_raw(p.style.as_ptr());
+            ctx.set_normalized_raw(p.style.as_ptr(), value / max);
+            ctx.end_set_raw(p.style.as_ptr());
+        }
+    };
 
     // Stereo mode setter
     let mode_setter = |value: f32| {
@@ -58,6 +76,19 @@ pub fn App() -> Element {
             ctx.begin_set_raw(p.head_mode.as_ptr());
             ctx.set_normalized_raw(p.head_mode.as_ptr(), value / 3.0);
             ctx.end_set_raw(p.head_mode.as_ptr());
+        }
+    };
+
+    // Saturation type setter
+    let sat_type_idx = params.sat_type.value() as usize;
+    let sat_setter = |value: f32| {
+        let ctx = ctx.clone();
+        let p = params.clone();
+        move |_: ()| {
+            let max = (SaturationType::COUNT - 1) as f32;
+            ctx.begin_set_raw(p.sat_type.as_ptr());
+            ctx.set_normalized_raw(p.sat_type.as_ptr(), value / max);
+            ctx.end_set_raw(p.sat_type.as_ptr());
         }
     };
 
@@ -138,6 +169,20 @@ pub fn App() -> Element {
                 div {
                     style: format!("font-size:{font_size_label}; color:{text_dim};"),
                     "FastTrackStudio"
+                }
+            }
+
+            // ── Style selector ────────────────────────────────────
+            div {
+                style: format!(
+                    "display:flex; gap:{spacing_label}; justify-content:center; flex-wrap:wrap;",
+                ),
+                for i in 0..DelayStyle::COUNT {
+                    SegmentButton {
+                        label: DelayStyle::from_index(i).label(),
+                        selected: style_idx == i,
+                        on_click: style_setter(i as f32),
+                    }
                 }
             }
 
@@ -271,25 +316,27 @@ pub fn App() -> Element {
                             ),
                         }
 
-                        // Head Mode (RE-201 style)
-                        div {
-                            style: format!(
-                                "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
-                            ),
-                            SectionLabel { text: "Heads" }
+                        // Head Mode (RE-201 style, Tape only)
+                        if is_tape {
                             div {
-                                style: format!("display:flex; gap:{spacing_label};"),
-                                SegmentButton { label: "1", selected: head == 0, on_click: head_setter(0.0) }
-                                SegmentButton { label: "2", selected: head == 1, on_click: head_setter(1.0) }
-                                SegmentButton { label: "3", selected: head == 2, on_click: head_setter(2.0) }
-                                SegmentButton { label: "4", selected: head == 3, on_click: head_setter(3.0) }
+                                style: format!(
+                                    "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
+                                ),
+                                SectionLabel { text: "Heads" }
+                                div {
+                                    style: format!("display:flex; gap:{spacing_label};"),
+                                    SegmentButton { label: "1", selected: head == 0, on_click: head_setter(0.0) }
+                                    SegmentButton { label: "2", selected: head == 1, on_click: head_setter(1.0) }
+                                    SegmentButton { label: "3", selected: head == 2, on_click: head_setter(2.0) }
+                                    SegmentButton { label: "4", selected: head == 3, on_click: head_setter(3.0) }
+                                }
                             }
-                        }
 
-                        div {
-                            style: format!(
-                                "width:1px; background:{border}; align-self:stretch;",
-                            ),
+                            div {
+                                style: format!(
+                                    "width:1px; background:{border}; align-self:stretch;",
+                                ),
+                            }
                         }
 
                         // Feedback EQ
@@ -299,28 +346,68 @@ pub fn App() -> Element {
                             Knob { param_ptr: params.locut.as_ptr(), size: KnobSize::Medium }
                         }
 
-                        div {
-                            style: format!(
-                                "width:1px; background:{border}; align-self:stretch;",
-                            ),
-                        }
-
-                        // Drive
-                        ControlGroup {
-                            label: "Saturation",
-                            Knob { param_ptr: params.drive.as_ptr(), size: KnobSize::Medium }
+                        // Saturation (Tape only)
+                        if is_tape {
+                            div {
+                                style: format!(
+                                    "width:1px; background:{border}; align-self:stretch;",
+                                ),
+                            }
+                            div {
+                                style: format!(
+                                    "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
+                                ),
+                                SectionLabel { text: "Saturation" }
+                                div {
+                                    style: format!("display:flex; gap:{spacing_tight}; flex-wrap:wrap; justify-content:center;"),
+                                    for i in 0..SaturationType::COUNT {
+                                        SegmentButton {
+                                            label: SaturationType::from_index(i).label(),
+                                            selected: sat_type_idx == i,
+                                            on_click: sat_setter(i as f32),
+                                        }
+                                    }
+                                }
+                                Knob { param_ptr: params.drive.as_ptr(), size: KnobSize::Medium }
+                            }
                         }
                     }
 
-                    // ── Row 3: Tape Modulation ───────────────────────
+                    // ── Row 3: Tape Modulation (Tape only) ────────────
+                    if is_tape {
+                        div {
+                            style: "display:flex; gap:20px; justify-content:center;",
+
+                            ControlGroup {
+                                label: "Wow",
+                                Knob { param_ptr: params.wow_depth.as_ptr(), size: KnobSize::Medium }
+                                Knob { param_ptr: params.wow_rate.as_ptr(), size: KnobSize::Small }
+                                Knob { param_ptr: params.wow_drift.as_ptr(), size: KnobSize::Small }
+                            }
+
+                            div {
+                                style: format!(
+                                    "width:1px; background:{border}; align-self:stretch;",
+                                ),
+                            }
+
+                            ControlGroup {
+                                label: "Flutter",
+                                Knob { param_ptr: params.flutter_depth.as_ptr(), size: KnobSize::Medium }
+                                Knob { param_ptr: params.flutter_rate.as_ptr(), size: KnobSize::Small }
+                            }
+                        }
+                    }
+
+                    // ── Row 4: Accent / Groove / Feel ──────────────────
                     div {
                         style: "display:flex; gap:20px; justify-content:center;",
 
                         ControlGroup {
-                            label: "Wow",
-                            Knob { param_ptr: params.wow_depth.as_ptr(), size: KnobSize::Medium }
-                            Knob { param_ptr: params.wow_rate.as_ptr(), size: KnobSize::Small }
-                            Knob { param_ptr: params.wow_drift.as_ptr(), size: KnobSize::Small }
+                            label: "Rhythm",
+                            Knob { param_ptr: params.accent.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.groove.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.feel.as_ptr(), size: KnobSize::Small }
                         }
 
                         div {
@@ -330,13 +417,25 @@ pub fn App() -> Element {
                         }
 
                         ControlGroup {
-                            label: "Flutter",
-                            Knob { param_ptr: params.flutter_depth.as_ptr(), size: KnobSize::Medium }
-                            Knob { param_ptr: params.flutter_rate.as_ptr(), size: KnobSize::Small }
+                            label: "Options",
+                            Toggle { param_ptr: params.prime_numbers.as_ptr(), label: "Prime" }
+                            Knob { param_ptr: params.lr_offset.as_ptr(), size: KnobSize::Small }
+                        }
+
+                        div {
+                            style: format!(
+                                "width:1px; background:{border}; align-self:stretch;",
+                            ),
+                        }
+
+                        ControlGroup {
+                            label: "Levels",
+                            Knob { param_ptr: params.input_level.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.output_level.as_ptr(), size: KnobSize::Small }
                         }
                     }
 
-                    // ── Row 4: Diffusion + Ducking ───────────────────
+                    // ── Row 5: Diffusion + Ducking ───────────────────
                     div {
                         style: "display:flex; gap:20px; justify-content:center;",
 
@@ -354,9 +453,10 @@ pub fn App() -> Element {
                             }
                             if diff_on {
                                 div {
-                                    style: format!("display:flex; gap:{spacing_control};"),
+                                    style: format!("display:flex; gap:{spacing_control}; align-items:center;"),
                                     Knob { param_ptr: params.diff_size.as_ptr(), size: KnobSize::Small }
                                     Knob { param_ptr: params.diff_smear.as_ptr(), size: KnobSize::Small }
+                                    Toggle { param_ptr: params.diff_loop.as_ptr(), label: "Loop" }
                                 }
                             }
                         }

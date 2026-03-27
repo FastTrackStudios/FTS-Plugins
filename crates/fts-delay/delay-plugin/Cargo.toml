@@ -7,7 +7,7 @@ edition.workspace = true
 description = "FTS Delay — CLAP/VST3 audio plugin entry point"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
 fts-plugin-core = { path = "../../fts-plugin-core" }
