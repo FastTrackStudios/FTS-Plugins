@@ -19,6 +19,7 @@ pub mod chain;
 pub mod divider;
 pub mod granular;
 pub mod pll;
+pub mod pog;
 pub mod psola;
 pub mod rubberband;
 pub mod signalsmith;

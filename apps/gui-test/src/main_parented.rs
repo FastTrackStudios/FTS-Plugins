@@ -30,7 +30,10 @@ fn main() {
     let plugin_height: u32 = 300;
 
     eprintln!("=== FTS Parented GUI Stress Test ===");
-    eprintln!("Spawning {} plugin editor instance(s) with native wgpu surfaces", instance_count);
+    eprintln!(
+        "Spawning {} plugin editor instance(s) with native wgpu surfaces",
+        instance_count
+    );
     eprintln!("This simulates a DAW with multiple plugin windows open.");
     eprintln!();
 
@@ -76,9 +79,7 @@ fn main() {
             &CreateWindowAux::new()
                 .background_pixel(0x1a1a2e)
                 .event_mask(
-                    EventMask::EXPOSURE
-                        | EventMask::STRUCTURE_NOTIFY
-                        | EventMask::KEY_PRESS,
+                    EventMask::EXPOSURE | EventMask::STRUCTURE_NOTIFY | EventMask::KEY_PRESS,
                 ),
         )
         .unwrap();
@@ -138,14 +139,11 @@ fn main() {
                     conn.create_gc(
                         gc,
                         win,
-                        &CreateGCAux::new()
-                            .foreground(0x888888)
-                            .background(0x1a1a2e),
+                        &CreateGCAux::new().foreground(0x888888).background(0x1a1a2e),
                     )
                     .unwrap();
                     let label = format!("Plugin #{} (native wgpu surface)", idx + 1);
-                    conn.image_text8(win, gc, 10, 15, label.as_bytes())
-                        .unwrap();
+                    conn.image_text8(win, gc, 10, 15, label.as_bytes()).unwrap();
                     conn.free_gc(gc).unwrap();
                     conn.flush().unwrap();
                 }

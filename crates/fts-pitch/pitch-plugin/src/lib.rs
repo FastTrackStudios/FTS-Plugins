@@ -63,6 +63,14 @@ pub struct FtsPitchParams {
     #[id = "grain_size"]
     pub grain_size: IntParam,
 
+    /// Formant shift in semitones (-24 to +24). Only active when unlinked.
+    #[id = "formant"]
+    pub formant: IntParam,
+
+    /// Link formant to pitch (formants stay in place when shifting).
+    #[id = "formant_link"]
+    pub formant_link: BoolParam,
+
     /// Output gain in dB.
     #[id = "output_gain"]
     pub output_gain_db: FloatParam,
@@ -75,7 +83,7 @@ pub struct FtsPitchParams {
 impl Default for FtsPitchParams {
     fn default() -> Self {
         Self {
-            algorithm: IntParam::new("Algorithm", 5, IntRange::Linear { min: 0, max: 7 })
+            algorithm: IntParam::new("Algorithm", 5, IntRange::Linear { min: 0, max: 8 })
                 .with_value_to_string(Arc::new(|v| match v {
                     0 => "Divider".to_string(),
                     1 => "PLL".to_string(),
@@ -85,6 +93,7 @@ impl Default for FtsPitchParams {
                     5 => "Signalsmith".to_string(),
                     6 => "Rubberband".to_string(),
                     7 => "Allpass".to_string(),
+                    8 => "POG".to_string(),
                     _ => format!("{v}"),
                 }))
                 .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
@@ -96,6 +105,7 @@ impl Default for FtsPitchParams {
                     "signalsmith" | "5" => Some(5),
                     "rubberband" | "rubber" | "6" => Some(6),
                     "allpass" | "7" => Some(7),
+                    "pog" | "polyoctave" | "poly" | "8" => Some(8),
                     _ => s.parse().ok(),
                 })),
 
@@ -151,6 +161,19 @@ impl Default for FtsPitchParams {
             .with_value_to_string(Arc::new(|v| format!("{v}")))
             .with_string_to_value(Arc::new(|s| s.parse().ok())),
 
+            formant: IntParam::new("Formant", 0, IntRange::Linear { min: -24, max: 24 })
+                .with_unit(" st")
+                .with_value_to_string(Arc::new(|v| {
+                    if v > 0 {
+                        format!("+{v}")
+                    } else {
+                        format!("{v}")
+                    }
+                }))
+                .with_string_to_value(Arc::new(|s| s.trim().parse().ok())),
+
+            formant_link: BoolParam::new("Formant Link", true),
+
             output_gain_db: FloatParam::new(
                 "Output",
                 0.0,
@@ -203,6 +226,7 @@ impl FtsPitch {
             5 => Algorithm::Signalsmith,
             6 => Algorithm::Rubberband,
             7 => Algorithm::Allpass,
+            8 => Algorithm::PolyOctave,
             _ => Algorithm::Signalsmith,
         };
         self.chain.semitones =
@@ -215,6 +239,8 @@ impl FtsPitch {
             _ => SubWaveform::Saw,
         };
         self.chain.grain_size = self.params.grain_size.value() as usize;
+        self.chain.formant_linked = self.params.formant_link.value();
+        self.chain.formant_semitones = self.params.formant.value() as f64;
         self.chain.live = self.params.live.value();
     }
 }

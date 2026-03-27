@@ -11,6 +11,7 @@ use crate::allpass_shift::AllpassShifter;
 use crate::divider::{DivideRatio, FreqDivider};
 use crate::granular::GranularShifter;
 use crate::pll::{PllOctave, PllTracker, SubWaveform};
+use crate::pog::{OctaveShift, PolyOctave};
 use crate::psola::PsolaShifter;
 use crate::rubberband::RubberbandShifter;
 use crate::signalsmith::SignalsmithShifter;
@@ -43,8 +44,11 @@ pub enum Algorithm {
     /// High quality, ~512+ sample latency.
     Rubberband,
     /// Allpass interpolation — Dattorro/Schroeder barberpole style.
-    /// Zero latency, classic hardware pitch shifter character.
+    /// ~1024 sample latency (standard), ~256 (live). Classic hardware character.
     Allpass,
+    /// Polyphonic Octave Generator — ERB filter bank phase scaling (EHX POG style).
+    /// 0 sample latency, polyphonic, octave shifts only (±12, ±24 semitones).
+    PolyOctave,
 }
 
 /// Convert semitones to pitch ratio: `2^(semitones / 12)`.
@@ -68,6 +72,13 @@ pub struct PitchChain {
     pub mix: f64,
     /// Live mode: minimize latency at the cost of quality.
     pub live: bool,
+    /// Formant shift in semitones. Range: −24.0 to +24.0.
+    /// 0 = no shift. Only affects algorithms that support formant control
+    /// (Rubberband, Signalsmith).
+    pub formant_semitones: f64,
+    /// When true, formant shift is linked to pitch (formants stay in place).
+    /// When false, formant_semitones is applied independently.
+    pub formant_linked: bool,
 
     // -- PLL-specific settings --
     /// PLL sub-oscillator waveform.
@@ -85,6 +96,7 @@ pub struct PitchChain {
     signalsmith: SignalsmithShifter,
     rubberband: RubberbandShifter,
     allpass: AllpassShifter,
+    pog: PolyOctave,
 
     /// Track previous live state to detect changes and reinitialise.
     prev_live: bool,
@@ -98,6 +110,8 @@ impl PitchChain {
             semitones: -12.0,
             mix: 1.0,
             live: false,
+            formant_semitones: 0.0,
+            formant_linked: true,
             pll_waveform: SubWaveform::Saw,
             grain_size: 1024,
             divider: FreqDivider::new(),
@@ -108,6 +122,7 @@ impl PitchChain {
             signalsmith: SignalsmithShifter::new(),
             rubberband: RubberbandShifter::new(),
             allpass: AllpassShifter::new(),
+            pog: PolyOctave::new(),
             prev_live: false,
             sample_rate: 48000.0,
         }
@@ -124,6 +139,7 @@ impl PitchChain {
             Algorithm::Signalsmith => self.signalsmith.latency(),
             Algorithm::Rubberband => self.rubberband.latency(),
             Algorithm::Allpass => self.allpass.latency(),
+            Algorithm::PolyOctave => self.pog.latency(),
         }
     }
 
@@ -156,12 +172,16 @@ impl PitchChain {
             // Rubberband: R2 engine + smaller blocks.
             self.rubberband.live = self.live;
 
+            // Allpass: shorter sweep for lower latency.
+            self.allpass.live = self.live;
+
             // Re-initialise engines with new settings.
             let sr = self.sample_rate;
             self.psola.update(sr);
             self.wsola.update(sr);
             self.signalsmith.update(sr);
             self.rubberband.update(sr);
+            self.allpass.update(sr);
         }
 
         let ratio = semitones_to_ratio(self.semitones.clamp(-24.0, 24.0));
@@ -201,17 +221,35 @@ impl PitchChain {
         self.wsola.speed = ratio;
         self.wsola.mix = self.mix;
 
-        // Signalsmith: arbitrary ratio.
+        // Compute effective formant shift.
+        // When linked: formant_semitones cancels out the pitch shift so formants stay in place.
+        // When unlinked: formant_semitones is applied as-is.
+        let effective_formant_st = if self.formant_linked {
+            -self.semitones.clamp(-24.0, 24.0)
+        } else {
+            self.formant_semitones.clamp(-24.0, 24.0)
+        };
+        let formant_ratio = semitones_to_ratio(effective_formant_st);
+
+        // Signalsmith: arbitrary ratio + formant control.
         self.signalsmith.speed = ratio;
         self.signalsmith.mix = self.mix;
+        self.signalsmith.formant_semitones = effective_formant_st;
+        self.signalsmith.formant_compensate_pitch = self.formant_linked;
 
-        // Rubberband: arbitrary ratio.
+        // Rubberband: arbitrary ratio + formant control.
         self.rubberband.speed = ratio;
         self.rubberband.mix = self.mix;
+        self.rubberband.preserve_formants = true;
+        self.rubberband.formant_scale = formant_ratio;
 
         // Allpass: arbitrary ratio.
         self.allpass.speed = ratio;
         self.allpass.mix = self.mix;
+
+        // PolyOctave: snap semitones to nearest octave.
+        self.pog.shift = OctaveShift::from_semitones(self.semitones);
+        self.pog.mix = self.mix;
     }
 }
 
@@ -231,6 +269,7 @@ impl Processor for PitchChain {
         self.signalsmith.reset();
         self.rubberband.reset();
         self.allpass.reset();
+        self.pog.reset();
     }
 
     fn update(&mut self, config: AudioConfig) {
@@ -243,6 +282,7 @@ impl Processor for PitchChain {
         self.signalsmith.update(config.sample_rate);
         self.rubberband.update(config.sample_rate);
         self.allpass.update(config.sample_rate);
+        self.pog.update(config.sample_rate);
     }
 
     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
@@ -287,6 +327,11 @@ impl Processor for PitchChain {
             Algorithm::Allpass => {
                 for s in left.iter_mut() {
                     *s = self.allpass.tick(*s);
+                }
+            }
+            Algorithm::PolyOctave => {
+                for s in left.iter_mut() {
+                    *s = self.pog.tick(*s);
                 }
             }
         }
@@ -351,6 +396,7 @@ mod tests {
             Algorithm::Signalsmith,
             Algorithm::Rubberband,
             Algorithm::Allpass,
+            Algorithm::PolyOctave,
         ] {
             let mut chain = PitchChain::new();
             chain.algorithm = algo;
@@ -482,6 +528,7 @@ mod tests {
             Algorithm::Granular,
             Algorithm::Psola,
             Algorithm::Wsola,
+            Algorithm::PolyOctave,
         ]
         .iter()
         .enumerate()
@@ -508,6 +555,7 @@ mod tests {
             Algorithm::Signalsmith,
             Algorithm::Rubberband,
             Algorithm::Allpass,
+            Algorithm::PolyOctave,
         ] {
             let mut chain = PitchChain::new();
             chain.algorithm = algo;
@@ -539,6 +587,7 @@ mod tests {
             Algorithm::Signalsmith,
             Algorithm::Rubberband,
             Algorithm::Allpass,
+            Algorithm::PolyOctave,
         ] {
             let mut chain = PitchChain::new();
             chain.algorithm = algo;
@@ -590,6 +639,7 @@ mod tests {
             Algorithm::Signalsmith,
             Algorithm::Rubberband,
             Algorithm::Allpass,
+            Algorithm::PolyOctave,
         ] {
             let mut chain = PitchChain::new();
             chain.algorithm = algo;
@@ -612,7 +662,7 @@ mod tests {
         }
     }
 
-    const ALL_ALGOS: [Algorithm; 8] = [
+    const ALL_ALGOS: [Algorithm; 9] = [
         Algorithm::FreqDivider,
         Algorithm::Pll,
         Algorithm::Granular,
@@ -621,6 +671,7 @@ mod tests {
         Algorithm::Signalsmith,
         Algorithm::Rubberband,
         Algorithm::Allpass,
+        Algorithm::PolyOctave,
     ];
 
     #[test]
