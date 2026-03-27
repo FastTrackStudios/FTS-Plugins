@@ -172,8 +172,8 @@ impl PitchChain {
             // Rubberband: R2 engine + smaller blocks.
             self.rubberband.live = self.live;
 
-            // Allpass: shorter sweep for lower latency.
-            self.allpass.live = self.live;
+            // Allpass: no live mode toggle (not supported).
+            // self.allpass.live = self.live;
 
             // Re-initialise engines with new settings.
             let sr = self.sample_rate;
@@ -234,14 +234,13 @@ impl PitchChain {
         // Signalsmith: arbitrary ratio + formant control.
         self.signalsmith.speed = ratio;
         self.signalsmith.mix = self.mix;
-        self.signalsmith.formant_semitones = effective_formant_st;
-        self.signalsmith.formant_compensate_pitch = self.formant_linked;
+        // formant_semitones and formant_compensate_pitch not yet exposed on SignalsmithShifter.
 
         // Rubberband: arbitrary ratio + formant control.
         self.rubberband.speed = ratio;
         self.rubberband.mix = self.mix;
         self.rubberband.preserve_formants = true;
-        self.rubberband.formant_scale = formant_ratio;
+        // formant_scale not yet exposed on RubberbandShifter.
 
         // Allpass: arbitrary ratio.
         self.allpass.speed = ratio;

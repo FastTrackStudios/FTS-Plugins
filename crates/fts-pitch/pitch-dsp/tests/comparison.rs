@@ -297,12 +297,16 @@ fn algo_name(algo: Algorithm) -> &'static str {
         Algorithm::Signalsmith => "signalsmith",
         Algorithm::Rubberband => "rubberband",
         Algorithm::Allpass => "allpass",
+        Algorithm::PolyOctave => "polyoctave",
     }
 }
 
 /// Whether an algorithm only supports octave shifts.
 fn is_octave_only(algo: Algorithm) -> bool {
-    matches!(algo, Algorithm::FreqDivider | Algorithm::Pll)
+    matches!(
+        algo,
+        Algorithm::FreqDivider | Algorithm::Pll | Algorithm::PolyOctave
+    )
 }
 
 fn config() -> AudioConfig {
