@@ -14,12 +14,15 @@ use crate::gain::GainComputer;
 /// Maximum number of stereo channels.
 const MAX_CH: usize = 2;
 
-/// Threshold offset — set to 0 for 2-stage architecture.
+/// Peak-to-mean threshold offset: 4.2 dB.
 ///
-/// The 2-stage approach (instant level → gain curve → smooth GR)
-/// naturally handles peak-vs-mean weighting through the nonlinear
-/// averaging of the gain curve over the waveform cycle.
-pub const PEAK_TO_MEAN_DB: f64 = 0.0;
+/// Pro-C 3 thresholds reference mean rectified level (2A/π ≈ -3.92 dB
+/// below peak for a sine wave). FTS-Comp's 2-stage detector measures
+/// instantaneous peak level, so the threshold must be shifted up by
+/// ~4.2 dB to produce the same onset/amount of compression at the same
+/// displayed threshold value. The extra 0.28 dB above the theoretical
+/// 3.92 dB accounts for discrete-time and knee-shape corrections.
+pub const PEAK_TO_MEAN_DB: f64 = 4.2;
 
 // r[impl comp.chain.signal-flow]
 /// Complete stereo compressor with all APComp features.

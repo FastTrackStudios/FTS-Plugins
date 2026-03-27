@@ -22,10 +22,14 @@ const ATTACK_SCALE: f64 = 2.0;
 const RELEASE_SCALE: f64 = 2.0;
 
 /// Minimum release time in seconds to prevent zero-crossing collapse.
+/// Pro-C 3's normalized 0.0 release maps to ~9ms; this floor ensures
+/// FTS-Comp's release floor matches Pro-C 3's minimum.
 const MIN_RELEASE_S: f64 = 0.009;
 
-/// Minimum attack time in seconds to prevent pure peak-hold.
-const MIN_ATTACK_S: f64 = 0.002;
+/// Minimum attack time in seconds.
+/// Set to Pro-C 3's minimum (0.01 ms) so instantaneous attack at near-zero
+/// settings matches Pro-C 3's peak-hold behavior rather than clamping to 2ms.
+const MIN_ATTACK_S: f64 = 0.00001;
 
 /// Power exponent for GR smoothing domain.
 /// p=1.0 = dB domain (baseline). p<1.0 reduces Jensen's bias.
