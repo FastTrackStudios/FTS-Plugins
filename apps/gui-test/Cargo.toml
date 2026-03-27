@@ -1,0 +1,23 @@
+[package]
+name = "gui-test"
+version.workspace = true
+edition.workspace = true
+description = "Standalone GUI rendering test — verifies native wgpu surface path without a DAW"
+
+[[bin]]
+name = "gui-test"
+path = "src/main.rs"
+
+[[bin]]
+name = "gui-test-softbuffer"
+path = "src/main_softbuffer.rs"
+
+[[bin]]
+name = "gui-test-parented"
+path = "src/main_parented.rs"
+
+[dependencies]
+nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
