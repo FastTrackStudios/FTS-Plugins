@@ -6,6 +6,51 @@
 
 use std::f64::consts::PI;
 
+/// Wobble/LFO waveform shapes for wow modulation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WobbleShape {
+    Sine,
+    Triangle,
+    Square,
+    SampleAndHold,
+    Random,
+}
+
+impl WobbleShape {
+    pub const COUNT: usize = 5;
+
+    pub fn from_index(i: usize) -> Self {
+        match i {
+            0 => Self::Sine,
+            1 => Self::Triangle,
+            2 => Self::Square,
+            3 => Self::SampleAndHold,
+            4 => Self::Random,
+            _ => Self::Sine,
+        }
+    }
+
+    pub fn to_index(self) -> usize {
+        match self {
+            Self::Sine => 0,
+            Self::Triangle => 1,
+            Self::Square => 2,
+            Self::SampleAndHold => 3,
+            Self::Random => 4,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Sine => "Sine",
+            Self::Triangle => "Triangle",
+            Self::Square => "Square",
+            Self::SampleAndHold => "S&H",
+            Self::Random => "Random",
+        }
+    }
+}
+
 // r[impl delay.modulation.flutter]
 /// Three-oscillator flutter LFO (from ChowDSP AnalogTapeModel via qdelay).
 ///
@@ -78,14 +123,18 @@ pub struct Wow {
     pub rate: f64,
     pub depth: f64,
     pub drift: f64,
+    /// LFO waveform shape.
+    pub shape: WobbleShape,
+    /// Phase offset (0.0-1.0) for L/R sync control.
+    pub phase_offset: f64,
     phase: f64,
     sample_rate: f64,
     amp: f64,
-    // Ornstein-Uhlenbeck state
     ou_state: f64,
     ou_decay: f64,
-    // Simple PRNG state (xorshift64)
     rng_state: u64,
+    sh_value: f64,
+    sh_triggered: bool,
 }
 
 impl Wow {
@@ -94,20 +143,58 @@ impl Wow {
             rate: 0.5,
             depth: 0.0,
             drift: 0.3,
+            shape: WobbleShape::Sine,
+            phase_offset: 0.0,
             phase: 0.0,
             sample_rate: 48000.0,
             amp: 0.0,
             ou_state: 0.0,
             ou_decay: 0.999,
             rng_state: 0xDEAD_BEEF_CAFE_1234,
+            sh_value: 0.0,
+            sh_triggered: false,
         }
     }
 
     pub fn set_sample_rate(&mut self, sr: f64) {
         self.sample_rate = sr;
         self.amp = 1000.0 * 1000.0 / sr;
-        // OU decay: slow mean-reversion (~2s time constant)
         self.ou_decay = (-1.0 / (2.0 * sr)).exp();
+    }
+
+    /// Compute the raw LFO waveform value (-1..1) from the phase.
+    fn waveform(&mut self, phase: f64) -> f64 {
+        match self.shape {
+            WobbleShape::Sine => phase.cos(),
+            WobbleShape::Triangle => {
+                let t = phase / (2.0 * PI);
+                if t < 0.25 {
+                    t * 4.0
+                } else if t < 0.75 {
+                    2.0 - t * 4.0
+                } else {
+                    t * 4.0 - 4.0
+                }
+            }
+            WobbleShape::Square => {
+                if phase < PI {
+                    1.0
+                } else {
+                    -1.0
+                }
+            }
+            WobbleShape::SampleAndHold => {
+                let in_first_half = phase < PI;
+                if in_first_half && !self.sh_triggered {
+                    self.sh_value = self.xorshift_uniform() * 2.0 - 1.0;
+                    self.sh_triggered = true;
+                } else if !in_first_half {
+                    self.sh_triggered = false;
+                }
+                self.sh_value
+            }
+            WobbleShape::Random => self.ou_state,
+        }
     }
 
     /// Returns modulation offset in samples.
@@ -127,16 +214,19 @@ impl Wow {
             self.phase -= 2.0 * PI;
         }
 
-        self.amp * self.phase.cos() * d2
+        // Apply phase offset and compute waveform
+        let offset_phase = (self.phase + self.phase_offset * 2.0 * PI) % (2.0 * PI);
+        let lfo = self.waveform(offset_phase);
+
+        self.amp * lfo * d2
     }
 
-    /// Approximate Gaussian via central limit theorem (sum of 8 uniform samples).
     fn gaussian_noise(&mut self) -> f64 {
         let mut sum = 0.0;
         for _ in 0..8 {
             sum += self.xorshift_uniform();
         }
-        (sum - 4.0) * 0.612 // Center and scale for ~unit variance
+        (sum - 4.0) * 0.612
     }
 
     fn xorshift_uniform(&mut self) -> f64 {
@@ -149,6 +239,8 @@ impl Wow {
     pub fn reset(&mut self) {
         self.phase = 0.0;
         self.ou_state = 0.0;
+        self.sh_value = 0.0;
+        self.sh_triggered = false;
     }
 }
 
@@ -449,6 +541,44 @@ mod tests {
             let v = d.tick(input);
             assert!(v.is_finite(), "Diffuser produced NaN/Inf at sample {i}");
         }
+    }
+
+    #[test]
+    fn wow_shapes_no_nan() {
+        for i in 0..WobbleShape::COUNT {
+            let mut w = Wow::new();
+            w.set_sample_rate(SR);
+            w.depth = 0.5;
+            w.drift = 0.5;
+            w.shape = WobbleShape::from_index(i);
+            for _ in 0..48000 {
+                let v = w.tick();
+                assert!(v.is_finite(), "{:?} shape produced NaN/Inf", w.shape);
+            }
+        }
+    }
+
+    #[test]
+    fn wow_phase_offset_shifts_output() {
+        let mut w1 = Wow::new();
+        w1.set_sample_rate(SR);
+        w1.depth = 0.5;
+        w1.phase_offset = 0.0;
+
+        let mut w2 = Wow::new();
+        w2.set_sample_rate(SR);
+        w2.depth = 0.5;
+        w2.phase_offset = 0.5; // Half cycle offset
+
+        // With same drift=0 (deterministic), outputs should differ
+        w1.drift = 0.0;
+        w2.drift = 0.0;
+
+        let mut diff = 0.0;
+        for _ in 0..4800 {
+            diff += (w1.tick() - w2.tick()).abs();
+        }
+        assert!(diff > 0.1, "Phase offset should shift output: diff={diff}");
     }
 
     #[test]

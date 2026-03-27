@@ -16,9 +16,11 @@ pub mod lofi_delay;
 pub mod modulation;
 pub mod pitch_delay;
 pub mod reverse_delay;
+pub mod rhythm_delay;
 pub mod shimmer_delay;
 pub mod tape_delay;
 
 pub use chain::{DelayChain, HeadMode};
 pub use engine::{DelayEngine, DelayStyle};
+pub use modulation::WobbleShape;
 pub use tape_delay::SaturationType;

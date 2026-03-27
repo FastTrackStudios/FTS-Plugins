@@ -7,8 +7,10 @@
 use crate::bbd_delay::BbdDelay;
 use crate::clean_delay::CleanDelay;
 use crate::lofi_delay::LoFiDelay;
+use crate::modulation::WobbleShape;
 use crate::pitch_delay::PitchDelay;
 use crate::reverse_delay::ReverseDelay;
+use crate::rhythm_delay::RhythmDelay;
 use crate::shimmer_delay::ShimmerDelay;
 use crate::tape_delay::{SaturationType, TapeDelay};
 
@@ -22,10 +24,11 @@ pub enum DelayStyle {
     Shimmer,
     Reverse,
     Pitch,
+    Rhythm,
 }
 
 impl DelayStyle {
-    pub const COUNT: usize = 7;
+    pub const COUNT: usize = 8;
 
     pub fn from_index(i: usize) -> Self {
         match i {
@@ -36,6 +39,7 @@ impl DelayStyle {
             4 => Self::Shimmer,
             5 => Self::Reverse,
             6 => Self::Pitch,
+            7 => Self::Rhythm,
             _ => Self::Tape,
         }
     }
@@ -49,6 +53,7 @@ impl DelayStyle {
             Self::Shimmer => 4,
             Self::Reverse => 5,
             Self::Pitch => 6,
+            Self::Rhythm => 7,
         }
     }
 
@@ -61,6 +66,7 @@ impl DelayStyle {
             Self::Shimmer => "Shimmer",
             Self::Reverse => "Reverse",
             Self::Pitch => "Pitch",
+            Self::Rhythm => "Rhythm",
         }
     }
 }
@@ -73,6 +79,7 @@ enum EngineInner {
     Shimmer(ShimmerDelay),
     Reverse(ReverseDelay),
     Pitch(PitchDelay),
+    Rhythm(RhythmDelay),
 }
 
 /// Unified delay engine wrapping all delay styles.
@@ -145,6 +152,18 @@ pub struct DelayEngine {
     // ── Pitch-specific ─────────────────────────────────────────────
     /// Playback speed ratio. Pitch only.
     pub pitch_speed: f64,
+
+    // ── Rhythm-specific ──────────────────────────────────────────
+    /// Tap levels for rhythm mode (8 taps at 1x–8x base time).
+    pub rhythm_taps: [f64; 8],
+
+    // ── Shared new parameters ────────────────────────────────────
+    /// Decay EQ tilt (-1.0 = darken repeats, 0 = neutral, +1.0 = brighten).
+    pub decay_tilt: f64,
+    /// Wobble LFO shape. Tape only.
+    pub wow_shape: WobbleShape,
+    /// Wobble phase offset (0.0–1.0). Tape only.
+    pub wow_phase_offset: f64,
 }
 
 impl DelayEngine {
@@ -177,6 +196,10 @@ impl DelayEngine {
             shimmer_mix: 0.5,
             reverse_crossfade: 0.1,
             pitch_speed: 1.0,
+            rhythm_taps: [1.0, 0.7, 0.5, 0.35, 0.25, 0.18, 0.12, 0.08],
+            decay_tilt: 0.0,
+            wow_shape: WobbleShape::Sine,
+            wow_phase_offset: 0.0,
         }
     }
 
@@ -198,6 +221,7 @@ impl DelayEngine {
             DelayStyle::Shimmer => EngineInner::Shimmer(ShimmerDelay::new()),
             DelayStyle::Reverse => EngineInner::Reverse(ReverseDelay::new()),
             DelayStyle::Pitch => EngineInner::Pitch(PitchDelay::new()),
+            DelayStyle::Rhythm => EngineInner::Rhythm(RhythmDelay::new()),
         };
     }
 
@@ -219,6 +243,9 @@ impl DelayEngine {
                 d.head2_enabled = self.head2_enabled;
                 d.head3_enabled = self.head3_enabled;
                 d.saturation_type = self.saturation_type;
+                d.decay_tilt = self.decay_tilt;
+                d.wow_shape = self.wow_shape;
+                d.wow_phase_offset = self.wow_phase_offset;
                 d.update(sample_rate);
             }
             EngineInner::Clean(d) => {
@@ -226,6 +253,7 @@ impl DelayEngine {
                 d.feedback = self.feedback;
                 d.hicut_freq = self.hicut_freq;
                 d.locut_freq = self.locut_freq;
+                d.decay_tilt = self.decay_tilt;
                 d.update(sample_rate);
             }
             EngineInner::Bbd(d) => {
@@ -235,6 +263,7 @@ impl DelayEngine {
                 d.mod_rate = self.bbd_mod_rate;
                 d.tone = self.bbd_tone;
                 d.clock_jitter = self.bbd_clock_jitter;
+                d.decay_tilt = self.decay_tilt;
                 d.update(sample_rate);
             }
             EngineInner::LoFi(d) => {
@@ -245,6 +274,7 @@ impl DelayEngine {
                 d.bit_depth = self.lofi_bit_depth;
                 d.sample_rate_div = self.lofi_sr_div;
                 d.noise = self.lofi_noise;
+                d.decay_tilt = self.decay_tilt;
                 d.update(sample_rate);
             }
             EngineInner::Shimmer(d) => {
@@ -253,6 +283,7 @@ impl DelayEngine {
                 d.hicut_freq = self.hicut_freq;
                 d.pitch_ratio = self.shimmer_pitch;
                 d.shimmer_mix = self.shimmer_mix;
+                d.decay_tilt = self.decay_tilt;
                 d.update(sample_rate);
             }
             EngineInner::Reverse(d) => {
@@ -260,12 +291,23 @@ impl DelayEngine {
                 d.feedback = self.feedback;
                 d.hicut_freq = self.hicut_freq;
                 d.grain_crossfade = self.reverse_crossfade;
+                d.decay_tilt = self.decay_tilt;
                 d.update(sample_rate);
             }
             EngineInner::Pitch(d) => {
                 d.time_ms = self.time_ms;
                 d.feedback = self.feedback;
                 d.speed = self.pitch_speed;
+                d.decay_tilt = self.decay_tilt;
+                d.update(sample_rate);
+            }
+            EngineInner::Rhythm(d) => {
+                d.time_ms = self.time_ms;
+                d.feedback = self.feedback;
+                d.hicut_freq = self.hicut_freq;
+                d.locut_freq = self.locut_freq;
+                d.tap_levels = self.rhythm_taps;
+                d.decay_tilt = self.decay_tilt;
                 d.update(sample_rate);
             }
         }
@@ -281,6 +323,7 @@ impl DelayEngine {
             EngineInner::Shimmer(d) => d.tick(input, ch),
             EngineInner::Reverse(d) => d.tick(input, ch),
             EngineInner::Pitch(d) => d.tick(input),
+            EngineInner::Rhythm(d) => d.tick(input, ch),
         }
     }
 
@@ -294,6 +337,7 @@ impl DelayEngine {
             EngineInner::Shimmer(d) => d.last_feedback(),
             EngineInner::Reverse(d) => d.last_feedback(),
             EngineInner::Pitch(d) => d.last_feedback(),
+            EngineInner::Rhythm(d) => d.last_feedback(),
         }
     }
 
@@ -306,6 +350,7 @@ impl DelayEngine {
             EngineInner::Shimmer(d) => d.reset(),
             EngineInner::Reverse(d) => d.reset(),
             EngineInner::Pitch(d) => d.reset(),
+            EngineInner::Rhythm(d) => d.reset(),
         }
     }
 }

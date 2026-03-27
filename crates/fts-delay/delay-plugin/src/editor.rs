@@ -15,6 +15,7 @@ use fts_dsp::note_sync::NoteValue;
 use fts_plugin_core::prelude::*;
 
 use delay_dsp::engine::DelayStyle;
+use delay_dsp::modulation::WobbleShape;
 use delay_dsp::SaturationType;
 
 use crate::{DelayUiState, FtsDelayParams};
@@ -38,6 +39,7 @@ pub fn App() -> Element {
     let style_idx = params.style.value() as usize;
     let style = DelayStyle::from_index(style_idx);
     let is_tape = style == DelayStyle::Tape;
+    let is_rhythm = style == DelayStyle::Rhythm;
     let mode = params.stereo_mode.value() as i32;
     let head = params.head_mode.value() as i32;
     let link = params.link_lr.value() > 0.5;
@@ -89,6 +91,19 @@ pub fn App() -> Element {
             ctx.begin_set_raw(p.sat_type.as_ptr());
             ctx.set_normalized_raw(p.sat_type.as_ptr(), value / max);
             ctx.end_set_raw(p.sat_type.as_ptr());
+        }
+    };
+
+    // Wobble shape setter
+    let wow_shape_idx = params.wow_shape.value() as usize;
+    let wow_shape_setter = |value: f32| {
+        let ctx = ctx.clone();
+        let p = params.clone();
+        move |_: ()| {
+            let max = (WobbleShape::COUNT - 1) as f32;
+            ctx.begin_set_raw(p.wow_shape.as_ptr());
+            ctx.set_normalized_raw(p.wow_shape.as_ptr(), value / max);
+            ctx.end_set_raw(p.wow_shape.as_ptr());
         }
     };
 
@@ -344,6 +359,7 @@ pub fn App() -> Element {
                             label: "Feedback EQ",
                             Knob { param_ptr: params.hicut.as_ptr(), size: KnobSize::Medium }
                             Knob { param_ptr: params.locut.as_ptr(), size: KnobSize::Medium }
+                            Knob { param_ptr: params.decay_tilt.as_ptr(), size: KnobSize::Medium }
                         }
 
                         // Saturation (Tape only)
@@ -378,11 +394,28 @@ pub fn App() -> Element {
                         div {
                             style: "display:flex; gap:20px; justify-content:center;",
 
-                            ControlGroup {
-                                label: "Wow",
-                                Knob { param_ptr: params.wow_depth.as_ptr(), size: KnobSize::Medium }
-                                Knob { param_ptr: params.wow_rate.as_ptr(), size: KnobSize::Small }
-                                Knob { param_ptr: params.wow_drift.as_ptr(), size: KnobSize::Small }
+                            div {
+                                style: format!(
+                                    "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
+                                ),
+                                SectionLabel { text: "Wow" }
+                                div {
+                                    style: format!("display:flex; gap:{spacing_tight}; flex-wrap:wrap; justify-content:center;"),
+                                    for i in 0..WobbleShape::COUNT {
+                                        SegmentButton {
+                                            label: WobbleShape::from_index(i).label(),
+                                            selected: wow_shape_idx == i,
+                                            on_click: wow_shape_setter(i as f32),
+                                        }
+                                    }
+                                }
+                                div {
+                                    style: format!("display:flex; gap:{spacing_control};"),
+                                    Knob { param_ptr: params.wow_depth.as_ptr(), size: KnobSize::Medium }
+                                    Knob { param_ptr: params.wow_rate.as_ptr(), size: KnobSize::Small }
+                                    Knob { param_ptr: params.wow_drift.as_ptr(), size: KnobSize::Small }
+                                    Knob { param_ptr: params.wow_phase_offset.as_ptr(), size: KnobSize::Small }
+                                }
                             }
 
                             div {
@@ -396,6 +429,21 @@ pub fn App() -> Element {
                                 Knob { param_ptr: params.flutter_depth.as_ptr(), size: KnobSize::Medium }
                                 Knob { param_ptr: params.flutter_rate.as_ptr(), size: KnobSize::Small }
                             }
+                        }
+                    }
+
+                    // ── Row 3b: Rhythm Taps (Rhythm style only) ──────
+                    if is_rhythm {
+                        ControlGroup {
+                            label: "Rhythm Taps",
+                            Knob { param_ptr: params.rhythm_tap_1.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.rhythm_tap_2.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.rhythm_tap_3.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.rhythm_tap_4.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.rhythm_tap_5.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.rhythm_tap_6.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.rhythm_tap_7.as_ptr(), size: KnobSize::Small }
+                            Knob { param_ptr: params.rhythm_tap_8.as_ptr(), size: KnobSize::Small }
                         }
                     }
 

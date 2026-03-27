@@ -9,6 +9,7 @@ use std::sync::Arc;
 use atomic_float::AtomicF32;
 use delay_dsp::chain::{DelayChain, HeadMode, StereoMode};
 use delay_dsp::engine::DelayStyle;
+use delay_dsp::modulation::WobbleShape;
 use delay_dsp::SaturationType;
 use fts_dsp::note_sync::NoteValue;
 use fts_dsp::{AudioConfig, Processor};
@@ -105,6 +106,34 @@ pub struct FtsDelayParams {
     pub input_level: FloatParam,
     #[id = "output_level"]
     pub output_level: FloatParam,
+
+    // Decay EQ
+    #[id = "decay_tilt"]
+    pub decay_tilt: FloatParam,
+
+    // Wobble Shape & Sync
+    #[id = "wow_shape"]
+    pub wow_shape: FloatParam,
+    #[id = "wow_phase_offset"]
+    pub wow_phase_offset: FloatParam,
+
+    // Rhythm Taps
+    #[id = "rhythm_tap_1"]
+    pub rhythm_tap_1: FloatParam,
+    #[id = "rhythm_tap_2"]
+    pub rhythm_tap_2: FloatParam,
+    #[id = "rhythm_tap_3"]
+    pub rhythm_tap_3: FloatParam,
+    #[id = "rhythm_tap_4"]
+    pub rhythm_tap_4: FloatParam,
+    #[id = "rhythm_tap_5"]
+    pub rhythm_tap_5: FloatParam,
+    #[id = "rhythm_tap_6"]
+    pub rhythm_tap_6: FloatParam,
+    #[id = "rhythm_tap_7"]
+    pub rhythm_tap_7: FloatParam,
+    #[id = "rhythm_tap_8"]
+    pub rhythm_tap_8: FloatParam,
 
     // Tape Modulation
     #[id = "wow_depth"]
@@ -387,6 +416,64 @@ impl Default for FtsDelayParams {
             )
             .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
+            // Decay EQ
+            decay_tilt: FloatParam::new(
+                "Decay Tilt",
+                0.0,
+                FloatRange::Linear {
+                    min: -1.0,
+                    max: 1.0,
+                },
+            )
+            .with_value_to_string(Arc::new(|v| {
+                if v.abs() < 0.01 {
+                    "Off".to_string()
+                } else if v < 0.0 {
+                    format!("{:.0}% Dark", v * -100.0)
+                } else {
+                    format!("{:.0}% Bright", v * 100.0)
+                }
+            })),
+
+            // Wobble Shape & Sync
+            wow_shape: FloatParam::new(
+                "Wow Shape",
+                0.0,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: (WobbleShape::COUNT - 1) as f32,
+                },
+            )
+            .with_step_size(1.0)
+            .with_value_to_string(Arc::new(|v| {
+                WobbleShape::from_index(v as usize).label().to_string()
+            })),
+
+            wow_phase_offset: FloatParam::new(
+                "Wow Sync",
+                0.0,
+                FloatRange::Linear { min: 0.0, max: 1.0 },
+            )
+            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
+            // Rhythm Taps
+            rhythm_tap_1: FloatParam::new("Tap 1", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            rhythm_tap_2: FloatParam::new("Tap 2", 0.7, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            rhythm_tap_3: FloatParam::new("Tap 3", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            rhythm_tap_4: FloatParam::new("Tap 4", 0.35, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            rhythm_tap_5: FloatParam::new("Tap 5", 0.25, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            rhythm_tap_6: FloatParam::new("Tap 6", 0.18, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            rhythm_tap_7: FloatParam::new("Tap 7", 0.12, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            rhythm_tap_8: FloatParam::new("Tap 8", 0.08, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+
             // Tape Modulation
             wow_depth: FloatParam::new("Wow", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
@@ -612,6 +699,31 @@ impl FtsDelay {
         // Input/Output levels
         c.input_level = p.input_level.value() as f64;
         c.output_level = p.output_level.value() as f64;
+
+        // Decay EQ
+        let decay_tilt = p.decay_tilt.value() as f64;
+        c.delay_l.decay_tilt = decay_tilt;
+        c.delay_r.decay_tilt = decay_tilt;
+
+        // Wobble shape & phase offset
+        let wow_shape = WobbleShape::from_index(p.wow_shape.value() as usize);
+        c.delay_l.wow_shape = wow_shape;
+        c.delay_r.wow_shape = wow_shape;
+        c.delay_l.wow_phase_offset = 0.0;
+        c.delay_r.wow_phase_offset = p.wow_phase_offset.value() as f64;
+
+        // Rhythm taps
+        c.delay_l.rhythm_taps = [
+            p.rhythm_tap_1.value() as f64,
+            p.rhythm_tap_2.value() as f64,
+            p.rhythm_tap_3.value() as f64,
+            p.rhythm_tap_4.value() as f64,
+            p.rhythm_tap_5.value() as f64,
+            p.rhythm_tap_6.value() as f64,
+            p.rhythm_tap_7.value() as f64,
+            p.rhythm_tap_8.value() as f64,
+        ];
+        c.delay_r.rhythm_taps = c.delay_l.rhythm_taps;
 
         // Wow
         let wow_depth = p.wow_depth.value() as f64;

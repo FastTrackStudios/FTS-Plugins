@@ -18,7 +18,10 @@ pub struct ReverseDelay {
     pub hicut_freq: f64,
     /// Filter Q.
     pub filter_q: f64,
+    /// Decay EQ tilt (-1.0 = darken repeats, 0 = neutral, +1.0 = brighten).
+    pub decay_tilt: f64,
 
+    decay_eq: Biquad,
     delay: DelayLine,
     hicut: Biquad,
     feedback_sample: f64,
@@ -39,6 +42,8 @@ impl ReverseDelay {
             grain_crossfade: 0.1,
             hicut_freq: 0.0,
             filter_q: 0.707,
+            decay_tilt: 0.0,
+            decay_eq: Biquad::new(),
             delay: DelayLine::new(48000 * 5 + 1024),
             hicut: Biquad::new(),
             feedback_sample: 0.0,
@@ -62,6 +67,19 @@ impl ReverseDelay {
                 self.filter_q,
                 sample_rate,
             );
+        }
+
+        // Decay EQ: tilt filter in feedback path
+        if self.decay_tilt.abs() > 0.01 {
+            if self.decay_tilt < 0.0 {
+                let freq = 20000.0 * (1.0 + self.decay_tilt).max(0.05);
+                self.decay_eq
+                    .set(FilterType::Lowpass, freq, 0.707, sample_rate);
+            } else {
+                let freq = 20.0 + self.decay_tilt * 2000.0;
+                self.decay_eq
+                    .set(FilterType::Highpass, freq, 0.707, sample_rate);
+            }
         }
 
         self.grain_samples = ((self.time_ms * 0.001 * sample_rate) as usize).max(64);
@@ -98,6 +116,11 @@ impl ReverseDelay {
         if self.hicut_freq > 0.0 {
             fb = self.hicut.tick(fb, ch);
         }
+
+        if self.decay_tilt.abs() > 0.01 {
+            fb = self.decay_eq.tick(fb, ch);
+        }
+
         fb = fb.clamp(-1.5, 1.5);
         self.feedback_sample = fb;
 
@@ -147,6 +170,7 @@ impl ReverseDelay {
     pub fn reset(&mut self) {
         self.delay.clear();
         self.hicut.reset();
+        self.decay_eq.reset();
         self.feedback_sample = 0.0;
         self.grain_pos = 0;
     }

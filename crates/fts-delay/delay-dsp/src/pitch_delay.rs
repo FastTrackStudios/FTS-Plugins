@@ -4,6 +4,7 @@
 //! to write. When a read head drifts too far from the target delay, it
 //! resets and a crossfade prevents clicks.
 
+use fts_dsp::biquad::{Biquad, FilterType};
 use fts_dsp::delay_line::DelayLine;
 use fts_dsp::smoothing::ParamSmoother;
 
@@ -21,7 +22,10 @@ pub struct PitchDelay {
     pub speed: f64,
     /// Crossfade grain size in milliseconds.
     pub grain_ms: f64,
+    /// Decay EQ tilt (-1.0 = darken repeats, 0 = neutral, +1.0 = brighten).
+    pub decay_tilt: f64,
 
+    decay_eq: Biquad,
     delay: DelayLine,
     /// Read offset for grain A (in samples behind write head).
     offset_a: f64,
@@ -45,6 +49,8 @@ impl PitchDelay {
             feedback: 0.4,
             speed: 1.0,
             grain_ms: 30.0,
+            decay_tilt: 0.0,
+            decay_eq: Biquad::new(),
             delay: DelayLine::new(buf_len),
             offset_a: 0.0,
             offset_b: 0.0,
@@ -62,6 +68,19 @@ impl PitchDelay {
         if self.delay.len() < max_len {
             self.delay = DelayLine::new(max_len);
         }
+        // Decay EQ: tilt filter in feedback path
+        if self.decay_tilt.abs() > 0.01 {
+            if self.decay_tilt < 0.0 {
+                let freq = 20000.0 * (1.0 + self.decay_tilt).max(0.05);
+                self.decay_eq
+                    .set(FilterType::Lowpass, freq, 0.707, sample_rate);
+            } else {
+                let freq = 20.0 + self.decay_tilt * 2000.0;
+                self.decay_eq
+                    .set(FilterType::Highpass, freq, 0.707, sample_rate);
+            }
+        }
+
         self.smoother.set_time(0.15, sample_rate);
         let target = self.time_ms * 0.001 * sample_rate;
         if self.smoother.value() == 0.0 {
@@ -121,7 +140,10 @@ impl PitchDelay {
         let output = sample_a * self.crossfade + sample_b * (1.0 - self.crossfade);
 
         // Feedback with self-limiting
-        let fb = output * self.feedback;
+        let mut fb = output * self.feedback;
+        if self.decay_tilt.abs() > 0.01 {
+            fb = self.decay_eq.tick(fb, 0);
+        }
         let limited_fb = if fb.abs() > 0.001 {
             fb * (3.0 - fb.abs() * 2.0).max(0.0) / 3.0
         } else {
@@ -141,6 +163,7 @@ impl PitchDelay {
 
     pub fn reset(&mut self) {
         self.delay.clear();
+        self.decay_eq.reset();
         self.offset_a = 0.0;
         self.offset_b = 0.0;
         self.crossfade = 1.0;
