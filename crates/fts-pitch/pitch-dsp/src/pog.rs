@@ -277,17 +277,27 @@ fn erb_rate_to_freq(e: f64) -> f64 {
 
 // ── PolyOctave ──────────────────────────────────────────────────────
 
-/// Simple 1st-order lowpass filter for post-processing down-shifted output.
-struct Lpf1 {
+/// Simple 1st-order filter for post-processing shifted output.
+struct Filter1 {
     coeff: f64,
     y1: f64,
+    is_hpf: bool,
 }
 
-impl Lpf1 {
-    fn new() -> Self {
+impl Filter1 {
+    fn new_lpf() -> Self {
         Self {
             coeff: 0.0,
             y1: 0.0,
+            is_hpf: false,
+        }
+    }
+
+    fn new_hpf() -> Self {
+        Self {
+            coeff: 0.0,
+            y1: 0.0,
+            is_hpf: true,
         }
     }
 
@@ -298,9 +308,12 @@ impl Lpf1 {
 
     #[inline]
     fn tick(&mut self, input: f64) -> f64 {
-        // 1-pole LPF: y = y1 + coeff * (x - y1)
         self.y1 += self.coeff * (input - self.y1);
-        self.y1
+        if self.is_hpf {
+            input - self.y1
+        } else {
+            self.y1
+        }
     }
 
     fn reset(&mut self) {
@@ -326,9 +339,11 @@ pub struct PolyOctave {
     gain_sub1: f64,
     gain_up1: f64,
     gain_up2: f64,
-    /// Post-LPF for down-shift artifact removal.
-    post_lpf_sub1: Lpf1,
-    post_lpf_sub2: Lpf1,
+    /// Post-LPF for Sub2 down-shift artifact removal.
+    post_lpf_sub2: Filter1,
+    /// Post-HPF for up-shift sub/low leakage removal.
+    post_hpf_up1: Filter1,
+    post_hpf_up2: Filter1,
     /// DC blocker state.
     dc_x1: f64,
     dc_y1: f64,
@@ -348,8 +363,9 @@ impl PolyOctave {
             gain_sub1: 1.0,
             gain_up1: 1.0,
             gain_up2: 1.0,
-            post_lpf_sub1: Lpf1::new(),
-            post_lpf_sub2: Lpf1::new(),
+            post_lpf_sub2: Filter1::new_lpf(),
+            post_hpf_up1: Filter1::new_hpf(),
+            post_hpf_up2: Filter1::new_hpf(),
             dc_x1: 0.0,
             dc_y1: 0.0,
             dc_coeff: 0.9995,
@@ -395,14 +411,18 @@ impl PolyOctave {
             self.down2_state.push(SignTracker::new());
         }
 
-        // Post-LPF for down shifts: gently roll off phase-scaling artifacts.
-        // These are 1st-order (6 dB/oct) — just takes the edge off the HF.
-        // Sub1 (÷2): gentle rolloff above ~14 kHz
-        // Sub2 (÷4): gentle rolloff above ~8 kHz
-        self.post_lpf_sub1
-            .set_cutoff(sample_rate * 0.32, sample_rate);
+        // Post-LPF for Sub2 only: 1st-order at 0.18×SR (~8 kHz @ 44.1k).
+        // Sub2 (÷4) generates more HF phase-scaling noise. Sub1 has no LPF —
+        // any LPF steep enough to cut presence excess also destroys the air band.
         self.post_lpf_sub2
             .set_cutoff(sample_rate * 0.18, sample_rate);
+
+        // Post-HPF for up-shifts: remove sub/low leakage that the filter bank
+        // passes through un-shifted. Harmonitron cuts this aggressively.
+        // Up1 (+12st): HPF at ~250 Hz — at 1st-order, gives ~-21 dB at 20 Hz.
+        // Up2 (+24st): HPF at ~120 Hz — gentler since two_oct_up has less leakage.
+        self.post_hpf_up1.set_cutoff(250.0, sample_rate);
+        self.post_hpf_up2.set_cutoff(120.0, sample_rate);
 
         // Empirical per-shift gain calibration: process broadband noise through
         // the actual phase-scaling paths and measure output level.
@@ -527,8 +547,9 @@ impl PolyOctave {
         for s in &mut self.down2_state {
             s.reset();
         }
-        self.post_lpf_sub1.reset();
         self.post_lpf_sub2.reset();
+        self.post_hpf_up1.reset();
+        self.post_hpf_up2.reset();
         self.dc_x1 = 0.0;
         self.dc_y1 = 0.0;
     }
@@ -572,12 +593,12 @@ impl PolyOctave {
             }
         }
 
-        // Apply per-shift gain normalization and post-LPF for down shifts.
+        // Apply per-shift gain normalization and post-filtering.
         let wet = match self.shift {
             OctaveShift::Sub2 => self.post_lpf_sub2.tick(sum) * self.gain_sub2,
-            OctaveShift::Sub1 => self.post_lpf_sub1.tick(sum) * self.gain_sub1,
-            OctaveShift::Up1 => sum * self.gain_up1,
-            OctaveShift::Up2 => sum * self.gain_up2,
+            OctaveShift::Sub1 => sum * self.gain_sub1,
+            OctaveShift::Up1 => self.post_hpf_up1.tick(sum) * self.gain_up1,
+            OctaveShift::Up2 => self.post_hpf_up2.tick(sum) * self.gain_up2,
         };
 
         // DC blocker on wet signal.
