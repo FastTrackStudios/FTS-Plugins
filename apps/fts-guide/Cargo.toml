@@ -60,7 +60,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-nih_plug_dioxus = { workspace = true, features = ["softbuffer-blit"] }
+nih_plug_dioxus = { workspace = true }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 nih_plug_dioxus = { workspace = true }

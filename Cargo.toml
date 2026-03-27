@@ -156,7 +156,7 @@ reaper-launcher = { git = "https://github.com/FastTrackStudios/daw.git", branch 
 
 # NIH-plug audio plugin framework (FTS fork with Dioxus UI + REAPER embed support)
 nih_plug = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
-nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui", features = ["softbuffer-blit"] }
+nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
 
 # Audio loading
 symphonium = { version = "0.6", default-features = false, features = ["wav", "pcm", "fft-resampler"] }
@@ -206,9 +206,9 @@ tokio = { version = "1", features = ["sync", "rt"] }
 # fts-audio-proto = { path = "../daw/crates/fts-audio-proto" }
 # reaper-test = { path = "../daw/crates/reaper-test" }
 
-# [patch."https://github.com/FastTrackStudios/nih-plug.git"]
-# nih_plug = { path = "forks/nih-plug" }
-# nih_plug_dioxus = { path = "forks/nih-plug/nih_plug_dioxus" }
+[patch."https://github.com/FastTrackStudios/nih-plug.git"]
+nih_plug = { path = "forks/nih-plug" }
+nih_plug_dioxus = { path = "forks/nih-plug/nih_plug_dioxus" }
 
 # Override blitz crates from upstream git to use our FTS fork with post-processing support
 # Fork: https://github.com/FastTrackStudios/blitz (branch: post-processing)
