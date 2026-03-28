@@ -32,7 +32,7 @@ impl CompChain {
         sidechain_hpf.filter_type = FilterType::Highpass;
         sidechain_hpf.structure = FilterStructure::Tdf2;
         sidechain_hpf.freq_hz = 85.0;
-        sidechain_hpf.q = 1.0;
+        sidechain_hpf.q = std::f64::consts::FRAC_1_SQRT_2; // Butterworth: 1/√2 ≈ 0.707
         sidechain_hpf.order = 2;
         sidechain_hpf.enabled = false;
 

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use comp_dsp::chain::CompChain;
 use fts_dsp::{AudioConfig, Processor};
 
-mod editor;
+pub mod editor;
 
 // ── Shared UI State ──────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ pub struct CompUiState {
 pub const WAVEFORM_LEN: usize = 200;
 
 impl CompUiState {
-    fn new(params: Arc<FtsCompParams>) -> Self {
+    pub fn new(params: Arc<FtsCompParams>) -> Self {
         let waveform_input: Box<[AtomicF32]> = (0..WAVEFORM_LEN)
             .map(|_| AtomicF32::new(0.0))
             .collect::<Vec<_>>()
@@ -257,7 +257,7 @@ impl Default for FtsCompParams {
 
             sidechain_freq: FloatParam::new(
                 "SC HPF",
-                0.0,
+                85.0,
                 FloatRange::Linear {
                     min: 0.0,
                     max: 300.0,

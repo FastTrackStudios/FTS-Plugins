@@ -42,7 +42,8 @@ Note: Pro-C 3 release values below ~19ms all map to normalized 0.0 (the plugin's
 - 20–100 Hz: noticeably less compression (e.g. -2.3 dB vs -5.3 dB at 1 kHz for fast attack/fast release)
 - 100–200 Hz: transition zone
 - 200+ Hz: consistent, frequency-independent behavior
-- This suggests Clean style has a gentle sidechain HPF or frequency-weighted detector
+- **Confirmed**: Clean style uses a 2nd-order Butterworth sidechain HPF at 85 Hz (Q=0.707).
+  FTS-Comp now matches this exactly — 6664/6664 (100%) at 1.0 dB tolerance with HPF active.
 
 ## How to Iterate
 
@@ -62,24 +63,21 @@ cd /home/cody/Development/FastTrackStudio/FTS-Plugins && \
   cargo build --release --package comp-plugin && \
   cp target/release/libcomp_plugin.so target/bundled/comp-plugin.clap
 
-# Run comparison (use pro-c3-clean-nosc for no-sidechain-HPF reference)
+# Run comparison (with SC HPF at 85 Hz active — default behaviour)
 cd /home/cody/Development/FastTrackStudio/fts-analyzer && \
   cargo run --release --package fts-analyzer-cli -- compare-compressor \
     /home/cody/Development/FastTrackStudio/FTS-Plugins/target/bundled/comp-plugin.clap \
-    --reference ./reference/pro-c3-clean-nosc \
-    --out ./results/fts-comp-clean-nosc \
+    --reference ./reference/pro-c3-clean \
+    --out ./results/fts-comp-clean-hpf \
     --param-remap 7=Attack --param-remap 8=Release \
     --param 602006635=-18.0 --param 108285963=4.0 --param 3296579=18.0 \
-    --param 660387005=4.0 --param 1955982213=0.0 --param 1908880135=0.0 \
+    --param 660387005=4.0 --param 1955982213=0.0 \
     --tolerance-db 1.0
 ```
 
-**Current result**: 6661/6664 (99.95%) across 196 scenarios × 34 frequencies at 1.0 dB tolerance.
+**Current result**: **6664/6664 (100%)** across 196 scenarios × 34 frequencies at 1.0 dB tolerance.
 
-**3 remaining failures**: `atk-0.01ms_rel-0ms` at 20/30/40 Hz (RMS 1.06–1.23 dB).
-These represent the absolute extreme — instantaneous attack + minimum release at very low frequencies —
-where the power-domain GR smoothing produces a slightly different steady-state from Pro-C 3.
-Varying `SMOOTH_POWER` (0.70–0.90) does not improve these 3 cases.
+Worst RMS diff: 0.965 dB. No failures.
 
 ### Reading comparison output
 
