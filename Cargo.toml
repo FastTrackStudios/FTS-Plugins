@@ -200,14 +200,14 @@ tokio = { version = "1", features = ["sync", "rt"] }
 # [patch."https://github.com/FastTrackStudios/FastTrackStudio.git"]
 # macromod = { path = "../FastTrackStudio/crates/macromod/macromod" }
 
-# [patch."https://github.com/FastTrackStudios/daw.git"]
+[patch."https://github.com/FastTrackStudios/daw.git"]
+reaper-test = { path = "../daw/crates/reaper-test" }
 # daw = { path = "../daw/crates/daw" }
 # daw-control = { path = "../daw/crates/daw-control" }
 # daw-control-sync = { path = "../daw/crates/daw-control-sync" }
 # daw-proto = { path = "../daw/crates/daw-proto" }
 # daw-reaper = { path = "../daw/crates/daw-reaper" }
 # fts-audio-proto = { path = "../daw/crates/fts-audio-proto" }
-# reaper-test = { path = "../daw/crates/reaper-test" }
 
 [patch."https://github.com/FastTrackStudios/nih-plug.git"]
 nih_plug = { path = "forks/nih-plug" }
@@ -247,17 +247,26 @@ anyrender_vello_cpu = { git = "https://github.com/FastTrackStudios/anyrender.git
 anyrender_vello_hybrid = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 anyrender_svg = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 wgpu_context = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
-# moire: unify crates.io moire with the git rev that vox pulls in,
-# avoiding duplicate moire-runtime #[ctor] registrations that crash.
-moire = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
-moire-macros-noop = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
-moire-runtime = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
-moire-tokio = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
-moire-trace-types = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
-moire-types = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
-moire-wasm = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
-moire-wire = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
+# moire: FTS fork — tolerates broken frame-pointer chains on NixOS glibc.
+# All moire crates must point to the same fork rev to avoid duplicate
+# moire-runtime #[ctor] registrations that crash CLAP plugin scanning.
+moire = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-macros-noop = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-runtime = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-tokio = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-trace-capture = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-trace-types = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-types = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-wasm = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-wire = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
 
-# moire-trace-capture: tolerate broken frame-pointer chains (NixOS glibc).
-# [patch."https://github.com/bearcove/moire"]
-# moire-trace-capture = { path = "../forks/moire-trace-capture" }
+[patch."https://github.com/bearcove/moire"]
+moire = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-macros-noop = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-runtime = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-tokio = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-trace-capture = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-trace-types = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-types = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-wasm = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
+moire-wire = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }

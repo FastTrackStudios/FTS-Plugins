@@ -10,7 +10,7 @@
 PLUGIN_NAME := "fts-macros"
 
 # Platform-specific paths
-FX_DIR_LINUX := env_var("HOME") / ".config/REAPER/UserPlugins/FX"
+FX_DIR_LINUX := env_var("HOME") / ".clap"
 FX_DIR_MAC := env_var("HOME") / "Music/FastTrackStudio/Reaper/FTS-TRACKS/UserPlugins/FX"
 LOG_FILE_LINUX := env_var("HOME") / ".config/REAPER/Logs/nih.log"
 LOG_FILE_MAC := env_var("HOME") / "Library/Logs/REAPER/nih.log"
@@ -48,8 +48,7 @@ install plugin=PLUGIN_NAME: (bundle plugin)
     if [ "$(uname)" = "Darwin" ]; then
         FX_DIR="{{FX_DIR_MAC}}"
     else
-        # Use REAPER config from env if set (nix shell), else default
-        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
+        FX_DIR="{{FX_DIR_LINUX}}"
     fi
 
     CLAP_FILE="{{plugin}}.clap"
@@ -72,6 +71,24 @@ install plugin=PLUGIN_NAME: (bundle plugin)
     cp -r "$BUNDLED" "$FX_DIR/"
     echo "Installed: $FX_DIR/$CLAP_FILE"
 
+# Install all plugins
+install-all:
+    just install comp-plugin
+    just install eq-plugin
+    just install gate-plugin
+    just install limiter-plugin
+    just install tape-plugin
+    just install delay-plugin
+    just install reverb-plugin
+    just install trigger-plugin
+    just install rider-plugin
+    just install chorus-plugin
+    just install pitch-plugin
+    just install saturate-plugin
+    just install trem-plugin
+    just install nam-plugin
+    just install midi-guitar-plugin
+
 # Install and show REAPER reload instructions
 install-reload plugin=PLUGIN_NAME: (install plugin)
     #!/usr/bin/env bash
@@ -86,7 +103,7 @@ uninstall plugin=PLUGIN_NAME:
     if [ "$(uname)" = "Darwin" ]; then
         FX_DIR="{{FX_DIR_MAC}}"
     else
-        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
+        FX_DIR="{{FX_DIR_LINUX}}"
     fi
     CLAP_FILE="{{plugin}}.clap"
     if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -d "$FX_DIR/$CLAP_FILE" ]; then
@@ -159,14 +176,10 @@ test-dsp dsp_crate:
     cargo test -p {{dsp_crate}}
 
 # Run REAPER integration tests (spawns REAPER, runs #[reaper_test] tests)
-test-reaper plugin=PLUGIN_NAME *test_name="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [ -n "{{test_name}}" ]; then
-        cargo run --package xtask -- reaper-test {{plugin}} {{test_name}}
-    else
-        cargo run --package xtask -- reaper-test {{plugin}}
-    fi
+# Pass --no-headless to run with a real display (enables plugin GUI rendering)
+# Example: just test-reaper comp-plugin comp_gui --no-headless
+test-reaper plugin=PLUGIN_NAME *args="":
+    cargo run --package xtask -- reaper-test {{plugin}} {{args}}
 
 # Format code
 fmt:
@@ -182,7 +195,7 @@ info plugin=PLUGIN_NAME:
     if [ "$(uname)" = "Darwin" ]; then
         FX_DIR="{{FX_DIR_MAC}}"
     else
-        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
+        FX_DIR="{{FX_DIR_LINUX}}"
     fi
     CLAP_FILE="{{plugin}}.clap"
     echo "Plugin:     {{plugin}}"

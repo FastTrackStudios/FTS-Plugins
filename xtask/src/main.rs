@@ -13,8 +13,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .ok_or("Usage: cargo xtask reaper-test <package> [filter] [--keep-open]")?
             .clone();
         let keep_open = args.iter().any(|a| a == "--keep-open");
+        let headless = !args.iter().any(|a| a == "--no-headless");
         let filter = args.get(3).filter(|a| !a.starts_with('-')).cloned();
-        reaper_test(&package, filter, keep_open)
+        reaper_test(&package, filter, keep_open, headless)
     } else {
         nih_plug_xtask::main().map_err(|e| e.into())
     }
@@ -24,6 +25,7 @@ fn reaper_test(
     package: &str,
     filter: Option<String>,
     keep_open: bool,
+    headless: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     let ci = std::env::var("CI").is_ok();
@@ -38,7 +40,9 @@ fn reaper_test(
         extension_log: PathBuf::from("/tmp/daw-bridge.log"),
         timeout_secs,
         keep_open,
+        headless,
         ci,
+        extension_whitelist: Vec::new(),
     };
 
     // ── Step 1: Ensure daw-bridge extension is installed ─────────────────
@@ -153,6 +157,7 @@ fn reaper_test(
         features: vec![],
         test_threads: 1,
         default_skips: vec![],
+        test_binary: None,
     }];
 
     let tests_passed = runner.run_tests(&mut reaper, &packages, filter.as_deref())?;
