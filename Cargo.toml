@@ -102,6 +102,9 @@ members = [
     "apps/*",
     "xtask",
 ]
+exclude = [
+    "apps/fts-macros",  # depends on `roam` crate from daw repo
+]
 resolver = "2"
 
 [workspace.package]
@@ -142,9 +145,9 @@ facet-json = { version = "0.44" }
 facet-value = { version = "0.44" }
 facet-yaml = { version = "0.44" }
 
-vox = { git = "https://github.com/bearcove/vox.git", rev = "53bff48" }
-vox-inprocess = { git = "https://github.com/bearcove/vox.git", rev = "53bff48" }
-vox-stream = { git = "https://github.com/bearcove/vox.git", rev = "53bff48" }
+vox = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
+vox-inprocess = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
+vox-stream = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
 
 # DAW facade crate (for reaper-test)
 daw = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
