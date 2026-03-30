@@ -216,27 +216,27 @@ nih_plug_dioxus = { path = "forks/nih-plug/nih_plug_dioxus" }
 # Override blitz crates from upstream git to use our FTS fork with post-processing support
 # Fork: https://github.com/FastTrackStudios/blitz (branch: post-processing)
 [patch."https://github.com/DioxusLabs/blitz.git"]
-dioxus-native = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-dioxus-native-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-html = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-net = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-paint = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-traits = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-shell = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-stylo_taffy = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+dioxus-native = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+dioxus-native-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-html = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-net = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-paint = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-traits = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-shell = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+stylo_taffy = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
 
 [patch.crates-io]
 # Blitz crates - FTS fork with post-processing support
-dioxus-native = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-dioxus-native-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-html = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-net = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-paint = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-traits = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-blitz-shell = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
-stylo_taffy = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "a72a6bd" }
+dioxus-native = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+dioxus-native-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-html = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-net = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-paint = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-traits = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+blitz-shell = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
+stylo_taffy = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
 # Stylo crates - FTS fork with derive_more v1 fix
 stylo = { git = "https://github.com/FastTrackStudios/stylo.git", rev = "8bb8c3b" }
 selectors = { git = "https://github.com/FastTrackStudios/stylo.git", rev = "8bb8c3b" }
