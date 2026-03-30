@@ -8,7 +8,7 @@ use std::sync::atomic::Ordering;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{
-    use_init_theme, ControlGroup, Divider, DragProvider, KnobSize, LevelMeterDb, PeakWaveform,
+    use_init_theme, ControlGroup, Divider, DragProvider, KnobSize, PeakWaveform,
 };
 use fts_plugin_core::prelude::*;
 
@@ -27,7 +27,6 @@ pub fn App() -> Element {
     // Read metering values
     let gr_db = ui.gain_reduction_db.load(Ordering::Relaxed);
     let input_db = ui.input_peak_db.load(Ordering::Relaxed);
-    let output_db = ui.output_peak_db.load(Ordering::Relaxed);
 
     // Read current param values for transfer curve
     let threshold = params.threshold_db.value();
@@ -114,31 +113,18 @@ pub fn App() -> Element {
                 }
 
                 // ── Visualization ────────────────────────────────────
-                div {
+                PeakWaveform {
+                    levels: waveform_in,
+                    gr_levels: waveform_gr,
+                    threshold_db: Some(threshold),
+                    ratio: Some(ratio),
+                    knee_db: knee,
+                    input_level_db: input_level,
+                    fill: true,
                     style: format!(
-                        "display:flex; gap:6px; flex:1; min-height:0; align-items:stretch;",
+                        "{} flex:1; min-width:0; min-height:0; overflow:hidden;",
+                        t.style_card(),
                     ),
-
-                    // Input meter
-                    LevelMeterDb { level_db: input_db, label: "IN".to_string(), width: 18.0, fill: true }
-
-                    // Waveform + GR + transfer curve overlay
-                    PeakWaveform {
-                        levels: waveform_in,
-                        gr_levels: waveform_gr,
-                        threshold_db: Some(threshold),
-                        ratio: Some(ratio),
-                        knee_db: knee,
-                        input_level_db: input_level,
-                        fill: true,
-                        style: format!(
-                            "{} flex:1; min-width:0; min-height:0; overflow:hidden;",
-                            t.style_card(),
-                        ),
-                    }
-
-                    // Output meter
-                    LevelMeterDb { level_db: output_db, label: "OUT".to_string(), width: 18.0, fill: true }
                 }
 
                 // ── Primary controls ─────────────────────────────────
