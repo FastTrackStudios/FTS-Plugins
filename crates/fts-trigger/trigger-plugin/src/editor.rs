@@ -216,17 +216,14 @@ pub fn App() -> Element {
 
                         Divider {}
 
-                        // MIDI output controls
-                        div {
-                            style: "display:flex; gap:6px; align-items:center;",
-                            div {
-                                style: format!("{style_label}"),
-                                "MIDI"
-                            }
-                            ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
-                            Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
-                            Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
-                        }
+                        // TODO: MIDI output controls (params not yet added)
+                        // div {
+                        //     style: "display:flex; gap:6px; align-items:center;",
+                        //     div { style: format!("{style_label}"), "MIDI" }
+                        //     ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
+                        //     Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
+                        //     Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
+                        // }
                     }
                 }
 
@@ -314,7 +311,7 @@ pub fn App() -> Element {
                         enabled_ptr: params.slots[slot].enabled.as_ptr(),
                         mute_ptr: params.slots[slot].mute.as_ptr(),
                         solo_ptr: params.slots[slot].solo.as_ptr(),
-                        midi_note_ptr: params.slots[slot].midi_note.as_ptr(),
+                        // TODO: midi_note_ptr (param not yet added)
                         on_load: {
                             let ui = ui_for_load.clone();
                             move |slot: usize| {

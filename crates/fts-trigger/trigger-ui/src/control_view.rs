@@ -18,7 +18,7 @@ pub fn MixerStrip(
     enabled_ptr: ParamPtr,
     mute_ptr: ParamPtr,
     solo_ptr: ParamPtr,
-    midi_note_ptr: ParamPtr,
+    // TODO: midi_note_ptr: ParamPtr, (param not yet added)
     on_load: EventHandler<usize>,
 ) -> Element {
     let t = use_theme();
@@ -132,8 +132,8 @@ pub fn MixerStrip(
                 Knob { param_ptr: pitch_ptr, size: KnobSize::Small }
             }
 
-            // MIDI note knob
-            Knob { param_ptr: midi_note_ptr, size: KnobSize::Small }
+            // TODO: MIDI note knob (param not yet added)
+            // Knob { param_ptr: midi_note_ptr, size: KnobSize::Small }
 
             // Mute / Solo row
             div {
