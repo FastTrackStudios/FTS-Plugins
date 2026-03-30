@@ -39,10 +39,15 @@ build-debug plugin=PLUGIN_NAME: (bundle-debug plugin)
 
 # ── Install Commands ──────────────────────────────────────────────────
 
-# Install a bundled CLAP plugin to REAPER's FX directory
-install plugin=PLUGIN_NAME: (bundle plugin)
+# Install a CLAP plugin to REAPER's FX directory via symlink.
+# Builds release, then symlinks the .so as a .clap file so REAPER
+# always picks up the latest build without re-copying.
+install plugin=PLUGIN_NAME:
     #!/usr/bin/env bash
     set -euo pipefail
+
+    # Build release
+    cargo build --release --package {{plugin}}
 
     # Determine FX directory (Linux vs macOS)
     if [ "$(uname)" = "Darwin" ]; then
@@ -53,23 +58,26 @@ install plugin=PLUGIN_NAME: (bundle plugin)
 
     CLAP_FILE="{{plugin}}.clap"
 
+    # Derive the library name from the plugin name (e.g. comp-plugin -> libcomp_plugin.so)
+    LIB_NAME="lib$(echo '{{plugin}}' | tr '-' '_').so"
+    SO_PATH="$(pwd)/target/release/$LIB_NAME"
+
+    if [ ! -f "$SO_PATH" ]; then
+        echo "ERROR: $SO_PATH not found. Did the build succeed?"
+        exit 1
+    fi
+
     mkdir -p "$FX_DIR"
 
-    # Remove old plugin
-    if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -d "$FX_DIR/$CLAP_FILE" ]; then
+    # Remove old plugin (file, symlink, or directory)
+    if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -L "$FX_DIR/$CLAP_FILE" ]; then
         rm -rf "$FX_DIR/$CLAP_FILE"
         echo "Removed old $CLAP_FILE"
     fi
 
-    # Copy new plugin
-    BUNDLED="./target/bundled/$CLAP_FILE"
-    if [ ! -e "$BUNDLED" ]; then
-        echo "ERROR: $BUNDLED not found. Did the build succeed?"
-        exit 1
-    fi
-
-    cp -r "$BUNDLED" "$FX_DIR/"
-    echo "Installed: $FX_DIR/$CLAP_FILE"
+    # Symlink the release .so as .clap
+    ln -s "$SO_PATH" "$FX_DIR/$CLAP_FILE"
+    echo "Installed: $FX_DIR/$CLAP_FILE -> $SO_PATH"
 
 # Install all plugins
 install-all:

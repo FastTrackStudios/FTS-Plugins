@@ -15,6 +15,10 @@ use fts_plugin_core::prelude::*;
 
 use crate::{CompUiState, WAVEFORM_LEN};
 
+/// Set to `true` to replace all visualizers/meters with plain colored boxes.
+/// This isolates whether the viz components are the FPS bottleneck.
+const DUMMY_VIZ: bool = false;
+
 /// Root editor component.
 #[component]
 pub fn App() -> Element {
@@ -112,62 +116,108 @@ pub fn App() -> Element {
                 }
 
                 // ── Visualization row ────────────────────────────────
-                div {
-                    style: format!(
-                        "display:flex; gap:{}; min-height:0;",
-                        t.spacing_section,
-                    ),
-
-                    // Transfer curve
+                if DUMMY_VIZ {
+                    // Dummy placeholders — same sizes, no complex DOM
                     div {
                         style: format!(
-                            "{} padding:{}; \
-                             display:flex; flex-direction:column; gap:{};",
-                            t.style_card(),
-                            t.spacing_card,
-                            t.spacing_label,
+                            "display:flex; gap:{}; min-height:0;",
+                            t.spacing_section,
                         ),
-                        SectionLabel { text: "Transfer Curve" }
-                        TransferCurve {
-                            threshold_db: threshold,
-                            ratio: ratio,
-                            knee_db: knee,
-                            input_level_db: input_level,
-                            width: 160.0,
-                            height: 160.0,
+                        // Transfer curve placeholder
+                        div {
+                            style: format!(
+                                "{} padding:{}; display:flex; flex-direction:column; gap:{};",
+                                t.style_card(), t.spacing_card, t.spacing_label,
+                            ),
+                            SectionLabel { text: "Transfer Curve (DUMMY)" }
+                            div {
+                                style: "width:160px; height:160px; background:#1a3a2a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:11px;",
+                                "160x160"
+                            }
+                        }
+                        // Waveform placeholder
+                        div {
+                            style: format!(
+                                "{} flex:1; padding:{}; display:flex; flex-direction:column; gap:{}; min-width:0;",
+                                t.style_card(), t.spacing_card, t.spacing_label,
+                            ),
+                            SectionLabel { text: "Waveform (DUMMY)" }
+                            div {
+                                style: "width:340px; height:160px; background:#1a2a3a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:11px;",
+                                "340x160"
+                            }
+                        }
+                        // Meters placeholder
+                        div {
+                            style: format!(
+                                "{} padding:{}; display:flex; gap:{}; align-items:stretch;",
+                                t.style_card(), t.spacing_card, t.spacing_section,
+                            ),
+                            div {
+                                style: "width:24px; height:160px; background:#2a1a1a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:9px; writing-mode:vertical-rl;",
+                                "IN"
+                            }
+                            div {
+                                style: "width:24px; height:160px; background:#2a2a1a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:9px; writing-mode:vertical-rl;",
+                                "GR"
+                            }
+                            div {
+                                style: "width:24px; height:160px; background:#2a1a1a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:9px; writing-mode:vertical-rl;",
+                                "OUT"
+                            }
                         }
                     }
-
-                    // Waveform display
+                } else {
                     div {
                         style: format!(
-                            "{} flex:1; padding:{}; \
-                             display:flex; flex-direction:column; gap:{}; min-width:0;",
-                            t.style_card(),
-                            t.spacing_card,
-                            t.spacing_label,
+                            "display:flex; gap:{}; flex:1; min-height:0; align-items:stretch;",
+                            t.spacing_section,
                         ),
-                        SectionLabel { text: "Waveform / Gain Reduction" }
+
+                        // Transfer curve
+                        div {
+                            style: format!(
+                                "{} padding:{}; \
+                                 display:flex; flex-direction:column; gap:{};",
+                                t.style_card(),
+                                t.spacing_card,
+                                t.spacing_label,
+                            ),
+                            SectionLabel { text: "Transfer Curve" }
+                            TransferCurve {
+                                threshold_db: threshold,
+                                ratio: ratio,
+                                knee_db: knee,
+                                input_level_db: input_level,
+                                width: 160.0,
+                                height: 160.0,
+                            }
+                        }
+
+                        // Waveform / GR display — fills remaining space
                         PeakWaveform {
                             levels: waveform_in,
                             gr_levels: waveform_gr,
-                            width: 340.0,
-                            height: 160.0,
+                            fill: true,
+                            style: format!(
+                                "{} flex:1; min-width:0; min-height:0; overflow:hidden;",
+                                t.style_card(),
+                            ),
                         }
-                    }
 
-                    // Meters
-                    div {
-                        style: format!(
-                            "{} padding:{}; \
-                             display:flex; gap:{}; align-items:stretch;",
-                            t.style_card(),
-                            t.spacing_card,
-                            t.spacing_section,
-                        ),
-                        LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 160.0 }
-                        GrMeter { gain_reduction_db: gr_db, height: 160.0 }
-                        LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 160.0 }
+                        // Meters
+                        div {
+                            style: format!(
+                                "{} padding:{}; \
+                                 display:flex; gap:{}; align-items:stretch;",
+                                t.style_card(),
+                                t.spacing_card,
+                                t.spacing_section,
+                            ),
+                            LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 160.0 }
+                            GrMeter { gain_reduction_db: gr_db, height: 160.0 }
+                            LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 160.0 }
+                        }
                     }
                 }
 
@@ -175,7 +225,7 @@ pub fn App() -> Element {
                 div {
                     style: format!(
                         "{} padding:12px 16px; \
-                         display:flex; flex-direction:column; gap:{}; flex:1; min-height:0;",
+                         display:flex; flex-direction:column; gap:{};",
                         t.style_card(),
                         t.spacing_section,
                     ),
