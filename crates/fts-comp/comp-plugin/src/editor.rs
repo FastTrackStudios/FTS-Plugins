@@ -8,8 +8,7 @@ use std::sync::atomic::Ordering;
 use audio_gui::controls::knob::Knob;
 use audio_gui::controls::toggle::Toggle;
 use audio_gui::prelude::{
-    use_init_theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform,
-    SectionLabel, TransferCurve,
+    use_init_theme, ControlGroup, DragProvider, KnobSize, LevelMeterDb, PeakWaveform, SectionLabel,
 };
 use fts_plugin_core::prelude::*;
 
@@ -174,30 +173,17 @@ pub fn App() -> Element {
                             t.spacing_section,
                         ),
 
-                        // Transfer curve
-                        div {
-                            style: format!(
-                                "{} padding:{}; \
-                                 display:flex; flex-direction:column; gap:{};",
-                                t.style_card(),
-                                t.spacing_card,
-                                t.spacing_label,
-                            ),
-                            SectionLabel { text: "Transfer Curve" }
-                            TransferCurve {
-                                threshold_db: threshold,
-                                ratio: ratio,
-                                knee_db: knee,
-                                input_level_db: input_level,
-                                width: 160.0,
-                                height: 160.0,
-                            }
-                        }
+                        // Input meter (left edge)
+                        LevelMeterDb { level_db: input_db, label: "IN".to_string(), width: 18.0, fill: true }
 
-                        // Waveform / GR display — fills remaining space
+                        // Waveform + GR + transfer curve overlay — fills all remaining space
                         PeakWaveform {
                             levels: waveform_in,
                             gr_levels: waveform_gr,
+                            threshold_db: Some(threshold),
+                            ratio: Some(ratio),
+                            knee_db: knee,
+                            input_level_db: input_level,
                             fill: true,
                             style: format!(
                                 "{} flex:1; min-width:0; min-height:0; overflow:hidden;",
@@ -205,19 +191,8 @@ pub fn App() -> Element {
                             ),
                         }
 
-                        // Meters
-                        div {
-                            style: format!(
-                                "{} padding:{}; \
-                                 display:flex; gap:{}; align-items:stretch;",
-                                t.style_card(),
-                                t.spacing_card,
-                                t.spacing_section,
-                            ),
-                            LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 160.0 }
-                            GrMeter { gain_reduction_db: gr_db, height: 160.0 }
-                            LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 160.0 }
-                        }
+                        // Output meter (right edge)
+                        LevelMeterDb { level_db: output_db, label: "OUT".to_string(), width: 18.0, fill: true }
                     }
                 }
 
