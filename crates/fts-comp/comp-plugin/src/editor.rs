@@ -1,7 +1,9 @@
 //! Compressor editor — Dioxus GUI root component.
 //!
-//! Layout: compact header, full-width waveform with embedded transfer curve
-//! and flanking meters, primary dynamics knobs, secondary grouped controls.
+//! Pro-C 3 inspired layout: the GR waveform fills the entire window between
+//! the header and bottom control strip. Primary knobs (threshold, ratio,
+//! attack, release, knee) are overlaid on the waveform. Secondary controls
+//! sit in a compact bottom bar.
 
 use std::sync::atomic::Ordering;
 
@@ -71,7 +73,7 @@ pub fn App() -> Element {
         DragProvider {
             div {
                 style: format!(
-                    "{} display:flex; flex-direction:column; gap:6px;",
+                    "{} display:flex; flex-direction:column;",
                     t.root_style(),
                 ),
 
@@ -112,48 +114,61 @@ pub fn App() -> Element {
                     }
                 }
 
-                // ── Visualization ────────────────────────────────────
-                PeakWaveform {
-                    levels: waveform_in,
-                    gr_levels: waveform_gr,
-                    threshold_db: Some(threshold),
-                    ratio: Some(ratio),
-                    knee_db: knee,
-                    input_level_db: input_level,
-                    fill: true,
-                    style: format!(
-                        "{} flex:1; min-width:0; min-height:0; overflow:hidden;",
-                        t.style_card(),
-                    ),
+                // ── Main area: waveform background + overlaid knobs ──
+                div {
+                    style: "position:relative; flex:1; min-height:0;",
+
+                    // GR waveform fills the entire area
+                    PeakWaveform {
+                        levels: waveform_in,
+                        gr_levels: waveform_gr,
+                        threshold_db: Some(threshold),
+                        ratio: Some(ratio),
+                        knee_db: knee,
+                        input_level_db: input_level,
+                        fill: true,
+                        style: "border-radius:0;".to_string(),
+                    }
+
+                    // Primary knobs overlaid at the bottom of the waveform
+                    div {
+                        style: format!(
+                            "position:absolute; bottom:0; left:0; right:0; \
+                             display:flex; justify-content:center; gap:{}; \
+                             padding:8px 0 10px 0; \
+                             background:linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);",
+                            t.spacing_control,
+                        ),
+                        Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
+                        Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
+                        Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
+                        Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
+                        Knob { param_ptr: params.knee_db.as_ptr(), size: KnobSize::Large }
+                    }
                 }
 
-                // ── Primary controls ─────────────────────────────────
+                // ── Bottom control strip ────────────────────────────
                 div {
                     style: format!(
-                        "display:flex; justify-content:center; gap:{}; \
-                         padding:4px 0;",
+                        "display:flex; gap:{}; justify-content:center; align-items:flex-start; \
+                         padding:6px 8px; border-top:1px solid {};",
                         t.spacing_control,
-                    ),
-                    Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
-                    Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
-                    Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
-                    Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
-                    Knob { param_ptr: params.knee_db.as_ptr(), size: KnobSize::Large }
-                }
-
-                // ── Secondary controls ──────────────────────────────
-                div {
-                    style: format!(
-                        "{} padding:8px 12px; \
-                         display:flex; gap:{}; justify-content:center; align-items:flex-start;",
-                        t.style_card(),
-                        t.spacing_control,
+                        t.border_subtle,
                     ),
 
                     ControlGroup {
+                        label: "Timing",
+                        Knob { param_ptr: params.hold_ms.as_ptr(), size: KnobSize::Small }
+                        Knob { param_ptr: params.lookahead_ms.as_ptr(), size: KnobSize::Small }
+                        Knob { param_ptr: params.range_db.as_ptr(), size: KnobSize::Small }
+                    }
+
+                    Divider {}
+
+                    ControlGroup {
                         label: "I/O",
-                        Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
-                        Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Small }
+                        Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Small }
                         Toggle { param_ptr: params.auto_makeup.as_ptr(), label: "Auto" }
                     }
 
@@ -161,31 +176,31 @@ pub fn App() -> Element {
 
                     ControlGroup {
                         label: "Mix",
-                        Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
-                        Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Small }
+                        Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Small }
                     }
 
                     Divider {}
 
                     ControlGroup {
                         label: "Character",
-                        Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
-                        Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Small }
+                        Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Small }
                     }
 
                     Divider {}
 
                     ControlGroup {
                         label: "Sidechain",
-                        Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Small }
                     }
 
                     Divider {}
 
                     ControlGroup {
                         label: "Advanced",
-                        Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
-                        Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
+                        Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Small }
+                        Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Small }
                     }
                 }
             }
