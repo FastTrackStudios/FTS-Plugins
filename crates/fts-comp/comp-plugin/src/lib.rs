@@ -104,6 +104,15 @@ pub struct FtsCompParams {
     #[id = "sc_freq"]
     pub sidechain_freq: FloatParam,
 
+    #[id = "range"]
+    pub range_db: FloatParam,
+
+    #[id = "hold"]
+    pub hold_ms: FloatParam,
+
+    #[id = "lookahead"]
+    pub lookahead_ms: FloatParam,
+
     /// Read-only gain reduction output for host metering.
     #[id = "gr_out"]
     pub gr_output_db: FloatParam,
@@ -139,7 +148,7 @@ impl Default for FtsCompParams {
                 "Attack",
                 3.0,
                 FloatRange::Skewed {
-                    min: 0.01,
+                    min: 0.005,
                     max: 300.0,
                     factor: FloatRange::skew_factor(-2.0),
                 },
@@ -151,7 +160,7 @@ impl Default for FtsCompParams {
                 "Release",
                 100.0,
                 FloatRange::Skewed {
-                    min: 1.0,
+                    min: 10.0,
                     max: 3000.0,
                     factor: FloatRange::skew_factor(-2.0),
                 },
@@ -266,6 +275,40 @@ impl Default for FtsCompParams {
             .with_unit(" Hz")
             .with_value_to_string(formatters::v2s_f32_rounded(0)),
 
+            range_db: FloatParam::new(
+                "Range",
+                60.0,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 60.0,
+                },
+            )
+            .with_unit(" dB")
+            .with_value_to_string(formatters::v2s_f32_rounded(1)),
+
+            hold_ms: FloatParam::new(
+                "Hold",
+                0.0,
+                FloatRange::Skewed {
+                    min: 0.0,
+                    max: 500.0,
+                    factor: FloatRange::skew_factor(-2.0),
+                },
+            )
+            .with_unit(" ms")
+            .with_value_to_string(formatters::v2s_f32_rounded(1)),
+
+            lookahead_ms: FloatParam::new(
+                "Lookahead",
+                0.0,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 20.0,
+                },
+            )
+            .with_unit(" ms")
+            .with_value_to_string(formatters::v2s_f32_rounded(1)),
+
             gr_output_db: FloatParam::new(
                 "GR",
                 0.0,
@@ -336,8 +379,15 @@ impl FtsComp {
         c.input_gain_db = self.params.input_gain_db.value() as f64;
         c.output_gain_db = self.params.output_gain_db.value() as f64;
 
+        c.range_db = self.params.range_db.value() as f64;
+        c.hold_ms = self.params.hold_ms.value() as f64;
+
         let sc_freq = self.params.sidechain_freq.value() as f64;
         self.chain.set_sidechain_freq(sc_freq);
+
+        let la_ms = self.params.lookahead_ms.value() as f64;
+        self.chain.set_lookahead(la_ms);
+
         self.chain.comp.update(self.sample_rate);
     }
 }
@@ -396,9 +446,12 @@ impl Plugin for FtsComp {
         &mut self,
         buffer: &mut Buffer,
         _aux: &mut AuxiliaryBuffers,
-        _context: &mut impl ProcessContext<Self>,
+        context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
         self.sync_params();
+
+        // Report lookahead latency so the DAW can compensate
+        context.set_latency_samples(self.chain.lookahead_samples as u32);
 
         // Process in blocks — convert f32 ↔ f64 for comp-dsp
         for mut frame in buffer.iter_samples() {

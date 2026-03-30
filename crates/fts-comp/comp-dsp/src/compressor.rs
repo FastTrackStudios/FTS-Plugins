@@ -46,6 +46,10 @@ pub struct Compressor {
     pub attack_ms: f64,
     pub release_ms: f64,
     pub knee_db: f64,
+    /// Maximum gain reduction in dB (Pro-C 3 Range). GR is clamped to this.
+    pub range_db: f64,
+    /// Hold time in ms: GR stays at peak for this duration before releasing.
+    pub hold_ms: f64,
     pub feedback: f64,
     pub channel_link: f64,
     pub inertia: f64,
@@ -73,6 +77,8 @@ impl Compressor {
             attack_ms: 90.0,
             release_ms: 400.0,
             knee_db: 6.0,
+            range_db: 60.0,
+            hold_ms: 0.0,
             feedback: 0.0,
             channel_link: 1.0,
             inertia: 0.0,
@@ -94,6 +100,7 @@ impl Compressor {
         let attack_s = self.attack_ms / 1000.0;
         let release_s = self.release_ms / 1000.0;
         self.detector.set_params(attack_s, release_s, sample_rate);
+        self.detector.set_hold(self.hold_ms, sample_rate);
     }
 
     // r[impl comp.chain.signal-flow]
@@ -135,8 +142,11 @@ impl Compressor {
                 ch,
             );
 
-            // Step 3: Smooth the GR with attack/release
+            // Step 3: Smooth the GR with attack/hold/release
             gr_db[ch] = self.detector.smooth_gr(raw_gr, ch);
+
+            // Step 4: Apply range clamp (max GR limit)
+            gr_db[ch] = gr_db[ch].min(self.range_db);
         }
 
         // Channel linking: blend individual GR with max GR

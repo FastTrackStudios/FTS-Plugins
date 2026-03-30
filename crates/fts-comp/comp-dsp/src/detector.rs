@@ -22,14 +22,14 @@ const ATTACK_SCALE: f64 = 2.0;
 const RELEASE_SCALE: f64 = 2.0;
 
 /// Minimum release time in seconds to prevent zero-crossing collapse.
-/// Pro-C 3's normalized 0.0 release maps to ~9ms; this floor ensures
+/// Pro-C 3's normalized 0.0 release maps to 10ms; this floor ensures
 /// FTS-Comp's release floor matches Pro-C 3's minimum.
-const MIN_RELEASE_S: f64 = 0.009;
+const MIN_RELEASE_S: f64 = 0.010;
 
 /// Minimum attack time in seconds.
-/// Set to Pro-C 3's minimum (0.01 ms) so instantaneous attack at near-zero
+/// Set to Pro-C 3's minimum (0.005 ms) so instantaneous attack at near-zero
 /// settings matches Pro-C 3's peak-hold behavior rather than clamping to 2ms.
-const MIN_ATTACK_S: f64 = 0.00001;
+const MIN_ATTACK_S: f64 = 0.000005;
 
 /// Power exponent for GR smoothing domain.
 /// p=1.0 = dB domain (baseline). p<1.0 reduces Jensen's bias.
@@ -47,6 +47,12 @@ pub struct Detector {
     attack_coeff: f64,
     release_coeff: f64,
     sample_rate: f64,
+
+    // Hold
+    /// Duration of hold phase in samples.
+    hold_samples: usize,
+    /// Per-channel hold countdown: samples remaining before release begins.
+    hold_countdown: [usize; MAX_CH],
 }
 
 impl Detector {
@@ -57,6 +63,8 @@ impl Detector {
             attack_coeff: 0.0,
             release_coeff: 0.0,
             sample_rate: 48000.0,
+            hold_samples: 0,
+            hold_countdown: [0; MAX_CH],
         }
     }
 
@@ -65,6 +73,11 @@ impl Detector {
         self.sample_rate = sample_rate;
         self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, ATTACK_SCALE);
         self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, RELEASE_SCALE);
+    }
+
+    /// Set hold time. Called whenever hold_ms or sample rate changes.
+    pub fn set_hold(&mut self, hold_ms: f64, sample_rate: f64) {
+        self.hold_samples = (hold_ms / 1000.0 * sample_rate).round() as usize;
     }
 
     #[inline]
@@ -83,19 +96,26 @@ impl Detector {
         linear_to_db(combined).max(DB_FLOOR)
     }
 
-    /// Smooth a raw GR value with asymmetric attack/release in power-dB domain.
+    /// Smooth a raw GR value with asymmetric attack/hold/release in power-dB domain.
     #[inline]
     pub fn smooth_gr(&mut self, raw_gr_db: f64, ch: usize) -> f64 {
         // Transform to power domain: gr^p
         let raw_grp = raw_gr_db.max(0.0).powf(SMOOTH_POWER);
 
-        // Asymmetric smoothing in transformed domain
-        let c = if raw_grp > self.smooth_grp[ch] {
-            self.attack_coeff // GR increasing → attack
+        if raw_grp >= self.smooth_grp[ch] {
+            // GR increasing → attack; reset hold countdown
+            self.hold_countdown[ch] = self.hold_samples;
+            let c = self.attack_coeff;
+            self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
+        } else if self.hold_countdown[ch] > 0 {
+            // Hold phase: GR wants to decrease but hold timer hasn't expired
+            self.hold_countdown[ch] -= 1;
+            // smooth_grp unchanged — hold at current level
         } else {
-            self.release_coeff // GR decreasing → release
-        };
-        self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
+            // Release: GR decreasing, hold expired
+            let c = self.release_coeff;
+            self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
+        }
 
         // Inverse transform: gr = smoothed^(1/p)
         self.smooth_grp[ch].max(0.0).powf(1.0 / SMOOTH_POWER)
@@ -115,6 +135,7 @@ impl Detector {
     pub fn reset(&mut self) {
         self.smooth_grp = [0.0; MAX_CH];
         self.prev_output = [0.0; MAX_CH];
+        self.hold_countdown = [0; MAX_CH];
     }
 }
 

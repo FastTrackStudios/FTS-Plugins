@@ -1,7 +1,7 @@
-//! Compressor chain — full signal path with sidechain EQ.
+//! Compressor chain — full signal path with sidechain EQ and lookahead.
 //!
 //! Wraps the core Compressor with a sidechain highpass filter
-//! (from eq-dsp) and implements the fts-dsp Processor trait.
+//! (from eq-dsp), lookahead delay, and implements the fts-dsp Processor trait.
 
 use eq_dsp::band::Band;
 use eq_dsp::filter_type::{FilterStructure, FilterType};
@@ -14,16 +14,24 @@ use crate::compressor::{Compressor, PEAK_TO_MEAN_DB};
 // r[impl comp.chain.sidechain-eq]
 /// Complete compressor processing chain.
 ///
-/// Signal flow: Input → Sidechain HPF → Compressor (detect + reduce + saturate + mix) → Output.
+/// Signal flow: Input → Lookahead delay → Sidechain HPF → Compressor (detect + reduce + saturate + mix) → Output.
 ///
 /// The sidechain HPF is applied only to the detection path, not the audio.
-/// This prevents bass-heavy content from driving excessive gain reduction.
+/// The lookahead delay allows the detector to see transients before they hit the output.
 pub struct CompChain {
     pub comp: Compressor,
     sidechain_hpf: Band,
     /// Sidechain HPF frequency. Set to 0 to disable.
     pub sidechain_freq: f64,
     config: AudioConfig,
+    // Lookahead delay
+    /// Lookahead time in ms.
+    pub lookahead_ms: f64,
+    /// Lookahead in samples (derived from lookahead_ms and sample rate).
+    pub lookahead_samples: usize,
+    delay_l: Vec<f64>,
+    delay_r: Vec<f64>,
+    delay_pos: usize,
 }
 
 impl CompChain {
@@ -32,7 +40,7 @@ impl CompChain {
         sidechain_hpf.filter_type = FilterType::Highpass;
         sidechain_hpf.structure = FilterStructure::Tdf2;
         sidechain_hpf.freq_hz = 85.0;
-        sidechain_hpf.q = std::f64::consts::FRAC_1_SQRT_2; // Butterworth: 1/√2 ≈ 0.707
+        sidechain_hpf.q = 1.0; // Q=1 (0 dB at cutoff, matches Pro-C 3 Versatile)
         sidechain_hpf.order = 2;
         sidechain_hpf.enabled = false;
 
@@ -44,21 +52,52 @@ impl CompChain {
                 sample_rate: 48000.0,
                 max_buffer_size: 512,
             },
+            lookahead_ms: 0.0,
+            lookahead_samples: 0,
+            delay_l: Vec::new(),
+            delay_r: Vec::new(),
+            delay_pos: 0,
         }
     }
 
-    /// Process a single stereo sample through the full chain (sidechain HPF + compressor).
+    /// Process a single stereo sample through the full chain.
+    ///
+    /// Detection always runs on the current (undelayed) input.
+    /// When lookahead > 0, gain reduction is applied to the delayed audio.
     pub fn process_sample(&mut self, left: &mut f64, right: &mut f64) {
-        if self.sidechain_hpf.enabled {
-            // Filter sidechain for detection only
-            let sc_l = self.sidechain_hpf.tick(*left, 0);
-            let sc_r = self.sidechain_hpf.tick(*right, 1);
+        // Lookahead: push current into ring buffer, pull delayed sample for output
+        let (audio_l, audio_r) = if self.lookahead_samples > 0 {
+            let pos = self.delay_pos;
+            let dl = self.delay_l[pos];
+            let dr = self.delay_r[pos];
+            self.delay_l[pos] = *left;
+            self.delay_r[pos] = *right;
+            self.delay_pos = (pos + 1) % self.lookahead_samples;
+            (dl, dr)
+        } else {
+            (*left, *right)
+        };
 
-            // Detect from filtered sidechain
-            let level_l = self.comp.detector.tick(sc_l.abs(), self.comp.feedback, 0);
-            let level_r = self.comp.detector.tick(sc_r.abs(), self.comp.feedback, 1);
+        // Use inlined path when HPF or lookahead is active (both require separating
+        // detection input from audio output). Fall through to compressor for simple case.
+        let need_inline = self.sidechain_hpf.enabled || self.lookahead_samples > 0;
 
-            // Compute gain reduction from filtered levels, then smooth GR
+        if need_inline {
+            // Detection input: HPF-filtered if enabled, otherwise raw current input
+            let (det_l, det_r) = if self.sidechain_hpf.enabled {
+                (
+                    self.sidechain_hpf.tick(*left, 0),
+                    self.sidechain_hpf.tick(*right, 1),
+                )
+            } else {
+                (*left, *right)
+            };
+
+            // Detect from (possibly filtered) current input
+            let level_l = self.comp.detector.tick(det_l.abs(), self.comp.feedback, 0);
+            let level_r = self.comp.detector.tick(det_r.abs(), self.comp.feedback, 1);
+
+            // Compute GR from instantaneous levels
             let inertia_decay = 0.99 + (self.comp.inertia_decay * 0.01);
             let mut gr_db = [0.0_f64; 2];
             for ch in 0..2 {
@@ -73,6 +112,7 @@ impl CompChain {
                     ch,
                 );
                 gr_db[ch] = self.comp.detector.smooth_gr(raw_gr, ch);
+                gr_db[ch] = gr_db[ch].min(self.comp.range_db);
             }
 
             // Channel linking
@@ -84,13 +124,20 @@ impl CompChain {
                 }
             }
 
-            // Apply gain reduction to original (unfiltered) audio
-            let input_gain = db_to_linear(self.comp.input_gain_db);
-            let output_gain = db_to_linear(self.comp.output_gain_db);
-            let dry = [*left, *right];
+            // Apply GR to delayed (or current) audio
+            let mut output_gain = db_to_linear(self.comp.output_gain_db);
+            if self.comp.auto_makeup && self.comp.ratio > 1.0 {
+                let makeup_db = -self.comp.threshold_db * (1.0 - 1.0 / self.comp.ratio) * 0.5;
+                output_gain *= db_to_linear(makeup_db);
+            }
 
-            for (ch, sample) in [left, right].into_iter().enumerate() {
-                let s = *sample * input_gain;
+            let input_gain = db_to_linear(self.comp.input_gain_db);
+            let dry = [audio_l, audio_r];
+            let audios = [audio_l, audio_r];
+            let mut outputs = [0.0_f64; 2];
+
+            for ch in 0..2 {
+                let s = audios[ch] * input_gain;
                 let input_db = linear_to_db(s.abs());
                 let sign = if s < 0.0 { -1.0 } else { 1.0 };
 
@@ -114,10 +161,14 @@ impl CompChain {
                     out = 0.0;
                 }
 
-                *sample = out;
+                outputs[ch] = out;
                 self.comp.last_gr_db[ch] = gr_db[ch];
             }
+
+            *left = outputs[0];
+            *right = outputs[1];
         } else {
+            // Simple path: no HPF, no lookahead — delegate to compressor
             self.comp.process_sample(left, right);
         }
     }
@@ -135,12 +186,27 @@ impl CompChain {
             self.sidechain_hpf.enabled = false;
         }
     }
+
+    /// Set the lookahead time in ms. Reallocates the delay buffer.
+    pub fn set_lookahead(&mut self, lookahead_ms: f64) {
+        self.lookahead_ms = lookahead_ms;
+        let n = (lookahead_ms / 1000.0 * self.config.sample_rate).round() as usize;
+        if n != self.lookahead_samples {
+            self.lookahead_samples = n;
+            self.delay_l = vec![0.0; n.max(1)];
+            self.delay_r = vec![0.0; n.max(1)];
+            self.delay_pos = 0;
+        }
+    }
 }
 
 impl Processor for CompChain {
     fn reset(&mut self) {
         self.comp.reset();
         self.sidechain_hpf.reset();
+        self.delay_l.iter_mut().for_each(|x| *x = 0.0);
+        self.delay_r.iter_mut().for_each(|x| *x = 0.0);
+        self.delay_pos = 0;
     }
 
     fn update(&mut self, config: AudioConfig) {
@@ -149,87 +215,19 @@ impl Processor for CompChain {
         if self.sidechain_hpf.enabled {
             self.sidechain_hpf.update(config);
         }
+        // Re-compute lookahead buffer size for new sample rate
+        let n = (self.lookahead_ms / 1000.0 * config.sample_rate).round() as usize;
+        if n != self.lookahead_samples {
+            self.lookahead_samples = n;
+            self.delay_l = vec![0.0; n.max(1)];
+            self.delay_r = vec![0.0; n.max(1)];
+            self.delay_pos = 0;
+        }
     }
 
     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
-        let use_sc_hpf = self.sidechain_hpf.enabled;
-
         for i in 0..left.len() {
-            // If sidechain HPF is active, filter the detection signal
-            // The compressor's detector will use the filtered version
-            if use_sc_hpf {
-                // We apply the HPF to copies for detection only.
-                // The compressor internally uses the raw input for audio path,
-                // and we override the detector level with the filtered version.
-                let sc_l = self.sidechain_hpf.tick(left[i], 0);
-                let sc_r = self.sidechain_hpf.tick(right[i], 1);
-
-                // Detect from filtered sidechain
-                let level_l = self.comp.detector.tick(sc_l.abs(), self.comp.feedback, 0);
-                let level_r = self.comp.detector.tick(sc_r.abs(), self.comp.feedback, 1);
-
-                // Compute gain reduction from smoothed filtered levels
-                let inertia_decay = 0.99 + (self.comp.inertia_decay * 0.01);
-                let mut gr_db = [0.0_f64; 2];
-                for ch in 0..2 {
-                    let level = if ch == 0 { level_l } else { level_r };
-                    gr_db[ch] = self.comp.gain_computer.compute(
-                        level,
-                        self.comp.threshold_db + PEAK_TO_MEAN_DB,
-                        self.comp.ratio,
-                        self.comp.knee_db,
-                        self.comp.inertia,
-                        inertia_decay,
-                        ch,
-                    );
-                }
-
-                // Channel linking
-                let max_gr = gr_db[0].max(gr_db[1]);
-                if self.comp.channel_link > 0.0 {
-                    for ch in 0..2 {
-                        gr_db[ch] = (max_gr * self.comp.channel_link)
-                            + (gr_db[ch] * (1.0 - self.comp.channel_link));
-                    }
-                }
-
-                // Apply gain reduction to original (unfiltered) audio
-                let input_gain = db_to_linear(self.comp.input_gain_db);
-                let output_gain = db_to_linear(self.comp.output_gain_db);
-                let dry = [left[i], right[i]];
-
-                for (ch, sample) in [&mut left[i], &mut right[i]].into_iter().enumerate() {
-                    let s = *sample * input_gain;
-                    let input_db = linear_to_db(s.abs());
-                    let sign = if s < 0.0 { -1.0 } else { 1.0 };
-
-                    let output_db = input_db - gr_db[ch];
-                    let mut out = db_to_linear(output_db) * sign;
-
-                    if self.comp.ceiling > 0.0 {
-                        out /= self.comp.ceiling;
-                        out = out.tanh();
-                        out *= self.comp.ceiling;
-                    }
-
-                    out *= output_gain;
-                    self.comp.detector.set_output(out, ch);
-
-                    if self.comp.fold > 0.0 {
-                        out = out * (1.0 - self.comp.fold) + dry[ch] * self.comp.fold;
-                    }
-
-                    if !out.is_finite() {
-                        out = 0.0;
-                    }
-
-                    *sample = out;
-                    self.comp.last_gr_db[ch] = gr_db[ch];
-                }
-            } else {
-                // No sidechain HPF — use the compressor's built-in processing
-                self.comp.process_sample(&mut left[i], &mut right[i]);
-            }
+            self.process_sample(&mut left[i], &mut right[i]);
         }
     }
 }

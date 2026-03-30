@@ -207,6 +207,151 @@ Focus on getting the basic compression curves to match Pro-C 3 Clean with defaul
 - Auto Gain comparison (capture with auto gain ON)
 - Character/Drive
 
+## Multiband / Spectral Mode Analysis (TTM and other styles)
+
+Some Pro-C 3 styles (notably **TTM** — Transient/Tonal/Micro) are multiband under the hood.
+Spectral Gain Reduction analysis reveals this structure: different frequency ranges show distinct
+GR amounts, distinct attack/release curves, and sharp discontinuities at crossover points.
+
+### What SpectralGainReduction measures
+
+For each overlapping STFT frame (default: 2048-sample window, 512-sample hop ≈ 10ms steps
+at 48kHz), it computes `GR(t, f) = 20·log10(|output(k)| / |input(k)|)` for every frequency bin.
+The result is a 2D matrix: **time × frequency → gain reduction dB**.
+
+Multiband behavior appears as:
+- **Horizontal bands** at different GR levels (each band compresses differently)
+- **Vertical edges** at crossover frequencies (sharp transitions between bands)
+- **Different temporal shapes** per band (each band can have different attack/release)
+
+### Finding Pro-C 3 style numbers
+
+Pro-C 3's style parameter (ID 0) takes values 0–13. First identify which value maps to TTM
+and other modes of interest:
+
+```bash
+cd /home/cody/Development/FastTrackStudio/fts-analyzer
+
+# Dump style parameter display text across all 14 values
+cargo run --release --package fts-analyzer-cli -- dump-param \
+  '/home/cody/.clap/yabridge/FabFilter Pro-C 3.clap' \
+  --name "Style" --min 0 --max 13 --step 1
+```
+
+This prints the display label at each value, letting you identify e.g. "TTM" = style 8
+(or whatever the actual value is).
+
+### Running spectral GR analysis for a single style
+
+Create a config JSON, e.g. `reference/pro-c3-ttm-sgr.json`:
+
+```json
+{
+  "pluginPath": "/home/cody/.clap/yabridge/FabFilter Pro-C 3.clap",
+  "signalType": "noise",
+  "sampleRate": 48000,
+  "seconds": 5.0,
+  "blockSize": 512,
+  "warmupSeconds": 0.5,
+  "inputGainBucketsDb": [-18.0, -12.0, -6.0],
+  "analyzers": ["SpectralGainReduction", "RmsPeak"],
+  "sgrFftSize": 2048,
+  "sgrHopSize": 512,
+  "parameterBuckets": [
+    {
+      "paramName": "Style",
+      "strategy": "ExplicitValues",
+      "values": [8]
+    }
+  ]
+}
+```
+
+Then run:
+
+```bash
+cargo run --release --package fts-analyzer-cli -- measure-grid \
+  --config reference/pro-c3-ttm-sgr.json \
+  --out analyses/pro-c3-ttm-sgr
+```
+
+Output: `analyses/pro-c3-ttm-sgr/sgr.csv` with columns:
+`run, input_gain_db, Style, time_ms, freq_hz, gr_db`
+
+### Comparing all 14 styles in one pass
+
+Use an analysis config (`reference/pro-c3-all-styles-sgr.json`) that sweeps all style values:
+
+```json
+{
+  "pluginPath": "/home/cody/.clap/yabridge/FabFilter Pro-C 3.clap",
+  "signalType": "noise",
+  "sampleRate": 48000,
+  "seconds": 5.0,
+  "blockSize": 512,
+  "warmupSeconds": 0.5,
+  "inputGainBucketsDb": [-12.0],
+  "analyzers": ["SpectralGainReduction"],
+  "sgrFftSize": 2048,
+  "sgrHopSize": 512,
+  "parameterBuckets": [
+    {
+      "paramName": "Style",
+      "strategy": "Linear",
+      "min": 0,
+      "max": 13,
+      "numBuckets": 14
+    }
+  ]
+}
+```
+
+```bash
+cargo run --release --package fts-analyzer-cli -- measure-grid \
+  --config reference/pro-c3-all-styles-sgr.json \
+  --out analyses/pro-c3-all-styles-sgr
+```
+
+Each style becomes a separate `run` in `sgr.csv`. You can then pivot the data by `run`
+to compare GR patterns across styles.
+
+### Interpreting the output
+
+**Identifying crossover frequencies:**
+- Plot `gr_db` vs `freq_hz` for a fixed `time_ms` slice (steady-state compression)
+- Step discontinuities in GR reveal band boundaries
+- e.g. if 20–200 Hz shows −2 dB and 200–20k Hz shows −6 dB, the crossover is at ~200 Hz
+
+**Identifying per-band attack/release:**
+- Plot `gr_db` vs `time_ms` for a fixed `freq_hz`
+- The transient at the noise onset reveals the attack time for that band
+- Compare onset speed across frequency bands to confirm multiband topology
+
+**Confirming a style IS multiband:**
+- A wideband single-band compressor will show uniform `gr_db` across all frequencies
+  at any given time (modulo the sidechain HPF effect already documented above)
+- A multiband compressor will show clearly different `gr_db` levels in different frequency
+  regions simultaneously
+
+**Key Pro-C 3 known behavior:**
+- Clean (style 0): wideband with sidechain HPF at 85 Hz — shows reduced GR below ~200 Hz,
+  but all frequencies track the same compression envelope
+- TTM: genuinely independent bands — low/mid/high regions will show **uncorrelated** GR
+  over time, not just different levels
+
+### Recommended signal for multiband analysis
+
+White noise is ideal: it simultaneously excites all frequencies at equal amplitude, so the
+compressor sees the full spectral content at once and all bands engage simultaneously.
+
+For attack/release analysis, consider creating a stepped-noise signal manually:
+silence → full noise → silence → full noise, so you can observe attack and release per band.
+This can be done with the existing `pulse_tone` signal type with a very low carrier (near DC)
+and a short pulse, but a broadband noise burst would be more revealing.
+
+The simplest approach: use `"signalType": "noise"` with a long `seconds` (5–10s) — the noise
+is already amplitude-varying enough over 10ms windows to show compression engaging.
+
 ## Re-capturing Reference Data
 
 If you need to re-capture (shouldn't be needed — data is committed):
