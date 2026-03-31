@@ -8,21 +8,32 @@
 
 use fts_dsp::db::{db_to_linear, linear_to_db};
 
-use crate::detector::Detector;
+use crate::detector::{Detector, DetectorMode};
 use crate::gain::GainComputer;
 
 /// Maximum number of stereo channels.
 const MAX_CH: usize = 2;
 
-/// Peak-to-mean threshold offset: 4.2 dB.
+/// Peak-to-mean threshold offset for Peak detection mode: 4.2 dB.
 ///
-/// Pro-C 3 thresholds reference mean rectified level (2A/π ≈ -3.92 dB
-/// below peak for a sine wave). FTS-Comp's 2-stage detector measures
-/// instantaneous peak level, so the threshold must be shifted up by
-/// ~4.2 dB to produce the same onset/amount of compression at the same
-/// displayed threshold value. The extra 0.28 dB above the theoretical
-/// 3.92 dB accounts for discrete-time and knee-shape corrections.
+/// Compensates for the difference between instantaneous peak detection (what
+/// FTS-Comp's Peak mode computes) and Pro-C 3's mean-rectified detection.
+/// Empirically tuned: accounts for Jensen's inequality bias (~2.2 dB) from
+/// audio-rate GR oscillation plus the SMOOTH_POWER=0.80 smoothing bias (~2.0 dB).
 pub const PEAK_TO_MEAN_DB: f64 = 4.2;
+
+/// Threshold offset for RMS detection mode: 0.0 dB (initial).
+///
+/// To be calibrated vs Pro-C 3 if RMS mode is used.
+pub const RMS_THRESHOLD_OFFSET_DB: f64 = 0.0;
+
+/// Threshold offset for Smooth detection mode: 0.0 dB.
+///
+/// The 5ms pre-smoother converts peak level toward mean-rectified level,
+/// so no additional threshold shift is needed. Note: Smooth mode does NOT
+/// match Pro-C 3 parity well (740/6664 vs Peak mode's 6662/6664) because
+/// the pre-smoother introduces transient lag that mismatches PC3's behavior.
+pub const SMOOTH_THRESHOLD_OFFSET_DB: f64 = 0.0;
 
 // r[impl comp.chain.signal-flow]
 /// Complete stereo compressor with all APComp features.
@@ -132,9 +143,17 @@ impl Compressor {
             let level_db = self.detector.tick(samples[ch].abs(), self.feedback, ch);
 
             // Step 2: Apply gain curve to get raw (instantaneous) GR
+            // In Peak mode, shift threshold by PEAK_TO_MEAN_DB to compensate
+            // for instantaneous vs mean-rectified detection.
+            // In Smooth mode, the linear pre-smoother handles crest factor.
+            let threshold_offset = match self.detector.mode() {
+                DetectorMode::Peak => PEAK_TO_MEAN_DB,
+                DetectorMode::Rms => RMS_THRESHOLD_OFFSET_DB,
+                DetectorMode::Smooth => SMOOTH_THRESHOLD_OFFSET_DB,
+            };
             let raw_gr = self.gain_computer.compute(
                 level_db,
-                self.threshold_db + PEAK_TO_MEAN_DB,
+                self.threshold_db + threshold_offset,
                 self.ratio,
                 self.knee_db,
                 self.inertia,
@@ -182,8 +201,8 @@ impl Compressor {
 
             // Parallel mix (fold): blend dry and compressed
             // r[impl comp.chain.parallel-mix]
-            if self.fold > 0.0 {
-                out = out * (1.0 - self.fold) + dry[ch] * self.fold;
+            if self.fold < 1.0 {
+                out = out * self.fold + dry[ch] * (1.0 - self.fold);
             }
 
             // NaN safety

@@ -8,7 +8,10 @@ use eq_dsp::filter_type::{FilterStructure, FilterType};
 use fts_dsp::db::{db_to_linear, linear_to_db};
 use fts_dsp::{AudioConfig, Processor};
 
-use crate::compressor::{Compressor, PEAK_TO_MEAN_DB};
+use crate::compressor::{
+    Compressor, PEAK_TO_MEAN_DB, RMS_THRESHOLD_OFFSET_DB, SMOOTH_THRESHOLD_OFFSET_DB,
+};
+use crate::detector::DetectorMode;
 
 // r[impl comp.chain.signal-flow]
 // r[impl comp.chain.sidechain-eq]
@@ -102,9 +105,14 @@ impl CompChain {
             let mut gr_db = [0.0_f64; 2];
             for ch in 0..2 {
                 let level = if ch == 0 { level_l } else { level_r };
+                let threshold_offset = match self.comp.detector.mode() {
+                    DetectorMode::Peak => PEAK_TO_MEAN_DB,
+                    DetectorMode::Rms => RMS_THRESHOLD_OFFSET_DB,
+                    DetectorMode::Smooth => SMOOTH_THRESHOLD_OFFSET_DB,
+                };
                 let raw_gr = self.comp.gain_computer.compute(
                     level,
-                    self.comp.threshold_db + PEAK_TO_MEAN_DB,
+                    self.comp.threshold_db + threshold_offset,
                     self.comp.ratio,
                     self.comp.knee_db,
                     self.comp.inertia,
@@ -153,8 +161,8 @@ impl CompChain {
                 out *= output_gain;
                 self.comp.detector.set_output(out, ch);
 
-                if self.comp.fold > 0.0 {
-                    out = out * (1.0 - self.comp.fold) + dry[ch] * self.comp.fold;
+                if self.comp.fold < 1.0 {
+                    out = out * self.comp.fold + dry[ch] * (1.0 - self.comp.fold);
                 }
 
                 if !out.is_finite() {

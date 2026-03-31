@@ -30,3 +30,4 @@ pub mod gain;
 
 pub use chain::CompChain;
 pub use compressor::Compressor;
+pub use detector::DetectorMode;

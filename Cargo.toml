@@ -82,6 +82,10 @@ members = [
     # Shared sample loading
     "crates/fts-sample",
 
+    # Metering library
+    "crates/fts-meter/meter-dsp",
+    "crates/fts-meter/meter-ui",
+
     # Pitch plugin (octave shifter)
     "crates/fts-pitch/pitch-dsp",
     "crates/fts-pitch/pitch-plugin",
@@ -121,6 +125,8 @@ fts-dsp = { path = "crates/fts-dsp" }
 fts-sample = { path = "crates/fts-sample" }
 fts-modulation = { path = "crates/fts-modulation" }
 fts-themes = { path = "crates/fts-themes" }
+meter-dsp = { path = "crates/fts-meter/meter-dsp" }
+meter-ui = { path = "crates/fts-meter/meter-ui" }
 
 # Plugin DSP crates (used cross-plugin: e.g., comp sidechain uses eq-dsp)
 eq-dsp = { path = "crates/fts-eq/eq-dsp" }

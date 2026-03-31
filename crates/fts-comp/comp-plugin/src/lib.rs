@@ -25,12 +25,17 @@ pub struct CompUiState {
     pub waveform_input: Box<[AtomicF32]>,
     /// Waveform history: GR (0.0–1.0 normalized), ring buffer.
     pub waveform_gr: Box<[AtomicF32]>,
-    /// Write position into waveform ring buffers.
+    /// Integer write position into waveform ring buffers.
     pub waveform_pos: AtomicF32,
+    /// Fractional scroll phase: counter / interval (0.0–1.0).
+    /// The renderer uses this to smoothly interpolate x-positions between
+    /// data updates, giving sub-pixel accurate scrolling at any refresh rate.
+    pub waveform_phase: AtomicF32,
 }
 
 /// Number of waveform history entries.
-pub const WAVEFORM_LEN: usize = 200;
+/// At 240 Hz updates: 960 entries ≈ 4 seconds of history.
+pub const WAVEFORM_LEN: usize = 960;
 
 impl CompUiState {
     pub fn new(params: Arc<FtsCompParams>) -> Self {
@@ -51,6 +56,7 @@ impl CompUiState {
             waveform_input,
             waveform_gr,
             waveform_pos: AtomicF32::new(0.0),
+            waveform_phase: AtomicF32::new(0.0),
         }
     }
 }
@@ -238,7 +244,7 @@ impl Default for FtsCompParams {
             )
             .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
-            fold: FloatParam::new("Mix", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+            fold: FloatParam::new("Mix", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_unit("%")
                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
@@ -353,7 +359,7 @@ impl Default for FtsComp {
             chain: CompChain::new(),
             sample_rate: 48000.0,
             waveform_counter: 0,
-            waveform_interval: 960, // ~50 Hz at 48kHz
+            waveform_interval: 200, // ~240 Hz at 48kHz
             waveform_peak: 0.0,
             waveform_gr_peak: 0.0,
         }
@@ -427,7 +433,7 @@ impl Plugin for FtsComp {
         _context: &mut impl InitContext<Self>,
     ) -> bool {
         self.sample_rate = buffer_config.sample_rate as f64;
-        self.waveform_interval = (buffer_config.sample_rate as usize) / 50;
+        self.waveform_interval = (buffer_config.sample_rate as usize / 240).max(1);
         self.chain.update(AudioConfig {
             sample_rate: self.sample_rate,
             max_buffer_size: buffer_config.max_buffer_size as usize,
@@ -511,6 +517,12 @@ impl Plugin for FtsComp {
             self.waveform_peak = self.waveform_peak.max(input_peak);
             self.waveform_gr_peak = self.waveform_gr_peak.max(gr / 30.0); // normalize to 0-1
             self.waveform_counter += 1;
+
+            // Phase: fractional progress within the current interval (0..1).
+            // Updated every sample so the renderer can interpolate sub-pixel scroll.
+            let phase = self.waveform_counter as f32 / self.waveform_interval as f32;
+            self.ui_state.waveform_phase.store(phase, Ordering::Relaxed);
+
             if self.waveform_counter >= self.waveform_interval {
                 let pos =
                     self.ui_state.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
@@ -521,6 +533,7 @@ impl Plugin for FtsComp {
                 self.ui_state
                     .waveform_pos
                     .store((pos + 1) as f32, Ordering::Relaxed);
+                self.ui_state.waveform_phase.store(0.0, Ordering::Relaxed);
 
                 self.waveform_counter = 0;
                 self.waveform_peak = 0.0;
