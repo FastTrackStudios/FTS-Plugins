@@ -4982,20 +4982,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "meter-plugin"
-version = "0.1.0"
-dependencies = [
- "atomic_float 1.1.0",
- "audio-gui",
- "fts-plugin-core",
- "meter-dsp",
- "meter-ui",
- "nih_plug",
- "nih_plug_dioxus",
- "parking_lot",
-]
-
-[[package]]
 name = "meter-ui"
 version = "0.1.0"
 dependencies = [
@@ -5437,6 +5423,7 @@ dependencies = [
  "blitz-paint",
  "blitz-traits",
  "crossbeam",
+ "cursor-icon",
  "dioxus-devtools",
  "dioxus-native",
  "futures-util",
