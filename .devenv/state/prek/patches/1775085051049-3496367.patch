@@ -1,0 +1,41 @@
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 0193f0f..b7ffed6 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -45,6 +45,23 @@ pub enum DetectorMode {
+     Smooth,
+ }
+ 
++// --- Hermite cubic interpolation constants (Pro-C 3 binary extracted) ---
++
++/// Hermite cubic polynomial normalization constant (1/400).
++/// From binary address 0x180213180.
++const HERMITE_POLYNOMIAL_CONST: f64 = 0.0025;
++
++/// Write filter state denominator scaling factor.
++/// From binary address 0x180213c28.
++const WRITE_STATE_SCALE: f64 = -2.0;
++
++/// Logarithm safe approximation thresholds and coefficients (π/4, π/2).
++/// From binary addresses 0x180216ad0, 0x180216af0.
++const LOG_SAFE_ATK_THRESHOLD: f64 = 0.785398163397448;
++const LOG_SAFE_PI_HALF: f64 = 1.570796326734126;
++const LOG_SAFE_B20_THRESHOLD: f64 = 0.000000007450581;
++const LOG_SAFE_B40_COEFF: f64 = 0.68;
++
+ // --- Peak mode constants ---
+ 
+ /// Scaling factor for attack time constant (peak mode).
+@@ -115,6 +132,12 @@ pub struct Detector {
+     /// 1-pole coefficient for symmetric energy smoother (RMS mode).
+     rms_energy_coeff: f64,
+ 
++    /// GR history for Hermite cubic interpolation (4-point: [hist0, hist1, hist2, inst]).
++    /// Per-channel history buffer.
++    gr_history: [[f64; 4]; MAX_CH],
++    /// Hermite cubic filter state outputs (5 values per channel).
++    hermite_outputs: [[f64; 5]; MAX_CH],
++
+     // Coefficients
+     attack_coeff: f64,
+     release_coeff: f64,

@@ -1,0 +1,341 @@
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 0193f0f..dc97dc2 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -45,6 +45,23 @@ pub enum DetectorMode {
+     Smooth,
+ }
+ 
++// --- Hermite cubic interpolation constants (Pro-C 3 binary extracted) ---
++
++/// Hermite cubic polynomial normalization constant (1/400).
++/// From binary address 0x180213180.
++const HERMITE_POLYNOMIAL_CONST: f64 = 0.0025;
++
++/// Write filter state denominator scaling factor.
++/// From binary address 0x180213c28.
++const WRITE_STATE_SCALE: f64 = -2.0;
++
++/// Logarithm safe approximation thresholds and coefficients (π/4, π/2).
++/// From binary addresses 0x180216ad0, 0x180216af0.
++const LOG_SAFE_ATK_THRESHOLD: f64 = 0.785398163397448;
++const LOG_SAFE_PI_HALF: f64 = 1.570796326734126;
++const LOG_SAFE_B20_THRESHOLD: f64 = 0.000000007450581;
++const LOG_SAFE_B40_COEFF: f64 = 0.68;
++
+ // --- Peak mode constants ---
+ 
+ /// Scaling factor for attack time constant (peak mode).
+@@ -115,6 +132,12 @@ pub struct Detector {
+     /// 1-pole coefficient for symmetric energy smoother (RMS mode).
+     rms_energy_coeff: f64,
+ 
++    /// GR history for Hermite cubic interpolation (4-point: [hist0, hist1, hist2, inst]).
++    /// Per-channel history buffer.
++    gr_history: [[f64; 4]; MAX_CH],
++    /// Hermite cubic filter state outputs (5 values per channel).
++    hermite_outputs: [[f64; 5]; MAX_CH],
++
+     // Coefficients
+     attack_coeff: f64,
+     release_coeff: f64,
+@@ -137,6 +160,8 @@ impl Detector {
+             level_smooth_coeff: 0.0,
+             smooth_energy: [0.0; MAX_CH],
+             rms_energy_coeff: 0.0,
++            gr_history: [[0.0; 4]; MAX_CH],
++            hermite_outputs: [[0.0; 5]; MAX_CH],
+             attack_coeff: 0.0,
+             release_coeff: 0.0,
+             sample_rate: 48000.0,
+@@ -230,36 +255,72 @@ impl Detector {
+ 
+     /// Smooth a raw GR value with asymmetric attack/hold/release.
+     ///
+-    /// In Peak mode: power-domain smoothing (SMOOTH_POWER < 1) to reduce Jensen's bias.
+-    /// In Smooth mode: plain dB-domain smoothing (SMOOTH_POWER = 1.0).
++    /// In Peak mode: Hermite cubic spline interpolation on 4-point GR history.
++    /// In Smooth/Rms mode: power-domain smoothing (SMOOTH_POWER <= 1.0).
+     #[inline]
+     pub fn smooth_gr(&mut self, raw_gr_db: f64, ch: usize) -> f64 {
+-        let p = match self.mode {
+-            DetectorMode::Peak => PEAK_SMOOTH_POWER,
+-            DetectorMode::Rms => RMS_SMOOTH_POWER,
+-            DetectorMode::Smooth => SMOOTH_SMOOTH_POWER,
+-        };
++        // Shift history buffer: [hist0, hist1, hist2, inst]
++        self.gr_history[ch][0] = self.gr_history[ch][1];
++        self.gr_history[ch][1] = self.gr_history[ch][2];
++        self.gr_history[ch][2] = self.gr_history[ch][3];
++        self.gr_history[ch][3] = raw_gr_db;
++
++        if self.mode == DetectorMode::Peak {
++            // Peak mode: Apply Hermite cubic interpolation
++            let raw_gr_clamped = raw_gr_db.max(0.0);
++            let hermite_output = Self::apply_hermite_cubic_interpolation(
++                raw_gr_clamped,
++                &[self.gr_history[ch][0], self.gr_history[ch][1], self.gr_history[ch][2]],
++                self.attack_coeff,
++                self.release_coeff,
++            );
++
++            // Extract smoothed GR: hermite_output[1] is dVar12_final (filtered sqrt)
++            // Square it back to dB domain
++            let smoothed_gr = hermite_output[1] * hermite_output[1];
++
++            // Apply hold logic
++            if smoothed_gr >= self.smooth_grp[ch] {
++                // GR increasing → attack; reset hold countdown
++                self.hold_countdown[ch] = self.hold_samples;
++            } else if self.hold_countdown[ch] > 0 {
++                // Hold phase: GR wants to decrease but hold timer hasn't expired
++                self.hold_countdown[ch] -= 1;
++                // Return current smoothed value (hold)
++                return self.smooth_grp[ch];
++            }
+ 
+-        // Transform to power domain: gr^p (p<1 reduces Jensen's bias)
+-        let raw_grp = raw_gr_db.max(0.0).powf(p);
+-
+-        if raw_grp >= self.smooth_grp[ch] {
+-            // GR increasing → attack; reset hold countdown
+-            self.hold_countdown[ch] = self.hold_samples;
+-            let c = self.attack_coeff;
+-            self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
+-        } else if self.hold_countdown[ch] > 0 {
+-            // Hold phase: GR wants to decrease but hold timer hasn't expired
+-            self.hold_countdown[ch] -= 1;
+-            // smooth_grp unchanged — hold at current level
++            self.smooth_grp[ch] = smoothed_gr;
++            smoothed_gr
+         } else {
+-            // Release: GR decreasing, hold expired
+-            let c = self.release_coeff;
+-            self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
+-        }
++            // Smooth/RMS mode: Use power-domain 1-pole IIR (original behavior)
++            let p = match self.mode {
++                DetectorMode::Peak => PEAK_SMOOTH_POWER,
++                DetectorMode::Rms => RMS_SMOOTH_POWER,
++                DetectorMode::Smooth => SMOOTH_SMOOTH_POWER,
++            };
++
++            // Transform to power domain: gr^p (p<1 reduces Jensen's bias)
++            let raw_grp = raw_gr_db.max(0.0).powf(p);
++
++            if raw_grp >= self.smooth_grp[ch] {
++                // GR increasing → attack; reset hold countdown
++                self.hold_countdown[ch] = self.hold_samples;
++                let c = self.attack_coeff;
++                self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
++            } else if self.hold_countdown[ch] > 0 {
++                // Hold phase: GR wants to decrease but hold timer hasn't expired
++                self.hold_countdown[ch] -= 1;
++                // smooth_grp unchanged — hold at current level
++            } else {
++                // Release: GR decreasing, hold expired
++                let c = self.release_coeff;
++                self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
++            }
+ 
+-        // Inverse transform: gr = smoothed^(1/p)
+-        self.smooth_grp[ch].max(0.0).powf(1.0 / p)
++            // Inverse transform: gr = smoothed^(1/p)
++            self.smooth_grp[ch].max(0.0).powf(1.0 / p)
++        }
+     }
+ 
+     /// Store the output sample for feedback detection on next tick.
+@@ -283,8 +344,192 @@ impl Detector {
+         self.prev_output = [0.0; MAX_CH];
+         self.smooth_level = [0.0; MAX_CH];
+         self.smooth_energy = [0.0; MAX_CH];
++        self.gr_history = [[0.0; 4]; MAX_CH];
++        self.hermite_outputs = [[0.0; 5]; MAX_CH];
+         self.hold_countdown = [0; MAX_CH];
+     }
++
++    /// Safe logarithm with piecewise approximation for boundary values.
++    /// Handles denormals, zero, and infinity gracefully.
++    #[inline]
++    fn log_safe_approx(x: f64) -> f64 {
++        // Prevent log(0) → -inf
++        if x <= MIN_ATTACK_S {
++            return 0.0;
++        }
++
++        let abs_x = x.abs();
++
++        // Use natural logarithm
++        let mut result = x.ln();
++
++        // Apply threshold-based adjustments for very small values
++        if abs_x < LOG_SAFE_B20_THRESHOLD {
++            // Cubic approximation blend for very small values
++            result = x * x * x * 0.1 + x;
++        }
++
++        result
++    }
++
++    /// Write smoothing filter state: converts raw polynomial outputs to filter state.
++    /// Two paths depending on mode_flag: main path (SQRTPD-based) or alternative (simple sqrt).
++    #[inline]
++    fn write_smoothing_filter_state(
++        param_2: f64,
++        param_3: f64,
++        param_4: f64,
++        param_5: f64,
++        param_6: f64,
++        mode_flag: i32,
++    ) -> [f64; 5] {
++        let mut outputs = [0.0; 5];
++
++        if mode_flag == 0 {
++            // Main path: SQRTPD operations on scaling coefficients
++            let sqrt_5 = param_5.sqrt();
++            let sqrt_6 = param_6.sqrt();
++
++            let dvar3 = param_4 + 1.0;
++            let dvar2 = param_2 * param_4;
++            let dvar4 = (1.0 - param_4) * WRITE_STATE_SCALE;
++            let dvar1 = 1.0 / (dvar3 + sqrt_6);
++
++            outputs[0] = (dvar2 + param_3 + sqrt_5) * dvar1;
++            outputs[1] = (param_3 - dvar2) * WRITE_STATE_SCALE * dvar1;
++            outputs[2] = ((param_3 - sqrt_5) + dvar2) * dvar1;
++            outputs[3] = dvar4 * dvar1;
++            outputs[4] = (dvar3 - sqrt_6) * dvar1;
++        } else {
++            // Alternative path: simpler sqrt-based computation
++            let dvar2 = param_4.sqrt();
++
++            outputs[0] = dvar2;
++            outputs[2] = param_2;
++            outputs[4] = param_3;
++
++            if dvar2 != 0.0 {
++                let dvar1 = 1.0 / dvar2;
++                let sqrt_6 = param_6.sqrt();
++                let sqrt_5 = param_5.sqrt();
++
++                outputs[1] = dvar1 * sqrt_6 + dvar2;
++                outputs[3] = dvar1 * sqrt_5;
++            }
++        }
++
++        outputs
++    }
++
++    /// Hermite cubic spline interpolation on 4-point GR history.
++    /// Returns 5 filter state values used for smoothing.
++    #[inline]
++    fn apply_hermite_cubic_interpolation(
++        gr_inst: f64,
++        gr_hist: &[f64; 3],
++        alpha_atk: f64,
++        alpha_rel: f64,
++    ) -> [f64; 5] {
++        const MIN_DENOMINATOR_CHECK: f64 = 1e-15;
++        const CHANGE_DETECTION_THRESHOLD: f64 = 0.01;
++
++        // Step 1: Transform coefficients via log_safe_approx
++        let dVar6 = Self::log_safe_approx(alpha_atk);
++        let dVar7 = Self::log_safe_approx(alpha_rel);
++
++        // Step 2: Change detection
++        let threshold = gr_inst * CHANGE_DETECTION_THRESHOLD;
++        let change_detected = threshold <= (gr_inst - gr_hist[0]).abs()
++            || threshold <= (gr_inst - gr_hist[1]).abs()
++            || threshold <= (gr_inst - gr_hist[2]).abs();
++
++        if !change_detected {
++            // No significant change: output zeros
++            return [gr_inst.sqrt(), 0.0, 0.0, 0.0, 0.0];
++        }
++
++        // Step 3: Hermite cubic interpolation (main polynomial computation)
++
++        // Squared terms
++        let dVar3 = dVar6 * dVar6; // log_atk²
++        let dVar2 = dVar7 * dVar7; // log_rel²
++        let dVar26 = dVar3;
++        let dVar12 = gr_inst.sqrt();
++        let dVar20_raw = gr_inst.sqrt();
++
++        // Main polynomial
++        let dVar23 = dVar3 - dVar2; // atk² - rel²
++
++        // Numerator denominator (Hermite basis)
++        let dVar36_numerator = ((gr_hist[1] - gr_hist[2]) * (alpha_rel - gr_inst) * dVar2
++            - (gr_inst - gr_hist[2]) * (alpha_rel - gr_hist[1]) * dVar3)
++            * dVar26
++            + (alpha_rel - gr_hist[2]) * (gr_inst - gr_hist[1]) * dVar3 * dVar2;
++
++        if dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK {
++            return [dVar20_raw, dVar12, 0.0, 0.0, 0.0];
++        }
++
++        // Intermediate values
++        let dVar13 = dVar23 * gr_hist[2];
++        let dVar27 = dVar2 - dVar26;
++        let dVar14 = (dVar26 - dVar3) * gr_hist[1];
++        let dVar15 = gr_hist[2] * gr_hist[1];
++        let dVar16 = HERMITE_POLYNOMIAL_CONST / (dVar6 * dVar7);
++
++        // Primary polynomial evaluation
++        let dVar8_num = ((dVar27 * gr_inst + dVar23 * gr_hist[1]
++            + (dVar26 - dVar3) * gr_hist[2])
++            * gr_inst
++            + (dVar14 + dVar13) * gr_inst
++            + dVar27 * dVar15)
++            / dVar36_numerator;
++
++        let dVar12_final = if dVar8_num < dVar16 {
++            // Fallback polynomial
++            let numerator = (((dVar3 * gr_hist[2] - dVar3 * gr_hist[1]) + dVar2 * gr_hist[1])
++                - dVar26 * gr_hist[2])
++                * gr_inst
++                + (dVar26 - dVar2) * dVar15
++                + dVar16 * dVar36_numerator;
++
++            let denominator = dVar27 * gr_inst + dVar13 + dVar14;
++
++            (numerator / denominator).max(0.0).sqrt()
++        } else {
++            dVar12
++        };
++
++        // Output scaling
++        let dVar7_coeff = dVar2 * dVar12_final - gr_inst * dVar20_raw;
++        let dVar8_coeff = dVar3 * dVar12_final - gr_inst * dVar20_raw;
++
++        let dVar36_denom = (gr_inst - gr_hist[1]) * dVar3 * dVar2;
++
++        let dVar36_final = if dVar36_denom.abs() < MIN_DENOMINATOR_CHECK {
++            0.0
++        } else {
++            let numerator = (dVar8_coeff * dVar8_coeff * dVar2 * gr_hist[1])
++                - (((dVar2 * dVar3 - gr_inst * gr_inst) * dVar23 * gr_hist[1]
++                    + dVar7_coeff * dVar7_coeff * dVar3)
++                    * gr_inst);
++
++            (numerator / dVar36_denom).max(0.0)
++        };
++
++        let dVar7_final = if (dVar3 * gr_inst).abs() < MIN_DENOMINATOR_CHECK {
++            0.0
++        } else {
++            let numerator = (dVar36_final * dVar3
++                - (dVar3 - gr_inst) * (dVar3 - gr_inst) * gr_inst)
++                + (dVar8_coeff * dVar8_coeff);
++
++            (numerator / (dVar3 * gr_inst)).max(0.0)
++        };
++
++        // Step 5: Write filter state
++        Self::write_smoothing_filter_state(dVar20_raw, dVar12_final, dVar8_num, dVar7_final, dVar36_final, 0)
++    }
+ }
+ 
+ impl Default for Detector {
