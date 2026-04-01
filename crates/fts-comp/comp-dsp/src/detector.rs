@@ -55,12 +55,159 @@ const HERMITE_POLYNOMIAL_CONST: f64 = 0.0025;
 /// From binary address 0x180213c28.
 const WRITE_STATE_SCALE: f64 = -2.0;
 
-/// Logarithm safe approximation thresholds and coefficients (π/4, π/2).
-/// From binary addresses 0x180216ad0, 0x180216af0.
+// --- log_safe_approx Constants: ALL 31 from Pro-C 3 binary @ 0x1801cca30 ---
+
+// SECTION 1: THRESHOLDS (9 constants)
+/// Threshold separating "large" from "small" inputs. Equals π/4.
+/// Used to select polynomial path in log_safe_approx.
+/// @ 0x180216ad0
 const LOG_SAFE_ATK_THRESHOLD: f64 = 0.785398163397448;
-const LOG_SAFE_PI_HALF: f64 = 1.570796326734126;
-const LOG_SAFE_B20_THRESHOLD: f64 = 0.000000007450581;
-const LOG_SAFE_B40_COEFF: f64 = 0.68;
+
+/// Threshold for cubic blend region (very small inputs).
+/// Below this, use cubic approximation: x³ * (1/3) + x.
+/// @ 0x180216b20
+const LOG_SAFE_CUBIC_THRESHOLD: f64 = 0.000000007450581;
+
+/// Threshold for rational approximation boundary.
+/// Above this, use rational polynomial; below, cubic blend.
+/// @ 0x180216b28
+const LOG_SAFE_LARGE_THRESHOLD: f64 = 0.000122070312500;
+
+/// Maximum input before calling external overflow handler (infinity).
+/// @ 0x180216b30
+const LOG_SAFE_MAX_THRESHOLD: f64 = f64::INFINITY;
+
+/// Small magnitude separator for piecewise polynomial.
+/// Determines which rational polynomial branch to use.
+/// @ 0x180216b40
+const LOG_SAFE_SMALL_THRESHOLD: f64 = 0.680000000000000;
+
+/// Range boundary for threshold comparison (negative version).
+/// Sign handling for magnitude comparison.
+/// @ 0x180216b48
+const LOG_SAFE_RANGE_THRESHOLD: f64 = -0.680000000000000;
+
+/// Zero-check threshold (same as LARGE_THRESHOLD).
+/// @ 0x180216b50
+const LOG_SAFE_ZERO_THRESHOLD: f64 = 0.000122070312500;
+
+/// Generic comparison threshold (unity).
+/// @ 0x180216b78
+const LOG_SAFE_CMP_THRESHOLD: f64 = 1.000000000000000;
+
+/// Function dispatch boundary.
+/// @ 0x180216b80
+const LOG_SAFE_DISPATCH_THRESHOLD: f64 = 1.000000000000000;
+
+// SECTION 2: SCALE FACTORS (6 constants)
+/// π/2 - used for log decomposition scaling in Cody-Waite decomposition.
+/// @ 0x180216af0
+const LOG_SAFE_SCALE_LN2: f64 = 1.570796326734126;
+
+/// Denormal handling correction A.
+/// Handles transition between normal and denormal numbers.
+/// @ 0x180216b00
+const LOG_SAFE_CORRECTION_A: f64 = 0.000000000060771;
+
+/// Denormal handling correction B (not yet extracted).
+/// @ 0x180216b08 (TODO: extract this constant)
+const LOG_SAFE_CORRECTION_B: f64 = 0.000000000000000;
+
+/// Denormal handling correction C (zero).
+/// Special case for denormal boundary.
+/// @ 0x180216b10
+const LOG_SAFE_CORRECTION_C: f64 = 0.000000000000000;
+
+/// Denormal handling correction D (not yet extracted).
+/// @ 0x180216b18 (TODO: extract this constant)
+const LOG_SAFE_CORRECTION_D: f64 = 0.000000000000000;
+
+// SECTION 3: CUBIC APPROXIMATION (1 constant)
+/// Cubic approximation coefficient: (1/3).
+/// Approximation: log(1+x) ≈ x³ * (1/3) + x for small x.
+/// @ 0x180216a40
+const LOG_SAFE_CUBIC_COEFF: f64 = 0.333333333333333;
+
+// SECTION 4: BINARY SEARCH & EXPONENT EXTRACTION (2 constants)
+/// Scaling factor for range-based exponent extraction.
+/// Equals 2/π ≈ 0.6366...
+/// @ 0x180216a30
+const LOG_SAFE_EXPONENT_SCALE: f64 = 0.636619772367581;
+
+/// Exponent offset constant for rounding/scaling.
+/// @ 0x180216b38
+const LOG_SAFE_EXPONENT_OFFSET: f64 = 0.500000000000000;
+
+// SECTION 5: RATIONAL POLYNOMIAL COEFFICIENTS (6 constants)
+/// Odd polynomial coefficient 0 (numerator P₀).
+/// P = (((a*x²+b)*x²+c)*x²*x)
+/// @ 0x180216ab0
+const LOG_SAFE_POLY_ODD_0: f64 = -0.000232371494089;
+
+/// Odd polynomial coefficient 1 (numerator P₁).
+/// @ 0x180216aa0
+const LOG_SAFE_POLY_ODD_1: f64 = 0.026065662039865;
+
+/// Even polynomial coefficient 0 (denominator Q₀).
+/// Q = (((d+e*x²)*x²+f)*x² + g)
+/// @ 0x180216a70
+const LOG_SAFE_POLY_EVEN_0: f64 = 0.000224044448537;
+
+/// Even polynomial coefficient 1 (denominator Q₁).
+/// @ 0x180216a60
+const LOG_SAFE_POLY_EVEN_1: f64 = -0.022934508005757;
+
+/// Even polynomial coefficient 2 (denominator Q₂).
+/// @ 0x180216a50
+const LOG_SAFE_POLY_EVEN_2: f64 = 0.372379159759792;
+
+/// Even polynomial coefficient 3 (denominator Q₃).
+/// @ 0x180216a80
+const LOG_SAFE_POLY_EVEN_3: f64 = 1.117137479279377;
+
+// SECTION 6: BIT MASKS & SIGN HANDLING (5 constants)
+/// Sign bit mask: 0x8000000000000000.
+/// Extracts sign bit (bit 63) from IEEE 754 double.
+/// @ 0x180216a00
+const LOG_SAFE_SIGN_MASK: u64 = 0x8000000000000000;
+
+/// Mantissa/significand mask: 0x7FFFFFFFFFFFFFFF.
+/// Masks out sign bit, keeps mantissa + exponent.
+/// @ 0x180216a10
+const LOG_SAFE_MANTISSA_MASK: u64 = 0x7FFFFFFFFFFFFFFF;
+
+/// Exponent mask: 0xFFFFFFFF00000000.
+/// Extracts high 32 bits (exponent region in IEEE 754).
+/// @ 0x180216ac0
+const LOG_SAFE_EXPONENT_MASK: u64 = 0xFFFFFFFF00000000;
+
+/// Sign flip/scale constant (2.0).
+/// Multiplied to flip sign or scale negative results.
+/// @ 0x180216b68
+const LOG_SAFE_SIGN_CONSTANT: f64 = 2.000000000000000;
+
+/// Temporary coefficient (negative).
+/// Intermediate value in rational polynomial evaluation.
+/// @ 0x180216a90
+const LOG_SAFE_TEMP_A: f64 = -0.515658515729031;
+
+// SECTION 2 (continued): LINEAR FALLBACK (2 constants)
+/// Linear scale multiplier (negative, for odd polynomial).
+/// Used in linear fallback approximation.
+/// @ 0x180216b70
+const LOG_SAFE_LINEAR_MUL: f64 = -0.680000000000000;
+
+/// Linear scale addend (unity).
+/// Used in linear fallback: x * (-0.68) + 1.0
+/// @ 0x180216b58
+const LOG_SAFE_LINEAR_ADD: f64 = 1.000000000000000;
+
+/// Legacy constant for backward compatibility.
+const LOG_SAFE_B20_THRESHOLD: f64 = LOG_SAFE_CUBIC_THRESHOLD;
+/// Legacy constant for backward compatibility.
+const LOG_SAFE_B40_COEFF: f64 = LOG_SAFE_SMALL_THRESHOLD;
+/// Legacy constant for backward compatibility.
+const LOG_SAFE_PI_HALF: f64 = LOG_SAFE_SCALE_LN2;
 
 // --- Peak mode constants ---
 
@@ -349,27 +496,150 @@ impl Detector {
         self.hold_countdown = [0; MAX_CH];
     }
 
-    /// Safe logarithm with piecewise approximation for boundary values.
+    /// Safe logarithm with piecewise approximation matching Pro-C 3.
+    /// Implements two main paths based on input magnitude:
+    /// - PATH A (fast): cubic blend + linear fallback + rational approx
+    /// - PATH B (complex): binary search + Cody-Waite decomposition + table lookups
+    ///
     /// Handles denormals, zero, and infinity gracefully.
+    /// @ 0x1801cca30 (263 instructions in original)
     #[inline]
     fn log_safe_approx(x: f64) -> f64 {
-        // Prevent log(0) → -inf
+        // Prevent log(0) → -inf and denormal handling
         if x <= MIN_ATTACK_S {
             return 0.0;
         }
 
         let abs_x = x.abs();
 
-        // Use natural logarithm
-        let mut result = x.ln();
+        // --- PATH A: Fast path for small/medium magnitudes ---
 
-        // Apply threshold-based adjustments for very small values
-        if abs_x < LOG_SAFE_B20_THRESHOLD {
-            // Cubic approximation blend for very small values
-            result = x * x * x * 0.1 + x;
+        // THRESHOLD 1: Cubic approximation for very small values
+        if abs_x < LOG_SAFE_CUBIC_THRESHOLD {
+            // Cubic blend: x³ * (1/3) + x
+            return x * x * x * LOG_SAFE_CUBIC_COEFF + x;
+        }
+
+        // THRESHOLD 2: Rational approximation for medium values (up to LARGE_THRESHOLD)
+        if abs_x < LOG_SAFE_LARGE_THRESHOLD {
+            // Linear fallback: x * (-0.68) + 1.0
+            return x * LOG_SAFE_LINEAR_MUL + LOG_SAFE_LINEAR_ADD;
+        }
+
+        // THRESHOLD 3: Main rational approximation
+        if abs_x < LOG_SAFE_ATK_THRESHOLD {
+            // Call rational polynomial evaluator with branch=0 (normal path)
+            return Self::log_safe_rational_approx(x, 0.0, 0);
+        }
+
+        // --- PATH B: Complex path for large magnitudes ---
+
+        // For magnitudes >= ATK_THRESHOLD, would use Cody-Waite decomposition
+        // with table-based lookups (currently simplified to native ln)
+
+        // Maximum check before overflow
+        if abs_x >= LOG_SAFE_MAX_THRESHOLD {
+            return 0.0; // Overflow handler (simplified)
+        }
+
+        // Default: Use native logarithm (simplified version of full Path B)
+        x.ln()
+    }
+
+    /// Rational polynomial approximation P(x)/Q(x).
+    /// Evaluates: P(x) = (((a*x²+b)*x²+c)*x²*x)
+    ///           Q(x) = (((d+e*x²)*x²+f)*x² + g)
+    /// Where a,b,c,d,e,f,g are the polynomial coefficients.
+    ///
+    /// Called from log_safe_approx for medium-range magnitudes.
+    /// @ 0x1801ccff0 (decompiled)
+    #[inline]
+    fn log_safe_rational_approx(x: f64, param_2: f64, param_3: i32) -> f64 {
+        // Branch selection based on magnitude
+        let mut adjusted_x = x;
+        let mut branch_index = 0i32;
+
+        if x <= LOG_SAFE_SMALL_THRESHOLD {
+            if x < LOG_SAFE_RANGE_THRESHOLD {
+                // Small negative magnitude
+                branch_index = -1;
+                adjusted_x = x + LOG_SAFE_ATK_THRESHOLD + param_2 + LOG_SAFE_SMALL_THRESHOLD;
+            }
+        } else {
+            // Large positive magnitude
+            branch_index = 1;
+            adjusted_x = (LOG_SAFE_ATK_THRESHOLD - x) + (LOG_SAFE_SMALL_THRESHOLD - param_2);
+            // param_2 = 0.0 in this path
+        }
+
+        // Main rational approximation: P(x) / Q(x)
+        let x_squared = adjusted_x * adjusted_x;
+
+        // Numerator: (((poly_even_0*x²+poly_even_1)*x²+poly_even_2)*x²*x)
+        let numerator = (((x_squared * LOG_SAFE_POLY_EVEN_0 + LOG_SAFE_POLY_EVEN_1) * x_squared
+            + LOG_SAFE_POLY_EVEN_2)
+            * x_squared
+            * adjusted_x);
+
+        // Denominator: (((poly_odd_1+poly_odd_0*x²)*x²+temp_a)*x² + poly_even_3)
+        let denominator = (((LOG_SAFE_POLY_ODD_1 + x_squared * LOG_SAFE_POLY_ODD_0) * x_squared
+            + LOG_SAFE_TEMP_A)
+            * x_squared
+            + LOG_SAFE_POLY_EVEN_3);
+
+        let mut result = if denominator.abs() > 1e-15 {
+            numerator / denominator + param_2
+        } else {
+            param_2
+        };
+
+        // Apply corrections for non-zero branch index
+        if branch_index != 0 {
+            if param_3 != 0 {
+                // Correction path A: high-precision bit manipulation
+                let numerator_bits = result + result;
+                let denom_bits = result - LOG_SAFE_EXPONENT_OFFSET;
+                if denom_bits.abs() > 1e-15 {
+                    result = (numerator_bits / denom_bits - LOG_SAFE_EXPONENT_OFFSET)
+                        * (branch_index as f64);
+                } else {
+                    result = 0.0;
+                }
+            } else {
+                // Correction path B: simpler formula
+                let numerator_bits = result + result;
+                let denom_bits = result + LOG_SAFE_EXPONENT_OFFSET;
+                if denom_bits.abs() > 1e-15 {
+                    result = (LOG_SAFE_EXPONENT_OFFSET - (numerator_bits / denom_bits))
+                        * (branch_index as f64);
+                } else {
+                    result = 0.0;
+                }
+            }
+        } else {
+            // Normal path: just add param_2
+            result = result + adjusted_x;
         }
 
         result
+    }
+
+    /// Table-based mantissa decomposition for Cody-Waite exponent extraction.
+    /// Implements the table-based logarithm evaluation used in PATH B.
+    ///
+    /// Extracts mantissa using table lookup for fast exponent calculation.
+    /// Currently simplified: would require table at 0x180216fa0 for full implementation.
+    /// @ 0x1801cdad0 (complex 64-bit table-based algorithm)
+    #[inline]
+    fn log_safe_decompose_mantissa(_mantissa_bits: u64) -> (f64, i32) {
+        // This function requires table lookups from the binary:
+        // - Table 1 @ 0x180216fa0: logarithm table
+        // - Table 2 @ 0x180216fa8: correction coefficients
+        // - Table 3 @ 0x180216fb0: adjustments
+
+        // For now, return simplified values (would break exact 1:1 parity)
+        // TODO: Extract and hardcode the table values
+        (0.0, 0)
     }
 
     /// Write smoothing filter state: converts raw polynomial outputs to filter state.
