@@ -1327,6 +1327,7 @@ dependencies = [
  "fts-dsp",
  "fts-plugin-core",
  "nih_plug",
+ "nih_plug_dioxus",
  "reaper-test",
  "tokio",
 ]
@@ -4978,6 +4979,20 @@ dependencies = [
  "atomic_float 1.1.0",
  "parking_lot",
  "realfft",
+]
+
+[[package]]
+name = "meter-plugin"
+version = "0.1.0"
+dependencies = [
+ "atomic_float 1.1.0",
+ "audio-gui",
+ "fts-plugin-core",
+ "meter-dsp",
+ "meter-ui",
+ "nih_plug",
+ "nih_plug_dioxus",
+ "parking_lot",
 ]
 
 [[package]]

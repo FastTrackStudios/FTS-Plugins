@@ -26,6 +26,12 @@ pub fn App() -> Element {
     let t = use_init_theme();
     let t = *t.read();
 
+    // In plugin mode the Vello Background layer paints the dark background.
+    // In dx-serve / standalone mode there is no OverlayRegistry so we fall
+    // back to a CSS background on the root div.
+    let in_plugin_mode = try_consume_context::<OverlayRegistry>().is_some();
+    let root_bg = if in_plugin_mode { "transparent" } else { t.bg };
+
     let shared = use_context::<SharedState>();
     let ui = shared.get::<CompUiState>().expect("CompUiState missing");
     let params = &ui.params;
@@ -66,9 +72,10 @@ pub fn App() -> Element {
                 style: format!(
                     "width:100vw; height:100vh; display:flex; flex-direction:column; \
                      color:{text}; font-family:{font}; font-size:13px; \
-                     user-select:none; position:relative;",
+                     user-select:none; position:relative; background:{bg};",
                     text = t.text,
                     font = t.font_family,
+                    bg = root_bg,
                 ),
 
                 // ── Main area ─────────────────────────────────────────

@@ -9,6 +9,10 @@ description = "FTS Compressor — CLAP/VST3 audio plugin entry point"
 [lib]
 crate-type = ["cdylib", "lib"]
 
+[[bin]]
+name = "comp-desktop"
+path = "src/main.rs"
+
 [dependencies]
 audio-gui = { workspace = true }
 fts-plugin-core = { path = "../../fts-plugin-core" }
@@ -17,6 +21,7 @@ comp-dsp = { path = "../comp-dsp" }
 comp-profiles = { path = "../comp-profiles" }
 comp-ui = { path = "../comp-ui" }
 nih_plug = { workspace = true }
+nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
 atomic_float = { workspace = true }
 
 [dev-dependencies]
