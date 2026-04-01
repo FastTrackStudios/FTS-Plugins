@@ -1,0 +1,1949 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index df1fd84..3f7a544 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -854,6 +854,12 @@ version = "0.8.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
+ 
++[[package]]
++name = "bit_mask_ring_buf"
++version = "0.6.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ac85b1322307fc253c24060df1e8b4e8ea681e13d2d02d14f59dbdf9f64b0e13"
++
+ [[package]]
+ name = "bitflags"
+ version = "1.3.2"
+@@ -989,7 +995,7 @@ dependencies = [
+  "blitz-traits",
+  "futures-util",
+  "keyboard-types 0.7.0",
+- "rfd 0.15.4",
++ "rfd",
+  "winit",
+ ]
+ 
+@@ -1283,7 +1289,6 @@ name = "chorus-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
+  "chorus-dsp",
+  "fts-dsp",
+  "fts-plugin-core",
+@@ -1984,12 +1989,6 @@ dependencies = [
+  "syn 2.0.117",
+ ]
+ 
+-[[package]]
+-name = "ctor-lite"
+-version = "0.1.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e162d0c2e2068eb736b71e5597eff0b9944e6b973cd9f37b6a288ab9bf20e300"
+-
+ [[package]]
+ name = "cursor-icon"
+ version = "1.2.0"
+@@ -2938,46 +2937,6 @@ version = "0.1.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
+ 
+-[[package]]
+-name = "drm"
+-version = "0.14.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "80bc8c5c6c2941f70a55c15f8d9f00f9710ebda3ffda98075f996a0e6c92756f"
+-dependencies = [
+- "bitflags 2.11.0",
+- "bytemuck",
+- "drm-ffi",
+- "drm-fourcc",
+- "libc",
+- "rustix 0.38.44",
+-]
+-
+-[[package]]
+-name = "drm-ffi"
+-version = "0.9.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "51a91c9b32ac4e8105dec255e849e0d66e27d7c34d184364fb93e469db08f690"
+-dependencies = [
+- "drm-sys",
+- "rustix 1.1.4",
+-]
+-
+-[[package]]
+-name = "drm-fourcc"
+-version = "2.2.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0aafbcdb8afc29c1a7ee5fbe53b5d62f4565b35a042a662ca9fecd0b54dae6f4"
+-
+-[[package]]
+-name = "drm-sys"
+-version = "0.8.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ecc8e1361066d91f5ffccff060a3c3be9c3ecde15be2959c1937595f7a82a9f8"
+-dependencies = [
+- "libc",
+- "linux-raw-sys 0.9.4",
+-]
+-
+ [[package]]
+ name = "dtoa"
+ version = "1.0.11"
+@@ -3136,6 +3095,7 @@ dependencies = [
+  "criterion",
+  "eq-dsp",
+  "fts-dsp",
++ "halfband",
+  "hound",
+  "rustfft",
+ ]
+@@ -3794,7 +3754,6 @@ name = "fts-sample"
+ version = "0.1.0"
+ dependencies = [
+  "crossbeam-channel",
+- "rfd 0.17.2",
+  "symphonium",
+  "tracing",
+ ]
+@@ -4284,7 +4243,11 @@ checksum = "f9e2d4c0a8296178d8802098410ca05d86b17a10bb5ab559b3fb404c1f948220"
+ name = "gui-test"
+ version = "0.1.0"
+ dependencies = [
++ "atomic_float 1.1.0",
++ "comp-plugin",
+  "nih_plug_dioxus",
++ "png",
++ "x11rb",
+ ]
+ 
+ [[package]]
+@@ -4328,6 +4291,17 @@ dependencies = [
+  "zerocopy",
+ ]
+ 
++[[package]]
++name = "halfband"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c21ea2524c2b1a846750d6c68b85f6cbe292d6eb847b5a7bea86e18c999870d5"
++dependencies = [
++ "bit_mask_ring_buf",
++ "paste",
++ "windowfunctions",
++]
++
+ [[package]]
+ name = "harfrust"
+ version = "0.3.2"
+@@ -5369,12 +5343,6 @@ version = "0.4.15"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
+ 
+-[[package]]
+-name = "linux-raw-sys"
+-version = "0.9.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
+-
+ [[package]]
+ name = "linux-raw-sys"
+ version = "0.12.1"
+@@ -6244,7 +6212,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug"
+ version = "0.0.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "anyhow",
+  "anymap3",
+@@ -6274,7 +6241,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug_derive"
+ version = "0.1.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "proc-macro2",
+  "quote",
+@@ -6284,7 +6250,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug_dioxus"
+ version = "0.0.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "anyrender_vello",
+  "baseview",
+@@ -6301,7 +6266,6 @@ dependencies = [
+  "pollster 0.4.0",
+  "raw-window-handle 0.6.2",
+  "serde",
+- "softbuffer",
+  "vello 0.6.0",
+  "wgpu 26.0.1",
+  "wgpu_context",
+@@ -6577,7 +6541,7 @@ dependencies = [
+  "objc2-core-data",
+  "objc2-core-image",
+  "objc2-foundation 0.2.2",
+- "objc2-quartz-core 0.2.2",
++ "objc2-quartz-core",
+ ]
+ 
+ [[package]]
+@@ -6765,18 +6729,6 @@ dependencies = [
+  "objc2-metal",
+ ]
+ 
+-[[package]]
+-name = "objc2-quartz-core"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "96c1358452b371bf9f104e21ec536d37a650eb10f7ee379fff67d2e08d537f1f"
+-dependencies = [
+- "bitflags 2.11.0",
+- "objc2 0.6.4",
+- "objc2-core-foundation",
+- "objc2-foundation 0.3.2",
+-]
+-
+ [[package]]
+ name = "objc2-symbols"
+ version = "0.2.2"
+@@ -6802,7 +6754,7 @@ dependencies = [
+  "objc2-core-location",
+  "objc2-foundation 0.2.2",
+  "objc2-link-presentation",
+- "objc2-quartz-core 0.2.2",
++ "objc2-quartz-core",
+  "objc2-symbols",
+  "objc2-uniform-type-identifiers",
+  "objc2-user-notifications",
+@@ -7327,6 +7279,7 @@ dependencies = [
+  "criterion",
+  "fts-dsp",
+  "hound",
++ "realfft",
+  "rustfft",
+  "serde",
+  "signalsmith-stretch",
+@@ -8145,8 +8098,6 @@ dependencies = [
+ name = "reverb-plugin"
+ version = "0.1.0"
+ dependencies = [
+- "atomic_float 1.1.0",
+- "audio-gui",
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+@@ -8197,33 +8148,6 @@ dependencies = [
+  "windows-sys 0.59.0",
+ ]
+ 
+-[[package]]
+-name = "rfd"
+-version = "0.17.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "20dafead71c16a34e1ff357ddefc8afc11e7d51d6d2b9fbd07eaa48e3e540220"
+-dependencies = [
+- "block2 0.6.2",
+- "dispatch2",
+- "js-sys",
+- "libc",
+- "log",
+- "objc2 0.6.4",
+- "objc2-app-kit 0.3.2",
+- "objc2-core-foundation",
+- "objc2-foundation 0.3.2",
+- "percent-encoding",
+- "pollster 0.4.0",
+- "raw-window-handle 0.6.2",
+- "wasm-bindgen",
+- "wasm-bindgen-futures",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-protocols",
+- "web-sys",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "rgb"
+ version = "0.8.53"
+@@ -9030,38 +8954,6 @@ dependencies = [
+  "winapi",
+ ]
+ 
+-[[package]]
+-name = "softbuffer"
+-version = "0.4.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "aac18da81ebbf05109ab275b157c22a653bb3c12cf884450179942f81bcbf6c3"
+-dependencies = [
+- "as-raw-xcb-connection",
+- "bytemuck",
+- "drm",
+- "fastrand",
+- "js-sys",
+- "memmap2",
+- "ndk",
+- "objc2 0.6.4",
+- "objc2-core-foundation",
+- "objc2-core-graphics",
+- "objc2-foundation 0.3.2",
+- "objc2-quartz-core 0.3.2",
+- "raw-window-handle 0.6.2",
+- "redox_syscall 0.5.18",
+- "rustix 1.1.4",
+- "tiny-xlib",
+- "tracing",
+- "wasm-bindgen",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-sys",
+- "web-sys",
+- "windows-sys 0.61.2",
+- "x11rb",
+-]
+-
+ [[package]]
+ name = "spirv"
+ version = "0.3.0+sdk-1.3.268.0"
+@@ -9851,19 +9743,6 @@ dependencies = [
+  "strict-num",
+ ]
+ 
+-[[package]]
+-name = "tiny-xlib"
+-version = "0.2.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0324504befd01cab6e0c994f34b2ffa257849ee019d3fb3b64fb2c858887d89e"
+-dependencies = [
+- "as-raw-xcb-connection",
+- "ctor-lite",
+- "libloading 0.8.9",
+- "pkg-config",
+- "tracing",
+-]
+-
+ [[package]]
+ name = "tinystr"
+ version = "0.7.6"
+@@ -11752,6 +11631,15 @@ version = "0.4.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+ 
++[[package]]
++name = "windowfunctions"
++version = "0.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "90628d739333b7c5d2ee0b70210b97b8cddc38440c682c96fd9e2c24c2db5f3a"
++dependencies = [
++ "num-traits",
++]
++
+ [[package]]
+ name = "windows"
+ version = "0.44.0"
+diff --git a/apps/gui-test/Cargo.toml b/apps/gui-test/Cargo.toml
+index c0b0a40..0ad933e 100644
+--- a/apps/gui-test/Cargo.toml
++++ b/apps/gui-test/Cargo.toml
+@@ -16,8 +16,20 @@ path = "src/main_softbuffer.rs"
+ name = "gui-test-parented"
+ path = "src/main_parented.rs"
+ 
++[[bin]]
++name = "gui-test-screenshot"
++path = "src/main_screenshot.rs"
++
+ [dependencies]
+ nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
++png = "0.17"
++atomic_float = "1"
++
++# Only one plugin at a time to avoid duplicate CLAP/VST3 entry point symbols.
++# Switch to a different plugin crate to screenshot it.
++comp-plugin = { path = "../../crates/fts-comp/comp-plugin" }
++# delay-plugin = { path = "../../crates/fts-delay/delay-plugin" }
++# eq-plugin = { path = "../../crates/fts-eq/eq-plugin" }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
+ x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
+diff --git a/apps/gui-test/src/main_screenshot.rs b/apps/gui-test/src/main_screenshot.rs
+index bf6e371..1c81ca0 100644
+--- a/apps/gui-test/src/main_screenshot.rs
++++ b/apps/gui-test/src/main_screenshot.rs
+@@ -1,181 +1,68 @@
+-//! Headless screenshot tool for GUI testing.
++//! Headless screenshot tool for plugin GUI testing.
+ //!
+-//! Renders a Dioxus component offscreen via wgpu and saves as PNG.
+-//! This lets you visually verify rendering without opening a window.
++//! Renders actual plugin editor GUIs offscreen via wgpu and saves as PNG.
++//! This lets you visually verify rendering without a DAW.
+ //!
+ //! Run with:
+-//!   cargo run -p gui-test --bin gui-test-screenshot [output.png]
++//!   cargo run -p gui-test --bin gui-test-screenshot [plugin] [output.png]
++//!
++//! Examples:
++//!   cargo run -p gui-test --bin gui-test-screenshot comp /tmp/comp.png
++//!
++//! To screenshot other plugins, uncomment the corresponding dependency in
++//! Cargo.toml (only one plugin at a time to avoid duplicate CLAP/VST3 symbols).
+ 
+-use nih_plug_dioxus::dioxus_native::prelude::*;
+-use nih_plug_dioxus::TAILWIND_CSS;
++use nih_plug_dioxus::SharedState;
+ use std::path::PathBuf;
++use std::sync::Arc;
+ 
+ fn main() {
+-    let output_path = std::env::args()
+-        .nth(1)
+-        .map(PathBuf::from)
+-        .unwrap_or_else(|| PathBuf::from("screenshot.png"));
++    let args: Vec<String> = std::env::args().collect();
+ 
+-    let width = 800;
+-    let height = 600;
+-
+-    eprintln!("Rendering {}x{} screenshot...", width, height);
+-
+-    let pixels = nih_plug_dioxus::render_screenshot(App, width, height, None);
++    let plugin_name = args.get(1).map(|s| s.as_str()).unwrap_or("comp");
++    let output_path = args
++        .get(2)
++        .map(PathBuf::from)
++        .unwrap_or_else(|| PathBuf::from(format!("/tmp/fts-{}.png", plugin_name)));
++
++    match plugin_name {
++        "comp" => screenshot_comp(&output_path),
++        // Uncomment in Cargo.toml to enable:
++        // "delay" => screenshot_delay(&output_path),
++        // "eq" => screenshot_eq(&output_path),
++        _ => {
++            eprintln!("Unknown plugin: {}", plugin_name);
++            eprintln!("Available: comp");
++            eprintln!("(Uncomment delay-plugin or eq-plugin in Cargo.toml to enable others)");
++            std::process::exit(1);
++        }
++    }
++}
+ 
+-    // Save as PNG
+-    let file = std::fs::File::create(&output_path).expect("Failed to create output file");
++fn save_png(pixels: &[u8], width: u32, height: u32, path: &std::path::Path) {
++    let file = std::fs::File::create(path).expect("Failed to create output file");
+     let mut encoder = png::Encoder::new(file, width, height);
+     encoder.set_color(png::ColorType::Rgba);
+     encoder.set_depth(png::BitDepth::Eight);
+     let mut writer = encoder.write_header().expect("Failed to write PNG header");
+-    writer.write_image_data(&pixels).expect("Failed to write PNG data");
+-
+-    eprintln!("Saved to {}", output_path.display());
++    writer
++        .write_image_data(pixels)
++        .expect("Failed to write PNG data");
++    eprintln!("Saved to {}", path.display());
+ }
+ 
+-/// Test component — exercises various layout and styling patterns.
+-#[component]
+-fn App() -> Element {
+-    rsx! {
+-        document::Style { {TAILWIND_CSS} }
+-        div {
+-            style: "width: 100%; height: 100%; background: #1a1a2e; padding: 16px; font-family: sans-serif; color: white; box-sizing: border-box;",
+-
+-            // Title bar
+-            div {
+-                style: "font-size: 20px; font-weight: bold; color: #e94560; margin-bottom: 16px;",
+-                "FTS GUI Component Gallery"
+-            }
+-
+-            // Row of colored boxes (tests flexbox + border-radius + hsl colors)
+-            div {
+-                style: "display: flex; gap: 8px; margin-bottom: 16px;",
+-                for i in 0..8 {
+-                    {
+-                        let hue = i * 45;
+-                        rsx! {
+-                            div {
+-                                style: "width: 48px; height: 48px; border-radius: 8px; background: hsl({hue}, 70%, 50%); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;",
+-                                "{hue}"
+-                            }
+-                        }
+-                    }
+-                }
+-            }
++fn screenshot_comp(output: &std::path::Path) {
++    use comp_plugin::{CompUiState, FtsCompParams};
+ 
+-            // Layout test: two columns
+-            div {
+-                style: "display: flex; gap: 16px; margin-bottom: 16px;",
++    let width = 900;
++    let height = 620;
+ 
+-                // Left column — simulated knob area
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
++    let params = Arc::new(FtsCompParams::default());
++    let ui_state = Arc::new(CompUiState::new(params));
++    let shared = SharedState::new(ui_state);
+ 
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Controls"
+-                    }
+-
+-                    // Simulated knobs (circles with labels)
+-                    div {
+-                        style: "display: flex; gap: 16px; flex-wrap: wrap;",
+-                        for label in ["Gain", "Freq", "Q", "Mix"] {
+-                            div {
+-                                style: "display: flex; flex-direction: column; align-items: center; gap: 4px;",
+-                                div {
+-                                    style: "width: 48px; height: 48px; border-radius: 50%; background: #0f3460; border: 2px solid #e94560; display: flex; align-items: center; justify-content: center; font-size: 11px;",
+-                                    "0.5"
+-                                }
+-                                div {
+-                                    style: "font-size: 10px; color: #888;",
+-                                    "{label}"
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Right column — simulated dropdown + text
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Settings"
+-                    }
+-
+-                    // Simulated dropdown
+-                    div {
+-                        style: "background: #0f3460; border: 1px solid #333; border-radius: 4px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between;",
+-                        span { "Algorithm: Clean" }
+-                        span { style: "color: #888;", "▼" }
+-                    }
+-
+-                    // Simulated toggle
+-                    div {
+-                        style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;",
+-                        div {
+-                            style: "width: 36px; height: 20px; border-radius: 10px; background: #e94560; position: relative;",
+-                            div {
+-                                style: "width: 16px; height: 16px; border-radius: 50%; background: white; position: absolute; top: 2px; right: 2px;",
+-                            }
+-                        }
+-                        span { style: "font-size: 13px;", "Enabled" }
+-                    }
+-
+-                    // Simulated slider
+-                    div {
+-                        style: "margin-bottom: 4px;",
+-                        div {
+-                            style: "font-size: 11px; color: #888; margin-bottom: 4px;",
+-                            "Dry/Wet"
+-                        }
+-                        div {
+-                            style: "height: 6px; background: #0f3460; border-radius: 3px; position: relative;",
+-                            div {
+-                                style: "width: 65%; height: 100%; background: #e94560; border-radius: 3px;",
+-                            }
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Bottom panel — simulated meter / waveform area
+-            div {
+-                style: "background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                div {
+-                    style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                    "Output"
+-                }
+-
+-                // Simulated level meters
+-                div {
+-                    style: "display: flex; gap: 4px; height: 24px;",
+-                    for level in [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.3, 0.65, 0.55, 0.75, 0.45, 0.6, 0.8, 0.5, 0.7] {
+-                        {
+-                            let pct = (level * 100.0) as u32;
+-                            let color = if level > 0.85 { "#ff4444" } else if level > 0.7 { "#ffaa00" } else { "#44ff44" };
+-                            rsx! {
+-                                div {
+-                                    style: "flex: 1; background: #0f3460; border-radius: 2px; display: flex; align-items: flex-end;",
+-                                    div {
+-                                        style: "width: 100%; height: {pct}%; background: {color}; border-radius: 2px;",
+-                                    }
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Labels
+-                div {
+-                    style: "display: flex; justify-content: space-between; margin-top: 4px;",
+-                    span { style: "font-size: 10px; color: #888;", "L" }
+-                    span { style: "font-size: 10px; color: #888;", "R" }
+-                }
+-            }
+-        }
+-    }
++    eprintln!("Rendering compressor ({}x{})...", width, height);
++    let pixels =
++        nih_plug_dioxus::render_screenshot(comp_plugin::editor::App, width, height, Some(shared));
++    save_png(&pixels, width, height, output);
+ }
+diff --git a/crates/fts-comp/comp-plugin/src/lib.rs b/crates/fts-comp/comp-plugin/src/lib.rs
+index 35834c1..0c8fee8 100644
+--- a/crates/fts-comp/comp-plugin/src/lib.rs
++++ b/crates/fts-comp/comp-plugin/src/lib.rs
+@@ -8,7 +8,7 @@ use std::sync::Arc;
+ use comp_dsp::chain::CompChain;
+ use fts_dsp::{AudioConfig, Processor};
+ 
+-mod editor;
++pub mod editor;
+ 
+ // ── Shared UI State ──────────────────────────────────────────────────
+ 
+@@ -33,7 +33,7 @@ pub struct CompUiState {
+ pub const WAVEFORM_LEN: usize = 200;
+ 
+ impl CompUiState {
+-    fn new(params: Arc<FtsCompParams>) -> Self {
++    pub fn new(params: Arc<FtsCompParams>) -> Self {
+         let waveform_input: Box<[AtomicF32]> = (0..WAVEFORM_LEN)
+             .map(|_| AtomicF32::new(0.0))
+             .collect::<Vec<_>>()
+diff --git a/crates/fts-delay/delay-plugin/Cargo.toml b/crates/fts-delay/delay-plugin/Cargo.toml
+index 5a096d5..9e88232 100644
+--- a/crates/fts-delay/delay-plugin/Cargo.toml
++++ b/crates/fts-delay/delay-plugin/Cargo.toml
+@@ -7,7 +7,7 @@ edition.workspace = true
+ description = "FTS Delay — CLAP/VST3 audio plugin entry point"
+ 
+ [lib]
+-crate-type = ["cdylib"]
++crate-type = ["cdylib", "lib"]
+ 
+ [dependencies]
+ fts-plugin-core = { path = "../../fts-plugin-core" }
+diff --git a/crates/fts-delay/delay-plugin/src/lib.rs b/crates/fts-delay/delay-plugin/src/lib.rs
+index 54bb100..fd06696 100644
+--- a/crates/fts-delay/delay-plugin/src/lib.rs
++++ b/crates/fts-delay/delay-plugin/src/lib.rs
+@@ -12,7 +12,7 @@ use fts_dsp::note_sync::NoteValue;
+ use fts_dsp::{AudioConfig, Processor};
+ use fts_plugin_core::prelude::*;
+ 
+-mod editor;
++pub mod editor;
+ 
+ // ── UI State ────────────────────────────────────────────────────────
+ 
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 768b774..8c1e082 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -335,51 +335,192 @@ fn high_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     high_shelf_2_matched_q(w0, q, g)
+ }
+ 
+-/// Vicanek-style matched 2nd-order high shelf with arbitrary Q.
+-/// Uses impulse-invariance for poles + magnitude matching at DC/Nyquist/corner.
+-/// The analog prototype is: H(s) = A·[A·s²+(√A/Q)·s+1] / [s²+(√A/Q)·s+A]
+-/// where A = √G.
++/// Vicanek matched 2nd-order high shelf via tilt shelf proxy (ZL approach).
++///
++/// High shelf = tilt_shelf(g) with numerator scaled by √g.
++/// DC=1, Nyquist=g.
+ fn high_shelf_2_matched_q(w0: f64, q: f64, g: f64) -> Coeffs {
+-    let a = g.sqrt(); // A = √G (RBJ convention)
+-    let sqrt_a = a.sqrt(); // √A = G^(1/4)
++    let c = tilt_shelf_2_matched(w0, q, g);
++    let scale = g.sqrt();
++    [c[0], c[1], c[2], c[3] * scale, c[4] * scale, c[5] * scale]
++}
+ 
+-    // Map analog shelf denominator poles to digital via impulse invariance.
+-    // Denominator: s² + (√A/Q)·ωc·s + A·ωc² = 0
+-    // Standard form poles at s = ωc·(-b ± j·√(c²-b²))
+-    // where b = √A/(2Q), c = √A
+-    let (a1, a2) = solve_poles(w0, sqrt_a / (2.0 * q), sqrt_a);
++/// Vicanek matched 2nd-order tilt shelf with optimal matching frequencies.
++///
++/// For g > 1 (boost), works with 1/g and swaps numerator/denominator.
++/// Matching frequencies derived analytically from the analog prototype's
++/// error-minimizing points (Vicanek's quadratic).
++fn tilt_shelf_2_matched(w0: f64, q: f64, g: f64) -> Coeffs {
++    let reverse = g > 1.0;
++    let g = if reverse { 1.0 / g } else { g };
++
++    let sqrt_g = g.sqrt();
++    let ssqrt_g = sqrt_g.sqrt(); // g^(1/4)
++
++    // Poles via impulse invariance (same as ZL's solve_a with 3 args)
++    let (a1, a2) = solve_poles(w0, ssqrt_g / (2.0 * q), ssqrt_g);
++
++    // Denominator squared-magnitude parameters: A = get_AB(a)
++    let a_big = [
++        (1.0 + a1 + a2).powi(2),
++        (1.0 - a1 + a2).powi(2),
++        -4.0 * a2,
++    ];
++
++    // Compute optimal matching frequencies from Vicanek's quadratic
++    let w02 = w0 * w0;
++    let c2 = sqrt_g * (-1.0 + 2.0 * q * q);
++    let c0 = c2 * w02 * w02;
++    let c1 = -2.0 * (1.0 + g) * (q * w0) * (q * w0);
++    let discriminant = c1 * c1 - 4.0 * c0 * c2;
++
++    let mut ws = if discriminant <= 0.0 {
++        [0.0, w0 * 0.5, w0]
++    } else {
++        let delta = discriminant.sqrt();
++        let inv_2c2 = 0.5 / c2;
++        let sol1 = (-c1 + delta) * inv_2c2;
++        let sol2 = (-c1 - delta) * inv_2c2;
++        if sol1 < 0.0 || sol2 < 0.0 {
++            [0.0, w0 * 0.5, w0]
++        } else {
++            let w1 = sol1.sqrt();
++            let w2 = sol2.sqrt();
++            if w1 < PI || w2 < PI {
++                [0.0, w1.min(w2), w1.max(w2).min(PI)]
++            } else {
++                [0.0, PI / 2.0, PI]
++            }
++        }
++    };
+ 
+-    // Squared-magnitude parameters for denominator
+-    let a0_big = (1.0 + a1 + a2).powi(2);
+-    let a1_big = (1.0 - a1 + a2).powi(2);
+-    let a2_big = -4.0 * a2;
+-    let p0 = phi0(w0);
+-    let p1 = phi1(w0);
++    // Tilt shelf analog magnitude squared: H(s) = N(s)/D(s) where
++    //   N(s) = sqrt_g·s² + ssqrt_g·w0/q·s + w0²
++    //   D(s) = s² + ssqrt_g·w0/q·s + sqrt_g·w0²
++    // |H(jw)|² = |N(jw)|²/|D(jw)|²
++    let w0_over_q = w0 / q;
++    let tilt_mag2 = |w: f64| -> f64 {
++        let w2 = w * w;
++        // N(jw) = (w0² - sqrt_g·w²) + j·(ssqrt_g·w0/q·w)
++        let nr = w02 - sqrt_g * w2;
++        let ni = ssqrt_g * w0_over_q * w;
++        // D(jw) = (sqrt_g·w0² - w²) + j·(ssqrt_g·w0/q·w)
++        let dr = sqrt_g * w02 - w2;
++        let di = ssqrt_g * w0_over_q * w;
++        let num_sq = nr * nr + ni * ni;
++        let den_sq = dr * dr + di * di;
++        if den_sq < 1e-30 {
++            return 1.0;
++        }
++        num_sq / den_sq
++    };
+ 
+-    // DC: high shelf has |H(0)|² = 1
+-    let b0_big = a0_big;
++    // Solve 3×3 linear system for numerator magnitude-squared parameters B
++    // At each matching frequency: B·φ(w) = |H_a(jw)|² · A·φ(w)
++    let solve_b = |ws: &[f64; 3]| -> [f64; 3] {
++        let mut phi = [[0.0; 3]; 3];
++        let mut rhs = [0.0; 3];
++        for i in 0..3 {
++            let p = phi_vec(ws[i]);
++            phi[i] = p;
++            rhs[i] = tilt_mag2(ws[i]) * dot3(&p, &a_big);
++        }
++        linear_solve_3x3(&phi, &rhs)
++    };
+ 
+-    // Nyquist: compute from analog prototype
+-    // |H(jf)|² = A²·[(1-A·f²)² + A·f²/Q²] / [(A-f²)² + A·f²/Q²]
+-    let f_ny = PI / w0;
+-    let f_ny_sq = f_ny * f_ny;
+-    let a_f_ny_sq = a * f_ny_sq;
+-    let a_over_q_sq = a * f_ny_sq / (q * q);
+-    let num_ny = (1.0 - a_f_ny_sq).powi(2) + a_over_q_sq;
+-    let den_ny = (a - f_ny_sq).powi(2) + a_over_q_sq;
+-    let h_ny_sq = if den_ny.abs() > 1e-30 {
+-        a * a * num_ny / den_ny
++    // Retry loop matches ZL: B starts invalid, first solve uses original ws
++    let _ws = ws;
++    let mut b_big = [-1.0, -1.0, -1.0_f64];
++    let mut trial = 0;
++    while !check_b_valid(&b_big) && trial < 20 {
++        trial += 1;
++        let mut phi = [[0.0; 3]; 3];
++        let mut rhs = [0.0; 3];
++        for i in 0..3 {
++            let p = phi_vec(ws[i]);
++            phi[i] = p;
++            rhs[i] = tilt_mag2(ws[i]) * dot3(&p, &a_big);
++        }
++        b_big = linear_solve_3x3(&phi, &rhs);
++        ws[2] = 0.5 * (ws[2] + PI);
++    }
++    // Fallback if still invalid after 20 trials
++    if trial == 20 {
++        ws = _ws;
++        let mut phi = [[0.0; 3]; 3];
++        let mut rhs = [0.0; 3];
++        for i in 0..3 {
++            let p = phi_vec(ws[i]);
++            phi[i] = p;
++            rhs[i] = tilt_mag2(ws[i]) * dot3(&p, &a_big);
++        }
++        b_big = linear_solve_3x3(&phi, &rhs);
++        if w0 > PI / 2.0 {
++            ws[2] = 0.9 * ws[2];
++        } else {
++            ws[2] = 0.9 * ws[2] + 0.1 * PI;
++        }
++    }
++
++    let (b0, b1, b2) = mag_sq_to_b([b_big[0].max(0.0), b_big[1].max(0.0), b_big[2]]);
++
++    if reverse {
++        [b0, b1, b2, 1.0, a1, a2]
+     } else {
+-        g // fallback to full gain
+-    };
+-    let b1_big = a1_big * h_ny_sq;
++        [1.0, a1, a2, b0, b1, b2]
++    }
++}
+ 
+-    // Corner: |H(w0)|² = G (half-gain point in dB)
+-    let target = g * (a0_big * p0 + a1_big * p1 + a2_big * 4.0 * p0 * p1);
+-    let b2_big = (target - b0_big * p0 - b1_big * p1) / (4.0 * p0 * p1);
++fn phi_vec(w: f64) -> [f64; 3] {
++    let c = 0.5 * w.cos();
++    let p0 = 0.5 + c;
++    let p1 = 0.5 - c;
++    [p0, p1, 4.0 * p0 * p1]
++}
+ 
+-    let (b0, b1, b2) = mag_sq_to_b([b0_big.max(0.0), b1_big.max(0.0), b2_big]);
+-    [1.0, a1, a2, b0, b1, b2]
++fn dot3(a: &[f64; 3], b: &[f64; 3]) -> f64 {
++    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
++}
++
++fn check_b_valid(b: &[f64; 3]) -> bool {
++    b[0] > 0.0
++        && b[1] > 0.0
++        && (0.5 * (b[0].sqrt() + b[1].sqrt())).powi(2) + b[2] > 0.0
++}
++
++/// Solve 3×3 system exploiting phi(0)=[1,0,0] structure.
++fn linear_solve_3x3(a: &[[f64; 3]; 3], b: &[f64; 3]) -> [f64; 3] {
++    if a[0][0].abs() > a[0][1].abs() {
++        let x0 = b[0] / a[0][0];
++        let denom = -(a[1][2] * a[2][1] - a[1][1] * a[2][2]);
++        if denom.abs() < 1e-30 {
++            return [-1.0; 3];
++        }
++        let x1 = (a[2][2] * b[1] - a[1][2] * b[2]
++            + a[1][2] * a[2][0] * x0
++            - a[1][0] * a[2][2] * x0)
++            / denom;
++        let x2 = (-a[2][1] * b[1] + a[1][1] * b[2]
++            - a[1][1] * a[2][0] * x0
++            + a[1][0] * a[2][1] * x0)
++            / denom;
++        [x0, x1, x2]
++    } else {
++        let x1 = b[0] / a[0][1];
++        let denom = -(a[1][2] * a[2][0] - a[1][0] * a[2][2]);
++        if denom.abs() < 1e-30 {
++            return [-1.0; 3];
++        }
++        let x0 = (a[1][2] * a[2][1] * b[0] - a[1][1] * a[2][2] * b[0]
++            + a[2][2] * b[1]
++            - a[1][2] * b[2])
++            / denom;
++        let x2 = (a[1][1] * a[2][0] * b[0] - a[1][0] * a[2][1] * b[0]
++            - a[2][0] * b[1]
++            + a[1][0] * b[2])
++            / denom;
++        [x0, x1, x2]
++    }
+ }
+ 
+ #[cfg(test)]
+diff --git a/crates/fts-pitch/pitch-dsp/Cargo.toml b/crates/fts-pitch/pitch-dsp/Cargo.toml
+index 262c4a3..f4e7b6c 100644
+--- a/crates/fts-pitch/pitch-dsp/Cargo.toml
++++ b/crates/fts-pitch/pitch-dsp/Cargo.toml
+@@ -8,6 +8,7 @@ license.workspace = true
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ serde = { workspace = true }
++realfft = "3"
+ 
+ # External pitch/time-stretch libraries
+ signalsmith-stretch = "0.1"
+diff --git a/crates/fts-pitch/pitch-dsp/src/pog.rs b/crates/fts-pitch/pitch-dsp/src/pog.rs
+index 7295f0d..e96af05 100644
+--- a/crates/fts-pitch/pitch-dsp/src/pog.rs
++++ b/crates/fts-pitch/pitch-dsp/src/pog.rs
+@@ -1,28 +1,29 @@
+-//! Polyphonic Octave Generator — ERB filter bank phase-scaling pitch shifter.
++//! Polyphonic Octave Generator — STFT phase-vocoder octave shifter.
+ //!
+-//! Inspired by the EHX POG pedal, this uses a bank of 80 complex bandpass
+-//! filters at ERB-spaced frequencies. Each filter produces an analytic signal
+-//! whose phase is doubled (octave up) or halved (octave down) independently.
+-//! This is inherently polyphonic — no pitch detection needed, full chords shift
+-//! cleanly.
++//! Uses an overlap-add STFT to perform exact octave shifts by scaling
++//! spectral bin phases. This approach gives near-perfect spectral
++//! reconstruction compared to filter-bank methods, at the cost of latency.
+ //!
+-//! Based on the ERB-PS2 method from Thuillier (2016) "Real-Time Polyphonic
+-//! Octave Doubling for the Guitar" and the open-source terrarium-poly-octave
+-//! implementation by schult.
++//! For octave up (×2): bin k's content is placed at bin 2k with phase doubled.
++//! For octave down (÷2): bin k's content is placed at bin k/2 with phase halved.
++//! Two-octave shifts apply the operation twice.
+ //!
+-//! Latency: 0 samples (filter group delay only, no buffering).
+-//! Character: Clean, polyphonic octave. EHX POG / Micro POG style.
++//! Latency: FFT_SIZE samples (2048 @ 44.1 kHz ≈ 46 ms).
++//! Character: Clean, transparent polyphonic octave shift.
+ 
+ use std::f64::consts::{PI, TAU};
+ 
+-/// Number of complex bandpass filters in the ERB filter bank.
+-const NUM_FILTERS: usize = 80;
++use realfft::{RealFftPlanner, RealToComplex, ComplexToReal};
++use std::sync::Arc;
+ 
+-/// Minimum frequency covered by the filter bank (Hz).
+-const FREQ_MIN: f64 = 40.0;
++/// FFT size for STFT processing.
++const FFT_SIZE: usize = 2048;
+ 
+-/// Maximum frequency as a fraction of sample rate (stay well below Nyquist).
+-const FREQ_MAX_RATIO: f64 = 0.45;
++/// Overlap factor (4 = 75% overlap, hop = FFT_SIZE/4).
++const OVERLAP: usize = 4;
++
++/// Hop size in samples.
++const HOP_SIZE: usize = FFT_SIZE / OVERLAP;
+ 
+ /// Which octave shift to produce.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+@@ -39,7 +40,6 @@ pub enum OctaveShift {
+ 
+ impl OctaveShift {
+     /// Map a semitone value to the nearest octave shift.
+-    /// Negative → down, positive → up. ±18 threshold for double octave.
+     pub fn from_semitones(st: f64) -> Self {
+         if st <= -18.0 {
+             Self::Sub2
+@@ -53,594 +53,279 @@ impl OctaveShift {
+     }
+ }
+ 
+-// ── Complex bandpass filter ─────────────────────────────────────────
+-
+-/// A single 2nd-order complex bandpass section.
+-///
+-/// Derived from a Butterworth lowpass prototype by substituting
+-/// z⁻¹ → z⁻¹·e^(−jω₀) to shift the passband to center frequency ω₀.
+-/// Processes real input, produces complex (analytic) output.
+-/// The `damp` parameter controls pole placement (√2 for Butterworth).
+-struct ComplexBpfSection {
+-    // Feedforward: b0 is real; b1, b2 are complex (frequency-shifted).
+-    b0: f64,
+-    b1_re: f64,
+-    b1_im: f64,
+-    b2_re: f64,
+-    b2_im: f64,
+-    // Feedback: a1, a2 are complex.
+-    a1_re: f64,
+-    a1_im: f64,
+-    a2_re: f64,
+-    a2_im: f64,
+-    // Delayed real inputs (Direct Form I).
+-    x1: f64,
+-    x2: f64,
+-    // Delayed complex outputs.
+-    y1_re: f64,
+-    y1_im: f64,
+-    y2_re: f64,
+-    y2_im: f64,
++/// Polyphonic Octave Generator using STFT phase vocoder.
++pub struct PolyOctave {
++    /// Which octave shift to apply.
++    pub shift: OctaveShift,
++    /// Dry/wet mix: 0.0 = dry, 1.0 = wet.
++    pub mix: f64,
++
++    // FFT plan and scratch buffers.
++    fft: Arc<dyn RealToComplex<f64>>,
++    ifft: Arc<dyn ComplexToReal<f64>>,
++
++    /// Analysis window (Hann).
++    window: Vec<f64>,
++
++    /// Circular input buffer. We write incoming samples here and read
++    /// FFT_SIZE frames from it every HOP_SIZE samples.
++    input_buf: Vec<f64>,
++    /// Write position in input_buf.
++    in_pos: usize,
++
++    /// Overlap-add output buffer (2× FFT_SIZE for safe wraparound).
++    output_buf: Vec<f64>,
++    /// Read position in output_buf (tracks output sample extraction).
++    out_read: usize,
++    /// Write position in output_buf (tracks where next IFFT frame goes).
++    out_write: usize,
++
++    /// Dry delay line to align dry signal with wet latency.
++    dry_buf: Vec<f64>,
++    dry_pos: usize,
++
++    /// Samples accumulated since last hop.
++    hop_counter: usize,
++
++    /// Previous frame phases for phase accumulation (input side).
++    prev_phase_in: Vec<f64>,
++    /// Phase accumulator for output bins.
++    phase_acc: Vec<f64>,
++
++    /// FFT scratch buffers.
++    fft_in: Vec<f64>,
++    fft_out: Vec<realfft::num_complex::Complex<f64>>,
++    ifft_in: Vec<realfft::num_complex::Complex<f64>>,
++    ifft_out: Vec<f64>,
++
++    /// Total samples processed (for initial latency fill).
++    total_samples: usize,
+ }
+ 
+-impl ComplexBpfSection {
+-    /// Design a section with arbitrary damping factor (2*cos(angle) for Butterworth).
+-    fn design(center_freq: f64, bandwidth: f64, damp: f64, sample_rate: f64) -> Self {
+-        let omega_c = (PI * bandwidth / sample_rate).tan();
+-        let omega_c2 = omega_c * omega_c;
+-        let norm = 1.0 / (1.0 + damp * omega_c + omega_c2);
++impl PolyOctave {
++    pub fn new() -> Self {
++        let mut planner = RealFftPlanner::<f64>::new();
++        let fft = planner.plan_fft_forward(FFT_SIZE);
++        let ifft = planner.plan_fft_inverse(FFT_SIZE);
+ 
+-        let b0 = omega_c2 * norm;
+-        let b1 = 2.0 * b0;
+-        let b2 = b0;
+-        let a1 = 2.0 * (omega_c2 - 1.0) * norm;
+-        let a2 = (1.0 - damp * omega_c + omega_c2) * norm;
++        let num_bins = FFT_SIZE / 2 + 1;
+ 
+-        // Frequency-shift rotation factors: e^(−jω₀), e^(−j2ω₀).
+-        let w0 = TAU * center_freq / sample_rate;
+-        let (s1, c1) = w0.sin_cos();
+-        let (s2, c2) = (2.0 * w0).sin_cos();
++        // Hann window.
++        let window: Vec<f64> = (0..FFT_SIZE)
++            .map(|i| 0.5 * (1.0 - (TAU * i as f64 / FFT_SIZE as f64).cos()))
++            .collect();
+ 
+-        Self {
+-            b0,
+-            b1_re: b1 * c1,
+-            b1_im: -b1 * s1,
+-            b2_re: b2 * c2,
+-            b2_im: -b2 * s2,
+-            a1_re: a1 * c1,
+-            a1_im: -a1 * s1,
+-            a2_re: a2 * c2,
+-            a2_im: -a2 * s2,
+-            x1: 0.0,
+-            x2: 0.0,
+-            y1_re: 0.0,
+-            y1_im: 0.0,
+-            y2_re: 0.0,
+-            y2_im: 0.0,
+-        }
+-    }
+-
+-    /// Process one real sample → complex (re, im) analytic output.
+-    #[inline]
+-    fn tick_real(&mut self, input: f64) -> (f64, f64) {
+-        let y_re = self.b0 * input + self.b1_re * self.x1 + self.b2_re * self.x2
+-            - (self.a1_re * self.y1_re - self.a1_im * self.y1_im)
+-            - (self.a2_re * self.y2_re - self.a2_im * self.y2_im);
+-
+-        let y_im = self.b1_im * self.x1 + self.b2_im * self.x2
+-            - (self.a1_re * self.y1_im + self.a1_im * self.y1_re)
+-            - (self.a2_re * self.y2_im + self.a2_im * self.y2_re);
+-
+-        self.x2 = self.x1;
+-        self.x1 = input;
+-        self.y2_re = self.y1_re;
+-        self.y2_im = self.y1_im;
+-        self.y1_re = y_re;
+-        self.y1_im = y_im;
+-
+-        (y_re, y_im)
+-    }
++        let out_buf_size = FFT_SIZE * 2;
+ 
+-    fn reset(&mut self) {
+-        self.x1 = 0.0;
+-        self.x2 = 0.0;
+-        self.y1_re = 0.0;
+-        self.y1_im = 0.0;
+-        self.y2_re = 0.0;
+-        self.y2_im = 0.0;
++        Self {
++            shift: OctaveShift::Sub1,
++            mix: 1.0,
++            fft,
++            ifft,
++            window,
++            input_buf: vec![0.0; FFT_SIZE],
++            in_pos: 0,
++            output_buf: vec![0.0; out_buf_size],
++            out_read: 0,
++            out_write: 0,
++            dry_buf: vec![0.0; FFT_SIZE],
++            dry_pos: 0,
++            hop_counter: 0,
++            prev_phase_in: vec![0.0; num_bins],
++            phase_acc: vec![0.0; num_bins],
++            fft_in: vec![0.0; FFT_SIZE],
++            fft_out: vec![realfft::num_complex::Complex::new(0.0, 0.0); num_bins],
++            ifft_in: vec![realfft::num_complex::Complex::new(0.0, 0.0); num_bins],
++            ifft_out: vec![0.0; FFT_SIZE],
++            total_samples: 0,
++        }
++    }
++
++    pub fn update(&mut self, _sample_rate: f64) {
++        // FFT size is fixed; no sample-rate-dependent state to update.
++        // Reset buffers for clean start.
++        self.reset();
+     }
+-}
+ 
+-/// 2nd-order complex bandpass filter using standard Butterworth damping (√2).
+-struct ComplexBpf {
+-    s: ComplexBpfSection,
+-}
+-
+-impl ComplexBpf {
+-    fn design(center_freq: f64, bandwidth: f64, sample_rate: f64) -> Self {
+-        let damp = 2.0f64.sqrt(); // Butterworth: √2
+-        Self {
+-            s: ComplexBpfSection::design(center_freq, bandwidth, damp, sample_rate),
+-        }
++    pub fn reset(&mut self) {
++        self.input_buf.fill(0.0);
++        self.in_pos = 0;
++        self.output_buf.fill(0.0);
++        self.out_read = 0;
++        self.out_write = 0;
++        self.dry_buf.fill(0.0);
++        self.dry_pos = 0;
++        self.hop_counter = 0;
++        self.prev_phase_in.fill(0.0);
++        self.phase_acc.fill(0.0);
++        self.total_samples = 0;
+     }
+ 
++    /// Process one sample. Returns the mixed output.
+     #[inline]
+-    fn tick(&mut self, input: f64) -> (f64, f64) {
+-        self.s.tick_real(input)
+-    }
++    pub fn tick(&mut self, input: f64) -> f64 {
++        let out_buf_size = self.output_buf.len();
+ 
+-    fn reset(&mut self) {
+-        self.s.reset();
+-    }
+-}
++        // Store input in circular buffer.
++        self.input_buf[self.in_pos] = input;
++        self.in_pos = (self.in_pos + 1) % FFT_SIZE;
+ 
+-// ── Octave-down sign tracking ───────────────────────────────────────
++        // Store dry signal in delay line for latency compensation.
++        let dry_delayed = self.dry_buf[self.dry_pos];
++        self.dry_buf[self.dry_pos] = input;
++        self.dry_pos = (self.dry_pos + 1) % FFT_SIZE;
+ 
+-/// Per-filter state for half-angle sign continuity tracking.
+-struct SignTracker {
+-    prev_cos: f64,
+-    prev_sin: f64,
+-    sign: f64,
+-}
++        self.hop_counter += 1;
++        self.total_samples += 1;
+ 
+-impl SignTracker {
+-    fn new() -> Self {
+-        Self {
+-            prev_cos: 1.0,
+-            prev_sin: 0.0,
+-            sign: 1.0,
++        // Every HOP_SIZE samples, process an STFT frame.
++        if self.hop_counter >= HOP_SIZE {
++            self.hop_counter = 0;
++            self.process_frame();
+         }
+-    }
+-
+-    fn reset(&mut self) {
+-        self.prev_cos = 1.0;
+-        self.prev_sin = 0.0;
+-        self.sign = 1.0;
+-    }
+-}
+-
+-// ── Phase-scaling functions ─────────────────────────────────────────
+-
+-/// Octave up (phase doubling): Re(z²/|z|) = (a² − b²) / √(a² + b²).
+-/// Preserves amplitude: output magnitude = input magnitude.
+-#[inline]
+-fn octave_up_real(re: f64, im: f64) -> f64 {
+-    let mag_sq = re * re + im * im;
+-    if mag_sq < 1e-30 {
+-        return 0.0;
+-    }
+-    (re * re - im * im) / mag_sq.sqrt()
+-}
+ 
+-/// Octave up returning complex z²/|z| for cascading to +2 octaves.
+-#[inline]
+-fn octave_up_complex(re: f64, im: f64) -> (f64, f64) {
+-    let mag_sq = re * re + im * im;
+-    if mag_sq < 1e-30 {
+-        return (0.0, 0.0);
+-    }
+-    let inv_mag = 1.0 / mag_sq.sqrt();
+-    ((re * re - im * im) * inv_mag, 2.0 * re * im * inv_mag)
+-}
++        // Read from output buffer.
++        let wet = self.output_buf[self.out_read];
++        self.output_buf[self.out_read] = 0.0; // Clear for next overlap-add.
++        self.out_read = (self.out_read + 1) % out_buf_size;
+ 
+-/// Octave down (phase halving) using half-angle formulas.
+-/// Returns the real part, amplitude-preserving (output mag ≈ input mag).
+-#[inline]
+-fn octave_down_real(re: f64, im: f64, st: &mut SignTracker) -> f64 {
+-    let mag_sq = re * re + im * im;
+-    if mag_sq < 1e-30 {
+-        return 0.0;
+-    }
+-    let mag = mag_sq.sqrt();
+-
+-    // Half-angle: cos(θ/2) = √((1+cosθ)/2), sin(θ/2) = √((1−cosθ)/2)
+-    let cos_half = ((mag + re) * 0.5).max(0.0).sqrt();
+-    let sin_half_abs = ((mag - re) * 0.5).max(0.0).sqrt();
+-    let sin_half = if im >= 0.0 {
+-        sin_half_abs
+-    } else {
+-        -sin_half_abs
+-    };
+-
+-    // Sign tracking: flip sign when phase wraps past ±π.
+-    let dot = cos_half * st.prev_cos + sin_half * st.prev_sin;
+-    if dot < 0.0 {
+-        st.sign = -st.sign;
++        dry_delayed * (1.0 - self.mix) + wet * self.mix
+     }
+-    st.prev_cos = cos_half;
+-    st.prev_sin = sin_half;
+ 
+-    // Multiply by √mag to preserve amplitude: √mag · cos(θ/2) → mag·cos(θ/2)
+-    // when combined with the fact that cos_half already contains √((mag+re)/2).
+-    // Full derivation: √mag · √((mag+re)/2) = √(mag·(mag+re)/2) = mag·cos(θ/2).
+-    st.sign * cos_half * mag.sqrt()
+-}
++    /// Process one STFT frame: window → FFT → shift bins → IFFT → overlap-add.
++    fn process_frame(&mut self) {
++        let num_bins = FFT_SIZE / 2 + 1;
+ 
+-/// Octave down returning complex result for cascading to −2 octaves.
+-#[inline]
+-fn octave_down_complex(re: f64, im: f64, st: &mut SignTracker) -> (f64, f64) {
+-    let mag_sq = re * re + im * im;
+-    if mag_sq < 1e-30 {
+-        return (0.0, 0.0);
+-    }
+-    let mag = mag_sq.sqrt();
+-
+-    let cos_half = ((mag + re) * 0.5).max(0.0).sqrt();
+-    let sin_half_abs = ((mag - re) * 0.5).max(0.0).sqrt();
+-    let sin_half = if im >= 0.0 {
+-        sin_half_abs
+-    } else {
+-        -sin_half_abs
+-    };
+-
+-    let dot = cos_half * st.prev_cos + sin_half * st.prev_sin;
+-    if dot < 0.0 {
+-        st.sign = -st.sign;
+-    }
+-    st.prev_cos = cos_half;
+-    st.prev_sin = sin_half;
+-
+-    let amp = mag.sqrt();
+-    (st.sign * cos_half * amp, st.sign * sin_half * amp)
+-}
+-
+-// ── ERB scale ───────────────────────────────────────────────────────
+-
+-/// Convert frequency (Hz) to ERB-rate scale (Glasberg & Moore 1990).
+-fn erb_rate(f: f64) -> f64 {
+-    21.4 * (0.00437 * f + 1.0).log10()
+-}
+-
+-/// Convert ERB-rate back to frequency (Hz).
+-fn erb_rate_to_freq(e: f64) -> f64 {
+-    (10.0f64.powf(e / 21.4) - 1.0) / 0.00437
+-}
++        // Copy input with window, reading backwards from current position.
++        for i in 0..FFT_SIZE {
++            let idx = (self.in_pos + i) % FFT_SIZE;
++            self.fft_in[i] = self.input_buf[idx] * self.window[i];
++        }
+ 
+-/// Equivalent Rectangular Bandwidth at a given center frequency (Hz).
+-/// Glasberg & Moore (1990): ERB(f) = 24.7 × (4.37 × f/1000 + 1).
+-#[allow(dead_code)]
+-fn erb_bandwidth(f: f64) -> f64 {
+-    24.7 * (4.37 * f / 1000.0 + 1.0)
+-}
++        // Forward FFT.
++        self.fft
++            .process(&mut self.fft_in, &mut self.fft_out)
++            .expect("FFT failed");
+ 
+-// ── PolyOctave ──────────────────────────────────────────────────────
++        // Compute input magnitudes and phases.
++        // Then shift bins according to the octave shift mode.
++        self.ifft_in.iter_mut().for_each(|c| *c = realfft::num_complex::Complex::new(0.0, 0.0));
+ 
+-/// Simple 1st-order filter for post-processing shifted output.
+-struct Filter1 {
+-    coeff: f64,
+-    y1: f64,
+-    is_hpf: bool,
+-}
+-
+-impl Filter1 {
+-    fn new_lpf() -> Self {
+-        Self {
+-            coeff: 0.0,
+-            y1: 0.0,
+-            is_hpf: false,
++        match self.shift {
++            OctaveShift::Up1 => self.shift_up(1),
++            OctaveShift::Up2 => self.shift_up(2),
++            OctaveShift::Sub1 => self.shift_down(1),
++            OctaveShift::Sub2 => self.shift_down(2),
+         }
+-    }
+ 
+-    fn new_hpf() -> Self {
+-        Self {
+-            coeff: 0.0,
+-            y1: 0.0,
+-            is_hpf: true,
++        // Update previous input phases for next frame.
++        for k in 0..num_bins {
++            self.prev_phase_in[k] = self.fft_out[k].arg();
+         }
+-    }
+ 
+-    fn set_cutoff(&mut self, freq: f64, sample_rate: f64) {
+-        let w = (PI * freq / sample_rate).tan();
+-        self.coeff = w / (1.0 + w);
+-    }
++        // Inverse FFT.
++        self.ifft
++            .process(&mut self.ifft_in, &mut self.ifft_out)
++            .expect("IFFT failed");
+ 
+-    #[inline]
+-    fn tick(&mut self, input: f64) -> f64 {
+-        self.y1 += self.coeff * (input - self.y1);
+-        if self.is_hpf {
+-            input - self.y1
+-        } else {
+-            self.y1
++        // Normalize IFFT output (realfft doesn't normalize).
++        let norm = 1.0 / FFT_SIZE as f64;
++
++        // Window the output and overlap-add.
++        // With OVERLAP=4 and Hann window, the synthesis window gain is:
++        // sum of w²(n) for 4 overlapping frames = 1.5, so divide by 1.5.
++        let ola_norm = norm / 1.5;
++        let out_buf_size = self.output_buf.len();
++        for i in 0..FFT_SIZE {
++            let pos = (self.out_write + i) % out_buf_size;
++            self.output_buf[pos] += self.ifft_out[i] * self.window[i] * ola_norm;
+         }
+-    }
+ 
+-    fn reset(&mut self) {
+-        self.y1 = 0.0;
++        // Advance output write position by hop.
++        self.out_write = (self.out_write + HOP_SIZE) % out_buf_size;
+     }
+-}
+-
+-/// Polyphonic Octave Generator using ERB filter bank phase scaling.
+-pub struct PolyOctave {
+-    /// Which octave shift to apply.
+-    pub shift: OctaveShift,
+-    /// Dry/wet mix: 0.0 = dry, 1.0 = wet.
+-    pub mix: f64,
+ 
+-    filters: Vec<ComplexBpf>,
+-    down_state: Vec<SignTracker>,
+-    /// Second sign-tracking layer for sub2 (cascaded half-angle).
+-    down2_state: Vec<SignTracker>,
+-
+-    sample_rate: f64,
+-    /// Per-shift gain normalization (empirically calibrated).
+-    gain_sub2: f64,
+-    gain_sub1: f64,
+-    gain_up1: f64,
+-    gain_up2: f64,
+-    /// Post-LPF for Sub2 down-shift artifact removal.
+-    post_lpf_sub2: Filter1,
+-    /// Post-HPF for up-shift sub/low leakage removal.
+-    post_hpf_up1: Filter1,
+-    post_hpf_up2: Filter1,
+-    /// DC blocker state.
+-    dc_x1: f64,
+-    dc_y1: f64,
+-    dc_coeff: f64,
+-}
++    /// Shift bins up by `octaves` octaves (1 or 2).
++    fn shift_up(&mut self, octaves: u32) {
++        let num_bins = FFT_SIZE / 2 + 1;
++        let ratio = 1u32 << octaves; // 2 or 4
++        let expected_hop_phase = TAU * HOP_SIZE as f64 / FFT_SIZE as f64;
+ 
+-impl PolyOctave {
+-    pub fn new() -> Self {
+-        Self {
+-            shift: OctaveShift::Sub1,
+-            mix: 1.0,
+-            filters: Vec::new(),
+-            down_state: Vec::new(),
+-            down2_state: Vec::new(),
+-            sample_rate: 48000.0,
+-            gain_sub2: 1.0,
+-            gain_sub1: 1.0,
+-            gain_up1: 1.0,
+-            gain_up2: 1.0,
+-            post_lpf_sub2: Filter1::new_lpf(),
+-            post_hpf_up1: Filter1::new_hpf(),
+-            post_hpf_up2: Filter1::new_hpf(),
+-            dc_x1: 0.0,
+-            dc_y1: 0.0,
+-            dc_coeff: 0.9995,
+-        }
+-    }
++        for k in 0..num_bins {
++            let dest = k * ratio as usize;
++            if dest >= num_bins {
++                break;
++            }
+ 
+-    pub fn update(&mut self, sample_rate: f64) {
+-        self.sample_rate = sample_rate;
++            let mag = self.fft_out[k].norm();
++            let phase_in = self.fft_out[k].arg();
+ 
+-        // DC blocker: ~10 Hz cutoff.
+-        self.dc_coeff = 1.0 - TAU * 10.0 / sample_rate;
++            // Phase difference from expected for this bin.
++            let expected = expected_hop_phase * k as f64;
++            let phase_diff = phase_in - self.prev_phase_in[k];
++            let deviation = wrap_phase(phase_diff - expected);
+ 
+-        // Compute ERB-spaced center frequencies.
+-        let freq_max = (sample_rate * FREQ_MAX_RATIO).min(20000.0);
+-        let erb_lo = erb_rate(FREQ_MIN);
+-        let erb_hi = erb_rate(freq_max);
+-        let erb_step = (erb_hi - erb_lo) / (NUM_FILTERS - 1) as f64;
++            // True frequency of this bin's content.
++            let true_freq = expected + deviation;
+ 
+-        let mut centers = Vec::with_capacity(NUM_FILTERS);
+-        for i in 0..NUM_FILTERS {
+-            centers.push(erb_rate_to_freq(erb_lo + i as f64 * erb_step));
+-        }
++            // At the destination bin, the phase should advance proportionally.
++            let dest_advance = true_freq * ratio as f64;
++            self.phase_acc[dest] = wrap_phase(self.phase_acc[dest] + dest_advance);
+ 
+-        // Build filters with bandwidths from adjacent spacing.
+-        self.filters.clear();
+-        self.down_state.clear();
+-        self.down2_state.clear();
+-
+-        for i in 0..NUM_FILTERS {
+-            let bw = if i == 0 {
+-                centers[1] - centers[0]
+-            } else if i == NUM_FILTERS - 1 {
+-                centers[NUM_FILTERS - 1] - centers[NUM_FILTERS - 2]
+-            } else {
+-                let left = centers[i] - centers[i - 1];
+-                let right = centers[i + 1] - centers[i];
+-                2.0 * left * right / (left + right)
+-            };
+-
+-            self.filters
+-                .push(ComplexBpf::design(centers[i], bw, sample_rate));
+-            self.down_state.push(SignTracker::new());
+-            self.down2_state.push(SignTracker::new());
++            self.ifft_in[dest] = realfft::num_complex::Complex::from_polar(mag, self.phase_acc[dest]);
+         }
+-
+-        // Post-LPF for Sub2 only: 1st-order at 0.18×SR (~8 kHz @ 44.1k).
+-        // Sub2 (÷4) generates more HF phase-scaling noise. Sub1 has no LPF —
+-        // any LPF steep enough to cut presence excess also destroys the air band.
+-        self.post_lpf_sub2
+-            .set_cutoff(sample_rate * 0.18, sample_rate);
+-
+-        // Post-HPF for up-shifts: remove sub/low leakage that the filter bank
+-        // passes through un-shifted. Harmonitron cuts this aggressively.
+-        // Up1 (+12st): HPF at ~250 Hz — at 1st-order, gives ~-21 dB at 20 Hz.
+-        // Up2 (+24st): HPF at ~120 Hz — gentler since two_oct_up has less leakage.
+-        self.post_hpf_up1.set_cutoff(250.0, sample_rate);
+-        self.post_hpf_up2.set_cutoff(120.0, sample_rate);
+-
+-        // Empirical per-shift gain calibration: process broadband noise through
+-        // the actual phase-scaling paths and measure output level.
+-        // Phase scaling changes inter-filter interference patterns, so the
+-        // passthrough-calibrated gain doesn't apply to shifted output.
+-        self.gain_sub2 = self.calibrate_shift_gain(OctaveShift::Sub2);
+-        self.gain_sub1 = self.calibrate_shift_gain(OctaveShift::Sub1);
+-        self.gain_up1 = self.calibrate_shift_gain(OctaveShift::Up1);
+-        self.gain_up2 = self.calibrate_shift_gain(OctaveShift::Up2);
+     }
+ 
+-    /// Empirically measure the gain for a given shift by processing broadband noise.
+-    /// Uses deterministic pseudo-random noise to excite all 80 filters simultaneously,
+-    /// which captures inter-filter interference patterns that single test tones miss.
+-    fn calibrate_shift_gain(&mut self, shift: OctaveShift) -> f64 {
+-        // Reset filter states for clean measurement.
+-        for f in &mut self.filters {
+-            f.reset();
+-        }
+-        for s in &mut self.down_state {
+-            s.reset();
+-        }
+-        for s in &mut self.down2_state {
+-            s.reset();
+-        }
++    /// Shift bins down by `octaves` octaves (1 or 2).
++    fn shift_down(&mut self, octaves: u32) {
++        let num_bins = FFT_SIZE / 2 + 1;
++        let ratio = 1u32 << octaves; // 2 or 4
++        let expected_hop_phase = TAU * HOP_SIZE as f64 / FFT_SIZE as f64;
+ 
+-        let sr = self.sample_rate;
+-        let n = (sr * 0.5) as usize; // 500ms of noise
+-        let warmup = (sr * 0.1) as usize; // 100ms warmup (filters need to fill)
+-        let input_amp = 0.5;
+-
+-        // Simple deterministic PRNG (xorshift64).
+-        let mut rng_state: u64 = 0xDEADBEEF12345678;
+-        let mut next_sample = || -> f64 {
+-            rng_state ^= rng_state << 13;
+-            rng_state ^= rng_state >> 7;
+-            rng_state ^= rng_state << 17;
+-            (rng_state as f64 / u64::MAX as f64 - 0.5) * 2.0 * input_amp
+-        };
++        for k in 0..num_bins {
++            let dest = k / ratio as usize;
+ 
+-        let mut input_sum_sq = 0.0;
+-        let mut output_sum_sq = 0.0;
+-        let mut count = 0;
++            let mag = self.fft_out[k].norm();
++            let phase_in = self.fft_out[k].arg();
+ 
+-        for i in 0..n {
+-            let input = next_sample();
+-            let out = self.process_shifted(input, shift);
+-            if i >= warmup {
+-                input_sum_sq += input * input;
+-                output_sum_sq += out * out;
+-                count += 1;
+-            }
+-        }
++            // Phase difference from expected.
++            let expected = expected_hop_phase * k as f64;
++            let phase_diff = phase_in - self.prev_phase_in[k];
++            let deviation = wrap_phase(phase_diff - expected);
+ 
+-        // Reset everything after calibration.
+-        for f in &mut self.filters {
+-            f.reset();
+-        }
+-        for s in &mut self.down_state {
+-            s.reset();
+-        }
+-        for s in &mut self.down2_state {
+-            s.reset();
+-        }
++            let true_freq = expected + deviation;
+ 
+-        if count > 0 && output_sum_sq > 1e-20 {
+-            let input_rms = (input_sum_sq / count as f64).sqrt();
+-            let output_rms = (output_sum_sq / count as f64).sqrt();
+-            input_rms / output_rms
+-        } else {
+-            1.0
+-        }
+-    }
++            // At the destination bin, phase advances at reduced rate.
++            let dest_advance = true_freq / ratio as f64;
++            self.phase_acc[dest] = wrap_phase(self.phase_acc[dest] + dest_advance);
+ 
+-    /// Run the filter bank + phase scaling for a single sample (no gain/DC/mix).
+-    #[inline]
+-    fn process_shifted(&mut self, input: f64, shift: OctaveShift) -> f64 {
+-        let mut sum = 0.0;
+-        match shift {
+-            OctaveShift::Up1 => {
+-                for filt in &mut self.filters {
+-                    let (re, im) = filt.tick(input);
+-                    sum += octave_up_real(re, im);
+-                }
+-            }
+-            OctaveShift::Up2 => {
+-                for filt in &mut self.filters {
+-                    let (re, im) = filt.tick(input);
+-                    let (up_re, up_im) = octave_up_complex(re, im);
+-                    sum += octave_up_real(up_re, up_im);
+-                }
+-            }
+-            OctaveShift::Sub1 => {
+-                for (filt, st) in self.filters.iter_mut().zip(self.down_state.iter_mut()) {
+-                    let (re, im) = filt.tick(input);
+-                    sum += octave_down_real(re, im, st);
+-                }
+-            }
+-            OctaveShift::Sub2 => {
+-                for ((filt, st1), st2) in self
+-                    .filters
+-                    .iter_mut()
+-                    .zip(self.down_state.iter_mut())
+-                    .zip(self.down2_state.iter_mut())
+-                {
+-                    let (re, im) = filt.tick(input);
+-                    let (d_re, d_im) = octave_down_complex(re, im, st1);
+-                    sum += octave_down_real(d_re, d_im, st2);
+-                }
+-            }
++            // Multiple source bins map to the same dest — accumulate magnitudes.
++            // Use the source bin's contribution weighted by 1/ratio for energy conservation.
++            let existing = self.ifft_in[dest];
++            let new = realfft::num_complex::Complex::from_polar(mag / ratio as f64, self.phase_acc[dest]);
++            self.ifft_in[dest] = realfft::num_complex::Complex::new(
++                existing.re + new.re,
++                existing.im + new.im,
++            );
+         }
+-        sum
+     }
+ 
+-    pub fn reset(&mut self) {
+-        for f in &mut self.filters {
+-            f.reset();
+-        }
+-        for s in &mut self.down_state {
+-            s.reset();
+-        }
+-        for s in &mut self.down2_state {
+-            s.reset();
+-        }
+-        self.post_lpf_sub2.reset();
+-        self.post_hpf_up1.reset();
+-        self.post_hpf_up2.reset();
+-        self.dc_x1 = 0.0;
+-        self.dc_y1 = 0.0;
++    pub fn latency(&self) -> usize {
++        FFT_SIZE
+     }
++}
+ 
+-    /// Process one sample. Returns the mixed output.
+-    #[inline]
+-    pub fn tick(&mut self, input: f64) -> f64 {
+-        let mut sum = 0.0;
+-
+-        match self.shift {
+-            OctaveShift::Up1 => {
+-                for filt in &mut self.filters {
+-                    let (re, im) = filt.tick(input);
+-                    sum += octave_up_real(re, im);
+-                }
+-            }
+-            OctaveShift::Up2 => {
+-                for filt in &mut self.filters {
+-                    let (re, im) = filt.tick(input);
+-                    let (up_re, up_im) = octave_up_complex(re, im);
+-                    sum += octave_up_real(up_re, up_im);
+-                }
+-            }
+-            OctaveShift::Sub1 => {
+-                for (filt, st) in self.filters.iter_mut().zip(self.down_state.iter_mut()) {
+-                    let (re, im) = filt.tick(input);
+-                    sum += octave_down_real(re, im, st);
+-                }
+-            }
+-            OctaveShift::Sub2 => {
+-                for ((filt, st1), st2) in self
+-                    .filters
+-                    .iter_mut()
+-                    .zip(self.down_state.iter_mut())
+-                    .zip(self.down2_state.iter_mut())
+-                {
+-                    let (re, im) = filt.tick(input);
+-                    let (d_re, d_im) = octave_down_complex(re, im, st1);
+-                    sum += octave_down_real(d_re, d_im, st2);
+-                }
+-            }
+-        }
+-
+-        // Apply per-shift gain normalization and post-filtering.
+-        let wet = match self.shift {
+-            OctaveShift::Sub2 => self.post_lpf_sub2.tick(sum) * self.gain_sub2,
+-            OctaveShift::Sub1 => sum * self.gain_sub1,
+-            OctaveShift::Up1 => self.post_hpf_up1.tick(sum) * self.gain_up1,
+-            OctaveShift::Up2 => self.post_hpf_up2.tick(sum) * self.gain_up2,
+-        };
+-
+-        // DC blocker on wet signal.
+-        let dc_out = wet - self.dc_x1 + self.dc_coeff * self.dc_y1;
+-        self.dc_x1 = wet;
+-        self.dc_y1 = dc_out;
+-
+-        input * (1.0 - self.mix) + dc_out * self.mix
++/// Wrap phase to [-π, π].
++#[inline]
++fn wrap_phase(phase: f64) -> f64 {
++    let mut p = phase;
++    while p > PI {
++        p -= TAU;
+     }
+-
+-    pub fn latency(&self) -> usize {
+-        // No explicit buffering — only inherent IIR filter group delay.
+-        0
++    while p < -PI {
++        p += TAU;
+     }
++    p
+ }
+ 
+ impl Default for PolyOctave {
+@@ -668,14 +353,14 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn zero_latency() {
+-        assert_eq!(make_pog(OctaveShift::Sub1).latency(), 0);
++    fn latency_is_fft_size() {
++        assert_eq!(make_pog(OctaveShift::Sub1).latency(), FFT_SIZE);
+     }
+ 
+     #[test]
+     fn silence_in_silence_out() {
+         let mut p = make_pog(OctaveShift::Sub1);
+-        for _ in 0..4800 {
++        for _ in 0..48000 {
+             let out = p.tick(0.0);
+             assert!(out.abs() < 1e-10, "Should be silent: {out}");
+         }
+@@ -709,7 +394,7 @@ mod tests {
+             let mut energy = 0.0;
+             for i in 0..48000 {
+                 let out = p.tick(sine(220.0, i));
+-                if i > 4800 {
++                if i > p.latency() + 4800 {
+                     energy += out * out;
+                 }
+             }
+@@ -729,7 +414,7 @@ mod tests {
+             output.push(p.tick(sine(440.0, i)));
+         }
+ 
+-        // Measure spectral energy: expect peak near 880 Hz (octave up from 440).
++        // Measure spectral energy: expect peak near 880 Hz.
+         let start = n / 2;
+         let fft_size = 8192;
+         let signal = &output[start..start + fft_size];
+@@ -795,8 +480,6 @@ mod tests {
+ 
+     #[test]
+     fn polyphonic_preserves_both_notes() {
+-        // Feed a two-note chord (A4=440 + E5=660) and verify both notes
+-        // appear shifted in the output.
+         let mut p = make_pog(OctaveShift::Up1);
+         let n = 96000;
+         let mut output = Vec::with_capacity(n);
+@@ -822,9 +505,9 @@ mod tests {
+             (re * re + im * im).sqrt()
+         };
+ 
+-        let mag_880 = mag_at(880.0); // A4 → A5
+-        let mag_1320 = mag_at(1320.0); // E5 → E6
+-        let mag_noise = mag_at(1000.0); // Should be low
++        let mag_880 = mag_at(880.0);
++        let mag_1320 = mag_at(1320.0);
++        let mag_noise = mag_at(1000.0);
+ 
+         assert!(
+             mag_880 > mag_noise * 3.0,
+@@ -841,13 +524,17 @@ mod tests {
+         let mut p = make_pog(OctaveShift::Sub1);
+         p.mix = 0.0;
+ 
+-        for i in 0..4800 {
++        // Need to go past latency for dry signal to come through.
++        for i in 0..48000 {
+             let input = sine(440.0, i);
+             let out = p.tick(input);
+-            assert!(
+-                (out - input).abs() < 1e-10,
+-                "Mix=0 should pass dry at sample {i}"
+-            );
++            if i >= p.latency() {
++                let expected = sine(440.0, i - p.latency());
++                assert!(
++                    (out - expected).abs() < 1e-6,
++                    "Mix=0 should pass dry at sample {i}: got {out}, expected {expected}"
++                );
++            }
+         }
+     }
+ 
+@@ -889,9 +576,9 @@ mod tests {
+             (re * re + im * im).sqrt()
+         };
+ 
+-        let mag_110 = mag_at(110.0); // Target: 440/4 = 110 Hz
+-        let mag_220 = mag_at(220.0); // One octave down (should NOT dominate)
+-        let mag_440 = mag_at(440.0); // Original (should NOT dominate)
++        let mag_110 = mag_at(110.0);
++        let mag_220 = mag_at(220.0);
++        let mag_440 = mag_at(440.0);
+ 
+         eprintln!(
+             "Sub2 440Hz input: mag_110={mag_110:.1}, mag_220={mag_220:.1}, mag_440={mag_440:.1}"
+@@ -899,7 +586,7 @@ mod tests {
+ 
+         assert!(
+             mag_110 > mag_220 * 2.0,
+-            "110 Hz (two oct down) should dominate over 220 Hz (one oct down): \
++            "110 Hz (two oct down) should dominate over 220 Hz: \
+              mag_110={mag_110:.1} mag_220={mag_220:.1}"
+         );
+         assert!(
+@@ -934,9 +621,9 @@ mod tests {
+             (re * re + im * im).sqrt()
+         };
+ 
+-        let mag_1760 = mag_at(1760.0); // Target: 440*4 = 1760 Hz
+-        let mag_880 = mag_at(880.0); // One octave up
+-        let mag_440 = mag_at(440.0); // Original
++        let mag_1760 = mag_at(1760.0);
++        let mag_880 = mag_at(880.0);
++        let mag_440 = mag_at(440.0);
+ 
+         eprintln!(
+             "Up2 440Hz input: mag_1760={mag_1760:.1}, mag_880={mag_880:.1}, mag_440={mag_440:.1}"
+@@ -944,30 +631,13 @@ mod tests {
+ 
+         assert!(
+             mag_1760 > mag_880 * 2.0,
+-            "1760 Hz (two oct up) should dominate over 880 Hz (one oct up): \
++            "1760 Hz (two oct up) should dominate over 880 Hz: \
+              mag_1760={mag_1760:.1} mag_880={mag_880:.1}"
+         );
+     }
+ 
+-    #[test]
+-    fn calibration_gain_is_reasonable() {
+-        let p = make_pog(OctaveShift::Up1);
+-        for (name, gain) in [
+-            ("sub2", p.gain_sub2),
+-            ("sub1", p.gain_sub1),
+-            ("up1", p.gain_up1),
+-            ("up2", p.gain_up2),
+-        ] {
+-            assert!(
+-                gain > 0.01 && gain < 100.0,
+-                "Gain {name} should be reasonable: {gain}",
+-            );
+-        }
+-    }
+-
+     #[test]
+     fn output_level_near_unity() {
+-        // Verify that calibrated POG output RMS ≈ input RMS for each shift.
+         for shift in [
+             OctaveShift::Sub2,
+             OctaveShift::Sub1,
+@@ -976,7 +646,7 @@ mod tests {
+         ] {
+             let mut p = make_pog(shift);
+             let n = 96000;
+-            let warmup = 24000;
++            let warmup = p.latency() + 24000;
+             let mut in_sq = 0.0;
+             let mut out_sq = 0.0;
+             let mut count = 0;
+@@ -994,8 +664,6 @@ mod tests {
+             let in_rms = (in_sq / count as f64).sqrt();
+             let out_rms = (out_sq / count as f64).sqrt();
+             let ratio_db = 20.0 * (out_rms / in_rms).log10();
+-            // 4th-order filters have narrower passbands, so broadband-noise
+-            // calibration vs single-tone test can differ significantly.
+             assert!(
+                 ratio_db.abs() < 12.0,
+                 "{shift:?}: output {ratio_db:+.1} dB from unity",
+@@ -1015,7 +683,7 @@ mod tests {
+             for i in 0..((sr * 1.0) as usize) {
+                 let input = (TAU * 440.0 * i as f64 / sr).sin() * 0.5;
+                 let out = p.tick(input);
+-                if i > (sr * 0.1) as usize {
++                if i > p.latency() + (sr * 0.1) as usize {
+                     energy += out * out;
+                 }
+                 assert!(out.is_finite(), "NaN at sr={sr}, sample {i}");

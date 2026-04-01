@@ -1,0 +1,182 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..787e063 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5752,6 +5752,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..822350b 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -86,6 +86,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 0428b91..d37ade6 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -250,40 +250,15 @@ pub fn highpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+ }
+ 
+ pub fn low_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
++    // Vicanek matched 1-pole low shelf (no Nyquist cramping).
++    // Low shelf = high shelf with 1/G, then scale b coefficients by G.
+     let g = 10.0_f64.powf(gain_db / 20.0);
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz / g.sqrt()
+-    } else {
+-        freq_hz * g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let gwc = g * wc;
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (1.0 + gwc) * a0_inv,
+-            (-1.0 + gwc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let wc_g = wc / g;
+-        let a0_inv = 1.0 / (1.0 + wc_g);
+-        [
+-            1.0,
+-            (-1.0 + wc_g) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    let c = high_shelf_1_matched(freq_hz, 1.0 / g, sample_rate);
++    // Scale numerator by gain to get low-shelf DC=G, Nyquist=1
++    [c[0], c[1], c[2], c[3] * g, c[4] * g, c[5]]
+ }
+ 
+ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+@@ -291,35 +266,38 @@ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz * g.sqrt()
+-    } else {
+-        freq_hz / g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (g + wc) * a0_inv,
+-            (-g + wc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let g_inv = 1.0 / g;
+-        let a0_inv = 1.0 / (g_inv + wc);
+-        [
+-            1.0,
+-            (-g_inv + wc) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    high_shelf_1_matched(freq_hz, g, sample_rate)
++}
++
++/// Vicanek matched 1-pole high shelf filter.
++/// fc is in Hz, g is linear gain (>1 boost, <1 cut).
++fn high_shelf_1_matched(freq_hz: f64, g: f64, sample_rate: f64) -> Coeffs {
++    let fc = freq_hz / (sample_rate / 2.0); // normalize to Nyquist
++    let fc = fc.max(1e-6);
++    let fc_sq = fc * fc;
++    let fm = 0.9_f64; // matching point slightly below Nyquist
++    let phi_m = 1.0 - (PI * fm / 2.0).cos(); // φ = 1 - cos(πf/2)... wait
++    // Paper uses φ = 1 - cos(πf) where f is in units of Nyquist
++    let phi_m = 1.0 - (PI * fm).cos();
++
++    // Analog magnitude squared at Nyquist: |H(s)|² at s = i·f_nyquist/fc
++    // For high shelf: |H|² = (1 + G·f²/fc²) / (1 + f²/(G·fc²))
++    // At f=1 (Nyquist): |H|² = (1 + G/fc²) / (1 + 1/(G·fc²))
++    let h_ny_sq = (1.0 + g / fc_sq) / (1.0 + 1.0 / (g * fc_sq));
++
++    // Use eq. 12 with matching point fm = 0.9
++    let alpha = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + 1.0 / (g * fc_sq)) - 1.0 / phi_m;
++    let beta = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + g / fc_sq) - 1.0 / phi_m;
++
++    // Recover a1 and b ratio from α and β (eq. 10)
++    let a1 = -alpha / (1.0 + alpha + (1.0 + 2.0 * alpha).max(0.0).sqrt());
++    let b_ratio = -beta / (1.0 + beta + (1.0 + 2.0 * beta).max(0.0).sqrt());
++
++    // High shelf normalization: DC gain = 1, so b0 + b1 = 1 + a1 (eq. 6/11)
++    let b0 = (1.0 + a1) / (1.0 + b_ratio);
++    let b1 = b_ratio * b0;
++
++    [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+ pub fn allpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+@@ -449,6 +427,8 @@ pub fn high_shelf_resonant(freq_hz: f64, q: f64, gain_db: f64, sample_rate: f64)
+     ]
+ }
+ 
++// ── Anti-cramping correction ────────────────────────────────────────
++
+ // ── Flat tilt ───────────────────────────────────────────────────────
+ 
+ pub fn flat_tilt_section(pole_hz: f64, zero_hz: f64, pivot_hz: f64, sample_rate: f64) -> Coeffs {

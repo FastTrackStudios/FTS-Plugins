@@ -1,0 +1,13 @@
+diff --git a/crates/fts-eq/eq-plugin/src/lib.rs b/crates/fts-eq/eq-plugin/src/lib.rs
+index 42ae9ac..e2e5b4c 100644
+--- a/crates/fts-eq/eq-plugin/src/lib.rs
++++ b/crates/fts-eq/eq-plugin/src/lib.rs
+@@ -298,7 +298,7 @@ fn slope_to_order(slope: i32) -> usize {
+     match slope {
+         0 => 1,   // 6 dB/oct
+         1 => 2,   // 12 dB/oct
+-        2 => 3,   // 18 dB/oct
++        2 => 2,   // 18 dB/oct (test: single biquad)
+         3 => 4,   // 24 dB/oct
+         4 => 5,   // 30 dB/oct
+         5 => 6,   // 36 dB/oct

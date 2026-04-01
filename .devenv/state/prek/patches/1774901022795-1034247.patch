@@ -1,0 +1,774 @@
+diff --git a/apps/gui-test/Cargo.toml b/apps/gui-test/Cargo.toml
+index c0b0a40..0ad933e 100644
+--- a/apps/gui-test/Cargo.toml
++++ b/apps/gui-test/Cargo.toml
+@@ -16,8 +16,20 @@ path = "src/main_softbuffer.rs"
+ name = "gui-test-parented"
+ path = "src/main_parented.rs"
+ 
++[[bin]]
++name = "gui-test-screenshot"
++path = "src/main_screenshot.rs"
++
+ [dependencies]
+ nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
++png = "0.17"
++atomic_float = "1"
++
++# Only one plugin at a time to avoid duplicate CLAP/VST3 entry point symbols.
++# Switch to a different plugin crate to screenshot it.
++comp-plugin = { path = "../../crates/fts-comp/comp-plugin" }
++# delay-plugin = { path = "../../crates/fts-delay/delay-plugin" }
++# eq-plugin = { path = "../../crates/fts-eq/eq-plugin" }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
+ x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
+diff --git a/apps/gui-test/src/main_screenshot.rs b/apps/gui-test/src/main_screenshot.rs
+index bf6e371..1c81ca0 100644
+--- a/apps/gui-test/src/main_screenshot.rs
++++ b/apps/gui-test/src/main_screenshot.rs
+@@ -1,181 +1,68 @@
+-//! Headless screenshot tool for GUI testing.
++//! Headless screenshot tool for plugin GUI testing.
+ //!
+-//! Renders a Dioxus component offscreen via wgpu and saves as PNG.
+-//! This lets you visually verify rendering without opening a window.
++//! Renders actual plugin editor GUIs offscreen via wgpu and saves as PNG.
++//! This lets you visually verify rendering without a DAW.
+ //!
+ //! Run with:
+-//!   cargo run -p gui-test --bin gui-test-screenshot [output.png]
++//!   cargo run -p gui-test --bin gui-test-screenshot [plugin] [output.png]
++//!
++//! Examples:
++//!   cargo run -p gui-test --bin gui-test-screenshot comp /tmp/comp.png
++//!
++//! To screenshot other plugins, uncomment the corresponding dependency in
++//! Cargo.toml (only one plugin at a time to avoid duplicate CLAP/VST3 symbols).
+ 
+-use nih_plug_dioxus::dioxus_native::prelude::*;
+-use nih_plug_dioxus::TAILWIND_CSS;
++use nih_plug_dioxus::SharedState;
+ use std::path::PathBuf;
++use std::sync::Arc;
+ 
+ fn main() {
+-    let output_path = std::env::args()
+-        .nth(1)
+-        .map(PathBuf::from)
+-        .unwrap_or_else(|| PathBuf::from("screenshot.png"));
++    let args: Vec<String> = std::env::args().collect();
+ 
+-    let width = 800;
+-    let height = 600;
+-
+-    eprintln!("Rendering {}x{} screenshot...", width, height);
+-
+-    let pixels = nih_plug_dioxus::render_screenshot(App, width, height, None);
++    let plugin_name = args.get(1).map(|s| s.as_str()).unwrap_or("comp");
++    let output_path = args
++        .get(2)
++        .map(PathBuf::from)
++        .unwrap_or_else(|| PathBuf::from(format!("/tmp/fts-{}.png", plugin_name)));
++
++    match plugin_name {
++        "comp" => screenshot_comp(&output_path),
++        // Uncomment in Cargo.toml to enable:
++        // "delay" => screenshot_delay(&output_path),
++        // "eq" => screenshot_eq(&output_path),
++        _ => {
++            eprintln!("Unknown plugin: {}", plugin_name);
++            eprintln!("Available: comp");
++            eprintln!("(Uncomment delay-plugin or eq-plugin in Cargo.toml to enable others)");
++            std::process::exit(1);
++        }
++    }
++}
+ 
+-    // Save as PNG
+-    let file = std::fs::File::create(&output_path).expect("Failed to create output file");
++fn save_png(pixels: &[u8], width: u32, height: u32, path: &std::path::Path) {
++    let file = std::fs::File::create(path).expect("Failed to create output file");
+     let mut encoder = png::Encoder::new(file, width, height);
+     encoder.set_color(png::ColorType::Rgba);
+     encoder.set_depth(png::BitDepth::Eight);
+     let mut writer = encoder.write_header().expect("Failed to write PNG header");
+-    writer.write_image_data(&pixels).expect("Failed to write PNG data");
+-
+-    eprintln!("Saved to {}", output_path.display());
++    writer
++        .write_image_data(pixels)
++        .expect("Failed to write PNG data");
++    eprintln!("Saved to {}", path.display());
+ }
+ 
+-/// Test component — exercises various layout and styling patterns.
+-#[component]
+-fn App() -> Element {
+-    rsx! {
+-        document::Style { {TAILWIND_CSS} }
+-        div {
+-            style: "width: 100%; height: 100%; background: #1a1a2e; padding: 16px; font-family: sans-serif; color: white; box-sizing: border-box;",
+-
+-            // Title bar
+-            div {
+-                style: "font-size: 20px; font-weight: bold; color: #e94560; margin-bottom: 16px;",
+-                "FTS GUI Component Gallery"
+-            }
+-
+-            // Row of colored boxes (tests flexbox + border-radius + hsl colors)
+-            div {
+-                style: "display: flex; gap: 8px; margin-bottom: 16px;",
+-                for i in 0..8 {
+-                    {
+-                        let hue = i * 45;
+-                        rsx! {
+-                            div {
+-                                style: "width: 48px; height: 48px; border-radius: 8px; background: hsl({hue}, 70%, 50%); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;",
+-                                "{hue}"
+-                            }
+-                        }
+-                    }
+-                }
+-            }
++fn screenshot_comp(output: &std::path::Path) {
++    use comp_plugin::{CompUiState, FtsCompParams};
+ 
+-            // Layout test: two columns
+-            div {
+-                style: "display: flex; gap: 16px; margin-bottom: 16px;",
++    let width = 900;
++    let height = 620;
+ 
+-                // Left column — simulated knob area
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
++    let params = Arc::new(FtsCompParams::default());
++    let ui_state = Arc::new(CompUiState::new(params));
++    let shared = SharedState::new(ui_state);
+ 
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Controls"
+-                    }
+-
+-                    // Simulated knobs (circles with labels)
+-                    div {
+-                        style: "display: flex; gap: 16px; flex-wrap: wrap;",
+-                        for label in ["Gain", "Freq", "Q", "Mix"] {
+-                            div {
+-                                style: "display: flex; flex-direction: column; align-items: center; gap: 4px;",
+-                                div {
+-                                    style: "width: 48px; height: 48px; border-radius: 50%; background: #0f3460; border: 2px solid #e94560; display: flex; align-items: center; justify-content: center; font-size: 11px;",
+-                                    "0.5"
+-                                }
+-                                div {
+-                                    style: "font-size: 10px; color: #888;",
+-                                    "{label}"
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Right column — simulated dropdown + text
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Settings"
+-                    }
+-
+-                    // Simulated dropdown
+-                    div {
+-                        style: "background: #0f3460; border: 1px solid #333; border-radius: 4px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between;",
+-                        span { "Algorithm: Clean" }
+-                        span { style: "color: #888;", "▼" }
+-                    }
+-
+-                    // Simulated toggle
+-                    div {
+-                        style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;",
+-                        div {
+-                            style: "width: 36px; height: 20px; border-radius: 10px; background: #e94560; position: relative;",
+-                            div {
+-                                style: "width: 16px; height: 16px; border-radius: 50%; background: white; position: absolute; top: 2px; right: 2px;",
+-                            }
+-                        }
+-                        span { style: "font-size: 13px;", "Enabled" }
+-                    }
+-
+-                    // Simulated slider
+-                    div {
+-                        style: "margin-bottom: 4px;",
+-                        div {
+-                            style: "font-size: 11px; color: #888; margin-bottom: 4px;",
+-                            "Dry/Wet"
+-                        }
+-                        div {
+-                            style: "height: 6px; background: #0f3460; border-radius: 3px; position: relative;",
+-                            div {
+-                                style: "width: 65%; height: 100%; background: #e94560; border-radius: 3px;",
+-                            }
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Bottom panel — simulated meter / waveform area
+-            div {
+-                style: "background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                div {
+-                    style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                    "Output"
+-                }
+-
+-                // Simulated level meters
+-                div {
+-                    style: "display: flex; gap: 4px; height: 24px;",
+-                    for level in [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.3, 0.65, 0.55, 0.75, 0.45, 0.6, 0.8, 0.5, 0.7] {
+-                        {
+-                            let pct = (level * 100.0) as u32;
+-                            let color = if level > 0.85 { "#ff4444" } else if level > 0.7 { "#ffaa00" } else { "#44ff44" };
+-                            rsx! {
+-                                div {
+-                                    style: "flex: 1; background: #0f3460; border-radius: 2px; display: flex; align-items: flex-end;",
+-                                    div {
+-                                        style: "width: 100%; height: {pct}%; background: {color}; border-radius: 2px;",
+-                                    }
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Labels
+-                div {
+-                    style: "display: flex; justify-content: space-between; margin-top: 4px;",
+-                    span { style: "font-size: 10px; color: #888;", "L" }
+-                    span { style: "font-size: 10px; color: #888;", "R" }
+-                }
+-            }
+-        }
+-    }
++    eprintln!("Rendering compressor ({}x{})...", width, height);
++    let pixels =
++        nih_plug_dioxus::render_screenshot(comp_plugin::editor::App, width, height, Some(shared));
++    save_png(&pixels, width, height, output);
+ }
+diff --git a/crates/fts-comp/comp-plugin/src/editor.rs b/crates/fts-comp/comp-plugin/src/editor.rs
+index b140364..d4ded9f 100644
+--- a/crates/fts-comp/comp-plugin/src/editor.rs
++++ b/crates/fts-comp/comp-plugin/src/editor.rs
+@@ -1,23 +1,19 @@
+ //! Compressor editor — Dioxus GUI root component.
+ //!
+-//! Layout: header, visualization row (transfer curve + waveform + meters),
+-//! and organized knob groups for all parameters.
++//! Layout: compact header, full-width waveform with embedded transfer curve
++//! and flanking meters, primary dynamics knobs, secondary grouped controls.
+ 
+ use std::sync::atomic::Ordering;
+ 
+ use audio_gui::controls::knob::Knob;
+ use audio_gui::controls::toggle::Toggle;
+ use audio_gui::prelude::{
+-    use_init_theme, ControlGroup, DragProvider, KnobSize, LevelMeterDb, PeakWaveform, SectionLabel,
++    use_init_theme, ControlGroup, Divider, DragProvider, KnobSize, LevelMeterDb, PeakWaveform,
+ };
+ use fts_plugin_core::prelude::*;
+ 
+ use crate::{CompUiState, WAVEFORM_LEN};
+ 
+-/// Set to `true` to replace all visualizers/meters with plain colored boxes.
+-/// This isolates whether the viz components are the FPS bottleneck.
+-const DUMMY_VIZ: bool = false;
+-
+ /// Root editor component.
+ #[component]
+ pub fn App() -> Element {
+@@ -62,242 +58,148 @@ pub fn App() -> Element {
+         "0.0 dB".to_string()
+     };
+ 
++    let gr_color = if gr_db > 6.0 {
++        t.signal_warn
++    } else if gr_db > 0.1 {
++        t.signal_safe
++    } else {
++        t.text_dim
++    };
++
+     rsx! {
+         document::Style { {t.base_css()} }
+ 
+         DragProvider {
+             div {
+                 style: format!(
+-                    "{} display:flex; flex-direction:column; gap:{};",
++                    "{} display:flex; flex-direction:column; gap:6px;",
+                     t.root_style(),
+-                    t.spacing_section,
+                 ),
+ 
+                 // ── Header ───────────────────────────────────────────
+                 div {
+                     style: format!(
+                         "display:flex; justify-content:space-between; align-items:center; \
+-                         padding-bottom:{}; border-bottom:1px solid {};",
+-                        t.spacing_label,
+-                        t.border,
++                         padding:0 2px 5px 2px; border-bottom:1px solid {};",
++                        t.border_subtle,
+                     ),
+                     div {
+-                        style: "display:flex; align-items:baseline; gap:12px;",
+-                        div {
++                        style: "display:flex; align-items:baseline; gap:10px;",
++                        span {
+                             style: format!(
+-                                "font-size:{}; font-weight:700; letter-spacing:0.5px; \
++                                "font-size:14px; font-weight:700; letter-spacing:1px; \
+                                  color:{};",
+-                                t.font_size_title,
+                                 t.text_bright,
+                             ),
+                             "FTS COMPRESSOR"
+                         }
+-                        // GR readout in header
+-                        div {
++                        span {
+                             style: format!(
+-                                "{} color:{};",
+-                                t.style_value(),
+-                                if gr_db > 6.0 { t.signal_warn }
+-                                else if gr_db > 0.1 { t.signal_safe }
+-                                else { t.text_dim },
++                                "font-family:{}; font-size:12px; font-weight:600; \
++                                 font-variant-numeric:tabular-nums; min-width:60px; \
++                                 color:{};",
++                                t.font_mono,
++                                gr_color,
+                             ),
+-                            "GR: {gr_text}"
++                            "GR {gr_text}"
+                         }
+                     }
+-                    div {
++                    span {
+                         style: format!(
+-                            "font-size:{}; color:{};",
+-                            t.font_size_tiny,
++                            "font-size:9px; color:{}; letter-spacing:0.8px;",
+                             t.text_dim,
+                         ),
+-                        "FastTrackStudio"
++                        "FASTTRACKSTUDIO"
+                     }
+                 }
+ 
+-                // ── Visualization row ────────────────────────────────
+-                if DUMMY_VIZ {
+-                    // Dummy placeholders — same sizes, no complex DOM
+-                    div {
++                // ── Visualization ────────────────────────────────────
++                div {
++                    style: format!(
++                        "display:flex; gap:6px; flex:1; min-height:0; align-items:stretch;",
++                    ),
++
++                    // Input meter
++                    LevelMeterDb { level_db: input_db, label: "IN".to_string(), width: 18.0, fill: true }
++
++                    // Waveform + GR + transfer curve overlay
++                    PeakWaveform {
++                        levels: waveform_in,
++                        gr_levels: waveform_gr,
++                        threshold_db: Some(threshold),
++                        ratio: Some(ratio),
++                        knee_db: knee,
++                        input_level_db: input_level,
++                        fill: true,
+                         style: format!(
+-                            "display:flex; gap:{}; min-height:0;",
+-                            t.spacing_section,
++                            "{} flex:1; min-width:0; min-height:0; overflow:hidden;",
++                            t.style_card(),
+                         ),
+-                        // Transfer curve placeholder
+-                        div {
+-                            style: format!(
+-                                "{} padding:{}; display:flex; flex-direction:column; gap:{};",
+-                                t.style_card(), t.spacing_card, t.spacing_label,
+-                            ),
+-                            SectionLabel { text: "Transfer Curve (DUMMY)" }
+-                            div {
+-                                style: "width:160px; height:160px; background:#1a3a2a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:11px;",
+-                                "160x160"
+-                            }
+-                        }
+-                        // Waveform placeholder
+-                        div {
+-                            style: format!(
+-                                "{} flex:1; padding:{}; display:flex; flex-direction:column; gap:{}; min-width:0;",
+-                                t.style_card(), t.spacing_card, t.spacing_label,
+-                            ),
+-                            SectionLabel { text: "Waveform (DUMMY)" }
+-                            div {
+-                                style: "width:340px; height:160px; background:#1a2a3a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:11px;",
+-                                "340x160"
+-                            }
+-                        }
+-                        // Meters placeholder
+-                        div {
+-                            style: format!(
+-                                "{} padding:{}; display:flex; gap:{}; align-items:stretch;",
+-                                t.style_card(), t.spacing_card, t.spacing_section,
+-                            ),
+-                            div {
+-                                style: "width:24px; height:160px; background:#2a1a1a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:9px; writing-mode:vertical-rl;",
+-                                "IN"
+-                            }
+-                            div {
+-                                style: "width:24px; height:160px; background:#2a2a1a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:9px; writing-mode:vertical-rl;",
+-                                "GR"
+-                            }
+-                            div {
+-                                style: "width:24px; height:160px; background:#2a1a1a; border:1px dashed #4a4a4a; display:flex; align-items:center; justify-content:center; color:#666; font-size:9px; writing-mode:vertical-rl;",
+-                                "OUT"
+-                            }
+-                        }
+                     }
+-                } else {
+-                    div {
+-                        style: format!(
+-                            "display:flex; gap:{}; flex:1; min-height:0; align-items:stretch;",
+-                            t.spacing_section,
+-                        ),
+-
+-                        // Input meter (left edge)
+-                        LevelMeterDb { level_db: input_db, label: "IN".to_string(), width: 18.0, fill: true }
+ 
+-                        // Waveform + GR + transfer curve overlay — fills all remaining space
+-                        PeakWaveform {
+-                            levels: waveform_in,
+-                            gr_levels: waveform_gr,
+-                            threshold_db: Some(threshold),
+-                            ratio: Some(ratio),
+-                            knee_db: knee,
+-                            input_level_db: input_level,
+-                            fill: true,
+-                            style: format!(
+-                                "{} flex:1; min-width:0; min-height:0; overflow:hidden;",
+-                                t.style_card(),
+-                            ),
+-                        }
++                    // Output meter
++                    LevelMeterDb { level_db: output_db, label: "OUT".to_string(), width: 18.0, fill: true }
++                }
+ 
+-                        // Output meter (right edge)
+-                        LevelMeterDb { level_db: output_db, label: "OUT".to_string(), width: 18.0, fill: true }
+-                    }
++                // ── Primary controls ─────────────────────────────────
++                div {
++                    style: format!(
++                        "display:flex; justify-content:center; gap:{}; \
++                         padding:4px 0;",
++                        t.spacing_control,
++                    ),
++                    Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
++                    Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
++                    Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
++                    Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
++                    Knob { param_ptr: params.knee_db.as_ptr(), size: KnobSize::Large }
+                 }
+ 
+-                // ── Controls ─────────────────────────────────────────
++                // ── Secondary controls ──────────────────────────────
+                 div {
+                     style: format!(
+-                        "{} padding:12px 16px; \
+-                         display:flex; flex-direction:column; gap:{};",
++                        "{} padding:8px 12px; \
++                         display:flex; gap:{}; justify-content:center; align-items:flex-start;",
+                         t.style_card(),
+-                        t.spacing_section,
++                        t.spacing_control,
+                     ),
+ 
+-                    // Row 1: Core dynamics (large knobs)
+-                    div {
+-                        style: format!(
+-                            "display:flex; flex-direction:column; gap:{};",
+-                            t.spacing_section,
+-                        ),
+-                        SectionLabel { text: "Dynamics" }
+-                        div {
+-                            style: format!(
+-                                "display:flex; justify-content:center; gap:{};",
+-                                t.spacing_control,
+-                            ),
+-                            Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
+-                            Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
+-                            Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
+-                            Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
+-                            Knob { param_ptr: params.knee_db.as_ptr(), size: KnobSize::Large }
+-                        }
++                    ControlGroup {
++                        label: "I/O",
++                        Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
++                        Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
++                        Toggle { param_ptr: params.auto_makeup.as_ptr(), label: "Auto" }
+                     }
+ 
+-                    // Row 2: Grouped secondary controls
+-                    div {
+-                        style: format!(
+-                            "display:flex; gap:{}; justify-content:center;",
+-                            t.spacing_control,
+-                        ),
+-
+-                        // I/O group
+-                        ControlGroup {
+-                            label: "I/O",
+-                            Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
+-                            Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
+-                            Toggle { param_ptr: params.auto_makeup.as_ptr(), label: "Auto" }
+-                        }
+-
+-                        // Divider
+-                        div {
+-                            style: format!(
+-                                "width:1px; background:{}; align-self:stretch;",
+-                                t.border_subtle,
+-                            ),
+-                        }
++                    Divider {}
+ 
+-                        // Mix group
+-                        ControlGroup {
+-                            label: "Mix",
+-                            Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
+-                            Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
+-                        }
++                    ControlGroup {
++                        label: "Mix",
++                        Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
++                        Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
++                    }
+ 
+-                        // Divider
+-                        div {
+-                            style: format!(
+-                                "width:1px; background:{}; align-self:stretch;",
+-                                t.border_subtle,
+-                            ),
+-                        }
++                    Divider {}
+ 
+-                        // Character group
+-                        ControlGroup {
+-                            label: "Character",
+-                            Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
+-                            Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
+-                        }
++                    ControlGroup {
++                        label: "Character",
++                        Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
++                        Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
++                    }
+ 
+-                        // Divider
+-                        div {
+-                            style: format!(
+-                                "width:1px; background:{}; align-self:stretch;",
+-                                t.border_subtle,
+-                            ),
+-                        }
++                    Divider {}
+ 
+-                        // Sidechain group
+-                        ControlGroup {
+-                            label: "Sidechain",
+-                            Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
+-                        }
++                    ControlGroup {
++                        label: "Sidechain",
++                        Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
++                    }
+ 
+-                        // Divider
+-                        div {
+-                            style: format!(
+-                                "width:1px; background:{}; align-self:stretch;",
+-                                t.border_subtle,
+-                            ),
+-                        }
++                    Divider {}
+ 
+-                        // Advanced group
+-                        ControlGroup {
+-                            label: "Advanced",
+-                            Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
+-                            Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
+-                        }
++                    ControlGroup {
++                        label: "Advanced",
++                        Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
++                        Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
+                     }
+                 }
+             }
+diff --git a/crates/fts-eq/eq-dsp/Cargo.toml b/crates/fts-eq/eq-dsp/Cargo.toml
+index 346c67f..fd160e8 100644
+--- a/crates/fts-eq/eq-dsp/Cargo.toml
++++ b/crates/fts-eq/eq-dsp/Cargo.toml
+@@ -27,3 +27,6 @@ harness = false
+ 
+ [[example]]
+ name = "process_wav"
++
++[[example]]
++name = "cascade_sweep"
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index f5589da..a6eb98b 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -137,7 +137,17 @@ fn lowpass_2(w0: f64, q: f64, num_biquads: usize) -> Coeffs {
+ 
+     let q_sq = q * q;
+     let target_at_corner = q_sq * (a0_big * p0 + a1_big * p1 + a2_big * p0 * p1 * 4.0);
+-    let b2_big = (target_at_corner - b0_big * p0 - b1_big * p1) / (4.0 * p0 * p1);
++    let mut b2_big = (target_at_corner - b0_big * p0 - b1_big * p1) / (4.0 * p0 * p1);
++
++    // For large cascades, reduce B2 to compensate compound passband hump.
++    // B2 only affects mid-band (multiplied by 4·φ0·φ1 = 0 at DC and Nyquist).
++    // The hump comes mainly from high-Q sections (resonance overshoot), so scale
++    // the correction by ln(Q/0.7) to target only those sections.
++    if num_biquads > 3 && b2_big > 0.0 {
++        let q_factor = (q / 0.7).max(1.0).ln();
++        let hump_corr = w_norm.powi(3) * q_factor * (num_biquads as f64 - 1.0) * 0.08;
++        b2_big *= (1.0 - hump_corr).max(0.0);
++    }
+ 
+     let (b0, b1, b2) = mag_sq_to_b([b0_big.max(0.0), b1_big.max(0.0), b2_big]);
+     [1.0, a1, a2, b0, b1, b2]
+diff --git a/crates/fts-pitch/pitch-dsp/Cargo.toml b/crates/fts-pitch/pitch-dsp/Cargo.toml
+index f4e7b6c..262c4a3 100644
+--- a/crates/fts-pitch/pitch-dsp/Cargo.toml
++++ b/crates/fts-pitch/pitch-dsp/Cargo.toml
+@@ -8,7 +8,6 @@ license.workspace = true
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ serde = { workspace = true }
+-realfft = "3"
+ 
+ # External pitch/time-stretch libraries
+ signalsmith-stretch = "0.1"
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index f843397..9763330 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -638,8 +638,8 @@ mod tests {
+             Algorithm::Signalsmith,
+             Algorithm::Rubberband,
+             Algorithm::Allpass,
+-            // PolyOctave excluded: STFT dry path has FFT_SIZE latency;
+-            // dry-wet correctness is tested in pog::tests::dry_wet_mix.
++            // PolyOctave excluded: SSB filter bank has 1-sample latency
++            // on dry path; dry-wet correctness tested in pog::tests::dry_wet_mix.
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -731,22 +731,16 @@ mod tests {
+             eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
+         }
+ 
+-        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
++        // In live mode, all algorithms should be under 25ms (~1200 samples at 48k).
+         // Rubberband R2 real-time has ~1024 sample minimum internal latency.
+-        // PolyOctave uses STFT with FFT_SIZE=2048 latency regardless of live mode.
+         let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
+         for algo in ALL_ALGOS {
+             chain.algorithm = algo;
+             chain.process(&mut l, &mut r);
+             let lat = chain.latency();
+-            let limit = if algo == Algorithm::PolyOctave {
+-                2048
+-            } else {
+-                live_limit_samples
+-            };
+             assert!(
+-                lat <= limit,
+-                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {limit}",
++                lat <= live_limit_samples,
++                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
+                 lat as f64 / SR * 1000.0,
+             );
+         }
+diff --git a/crates/fts-trigger/trigger-plugin/src/editor.rs b/crates/fts-trigger/trigger-plugin/src/editor.rs
+index f794a86..f11b141 100644
+--- a/crates/fts-trigger/trigger-plugin/src/editor.rs
++++ b/crates/fts-trigger/trigger-plugin/src/editor.rs
+@@ -216,17 +216,14 @@ pub fn App() -> Element {
+ 
+                         Divider {}
+ 
+-                        // MIDI output controls
+-                        div {
+-                            style: "display:flex; gap:6px; align-items:center;",
+-                            div {
+-                                style: format!("{style_label}"),
+-                                "MIDI"
+-                            }
+-                            ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
+-                            Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
+-                            Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
+-                        }
++                        // TODO: MIDI output controls (params not yet added)
++                        // div {
++                        //     style: "display:flex; gap:6px; align-items:center;",
++                        //     div { style: format!("{style_label}"), "MIDI" }
++                        //     ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
++                        //     Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
++                        //     Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
++                        // }
+                     }
+                 }
+ 
+@@ -314,7 +311,7 @@ pub fn App() -> Element {
+                         enabled_ptr: params.slots[slot].enabled.as_ptr(),
+                         mute_ptr: params.slots[slot].mute.as_ptr(),
+                         solo_ptr: params.slots[slot].solo.as_ptr(),
+-                        midi_note_ptr: params.slots[slot].midi_note.as_ptr(),
++                        // TODO: midi_note_ptr (param not yet added)
+                         on_load: {
+                             let ui = ui_for_load.clone();
+                             move |slot: usize| {
+diff --git a/crates/fts-trigger/trigger-ui/src/control_view.rs b/crates/fts-trigger/trigger-ui/src/control_view.rs
+index 00ab042..9d10f31 100644
+--- a/crates/fts-trigger/trigger-ui/src/control_view.rs
++++ b/crates/fts-trigger/trigger-ui/src/control_view.rs
+@@ -18,7 +18,7 @@ pub fn MixerStrip(
+     enabled_ptr: ParamPtr,
+     mute_ptr: ParamPtr,
+     solo_ptr: ParamPtr,
+-    midi_note_ptr: ParamPtr,
++    // TODO: midi_note_ptr: ParamPtr, (param not yet added)
+     on_load: EventHandler<usize>,
+ ) -> Element {
+     let t = use_theme();
+@@ -132,8 +132,8 @@ pub fn MixerStrip(
+                 Knob { param_ptr: pitch_ptr, size: KnobSize::Small }
+             }
+ 
+-            // MIDI note knob
+-            Knob { param_ptr: midi_note_ptr, size: KnobSize::Small }
++            // TODO: MIDI note knob (param not yet added)
++            // Knob { param_ptr: midi_note_ptr, size: KnobSize::Small }
+ 
+             // Mute / Solo row
+             div {

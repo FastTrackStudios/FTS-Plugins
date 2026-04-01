@@ -1,0 +1,3090 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index df1fd84..9d15383 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -854,6 +854,12 @@ version = "0.8.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
+ 
++[[package]]
++name = "bit_mask_ring_buf"
++version = "0.6.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ac85b1322307fc253c24060df1e8b4e8ea681e13d2d02d14f59dbdf9f64b0e13"
++
+ [[package]]
+ name = "bitflags"
+ version = "1.3.2"
+@@ -989,7 +995,7 @@ dependencies = [
+  "blitz-traits",
+  "futures-util",
+  "keyboard-types 0.7.0",
+- "rfd 0.15.4",
++ "rfd",
+  "winit",
+ ]
+ 
+@@ -1283,7 +1289,6 @@ name = "chorus-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
+  "chorus-dsp",
+  "fts-dsp",
+  "fts-plugin-core",
+@@ -1984,12 +1989,6 @@ dependencies = [
+  "syn 2.0.117",
+ ]
+ 
+-[[package]]
+-name = "ctor-lite"
+-version = "0.1.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e162d0c2e2068eb736b71e5597eff0b9944e6b973cd9f37b6a288ab9bf20e300"
+-
+ [[package]]
+ name = "cursor-icon"
+ version = "1.2.0"
+@@ -2938,46 +2937,6 @@ version = "0.1.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
+ 
+-[[package]]
+-name = "drm"
+-version = "0.14.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "80bc8c5c6c2941f70a55c15f8d9f00f9710ebda3ffda98075f996a0e6c92756f"
+-dependencies = [
+- "bitflags 2.11.0",
+- "bytemuck",
+- "drm-ffi",
+- "drm-fourcc",
+- "libc",
+- "rustix 0.38.44",
+-]
+-
+-[[package]]
+-name = "drm-ffi"
+-version = "0.9.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "51a91c9b32ac4e8105dec255e849e0d66e27d7c34d184364fb93e469db08f690"
+-dependencies = [
+- "drm-sys",
+- "rustix 1.1.4",
+-]
+-
+-[[package]]
+-name = "drm-fourcc"
+-version = "2.2.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0aafbcdb8afc29c1a7ee5fbe53b5d62f4565b35a042a662ca9fecd0b54dae6f4"
+-
+-[[package]]
+-name = "drm-sys"
+-version = "0.8.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ecc8e1361066d91f5ffccff060a3c3be9c3ecde15be2959c1937595f7a82a9f8"
+-dependencies = [
+- "libc",
+- "linux-raw-sys 0.9.4",
+-]
+-
+ [[package]]
+ name = "dtoa"
+ version = "1.0.11"
+@@ -3136,6 +3095,7 @@ dependencies = [
+  "criterion",
+  "eq-dsp",
+  "fts-dsp",
++ "halfband",
+  "hound",
+  "rustfft",
+ ]
+@@ -3794,7 +3754,6 @@ name = "fts-sample"
+ version = "0.1.0"
+ dependencies = [
+  "crossbeam-channel",
+- "rfd 0.17.2",
+  "symphonium",
+  "tracing",
+ ]
+@@ -4284,7 +4243,11 @@ checksum = "f9e2d4c0a8296178d8802098410ca05d86b17a10bb5ab559b3fb404c1f948220"
+ name = "gui-test"
+ version = "0.1.0"
+ dependencies = [
++ "atomic_float 1.1.0",
++ "comp-plugin",
+  "nih_plug_dioxus",
++ "png",
++ "x11rb",
+ ]
+ 
+ [[package]]
+@@ -4328,6 +4291,17 @@ dependencies = [
+  "zerocopy",
+ ]
+ 
++[[package]]
++name = "halfband"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c21ea2524c2b1a846750d6c68b85f6cbe292d6eb847b5a7bea86e18c999870d5"
++dependencies = [
++ "bit_mask_ring_buf",
++ "paste",
++ "windowfunctions",
++]
++
+ [[package]]
+ name = "harfrust"
+ version = "0.3.2"
+@@ -5369,12 +5343,6 @@ version = "0.4.15"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
+ 
+-[[package]]
+-name = "linux-raw-sys"
+-version = "0.9.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
+-
+ [[package]]
+ name = "linux-raw-sys"
+ version = "0.12.1"
+@@ -6244,7 +6212,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug"
+ version = "0.0.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "anyhow",
+  "anymap3",
+@@ -6274,7 +6241,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug_derive"
+ version = "0.1.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "proc-macro2",
+  "quote",
+@@ -6284,7 +6250,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug_dioxus"
+ version = "0.0.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "anyrender_vello",
+  "baseview",
+@@ -6301,7 +6266,6 @@ dependencies = [
+  "pollster 0.4.0",
+  "raw-window-handle 0.6.2",
+  "serde",
+- "softbuffer",
+  "vello 0.6.0",
+  "wgpu 26.0.1",
+  "wgpu_context",
+@@ -6577,7 +6541,7 @@ dependencies = [
+  "objc2-core-data",
+  "objc2-core-image",
+  "objc2-foundation 0.2.2",
+- "objc2-quartz-core 0.2.2",
++ "objc2-quartz-core",
+ ]
+ 
+ [[package]]
+@@ -6765,18 +6729,6 @@ dependencies = [
+  "objc2-metal",
+ ]
+ 
+-[[package]]
+-name = "objc2-quartz-core"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "96c1358452b371bf9f104e21ec536d37a650eb10f7ee379fff67d2e08d537f1f"
+-dependencies = [
+- "bitflags 2.11.0",
+- "objc2 0.6.4",
+- "objc2-core-foundation",
+- "objc2-foundation 0.3.2",
+-]
+-
+ [[package]]
+ name = "objc2-symbols"
+ version = "0.2.2"
+@@ -6802,7 +6754,7 @@ dependencies = [
+  "objc2-core-location",
+  "objc2-foundation 0.2.2",
+  "objc2-link-presentation",
+- "objc2-quartz-core 0.2.2",
++ "objc2-quartz-core",
+  "objc2-symbols",
+  "objc2-uniform-type-identifiers",
+  "objc2-user-notifications",
+@@ -8145,8 +8097,6 @@ dependencies = [
+ name = "reverb-plugin"
+ version = "0.1.0"
+ dependencies = [
+- "atomic_float 1.1.0",
+- "audio-gui",
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+@@ -8197,33 +8147,6 @@ dependencies = [
+  "windows-sys 0.59.0",
+ ]
+ 
+-[[package]]
+-name = "rfd"
+-version = "0.17.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "20dafead71c16a34e1ff357ddefc8afc11e7d51d6d2b9fbd07eaa48e3e540220"
+-dependencies = [
+- "block2 0.6.2",
+- "dispatch2",
+- "js-sys",
+- "libc",
+- "log",
+- "objc2 0.6.4",
+- "objc2-app-kit 0.3.2",
+- "objc2-core-foundation",
+- "objc2-foundation 0.3.2",
+- "percent-encoding",
+- "pollster 0.4.0",
+- "raw-window-handle 0.6.2",
+- "wasm-bindgen",
+- "wasm-bindgen-futures",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-protocols",
+- "web-sys",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "rgb"
+ version = "0.8.53"
+@@ -9030,38 +8953,6 @@ dependencies = [
+  "winapi",
+ ]
+ 
+-[[package]]
+-name = "softbuffer"
+-version = "0.4.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "aac18da81ebbf05109ab275b157c22a653bb3c12cf884450179942f81bcbf6c3"
+-dependencies = [
+- "as-raw-xcb-connection",
+- "bytemuck",
+- "drm",
+- "fastrand",
+- "js-sys",
+- "memmap2",
+- "ndk",
+- "objc2 0.6.4",
+- "objc2-core-foundation",
+- "objc2-core-graphics",
+- "objc2-foundation 0.3.2",
+- "objc2-quartz-core 0.3.2",
+- "raw-window-handle 0.6.2",
+- "redox_syscall 0.5.18",
+- "rustix 1.1.4",
+- "tiny-xlib",
+- "tracing",
+- "wasm-bindgen",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-sys",
+- "web-sys",
+- "windows-sys 0.61.2",
+- "x11rb",
+-]
+-
+ [[package]]
+ name = "spirv"
+ version = "0.3.0+sdk-1.3.268.0"
+@@ -9851,19 +9742,6 @@ dependencies = [
+  "strict-num",
+ ]
+ 
+-[[package]]
+-name = "tiny-xlib"
+-version = "0.2.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0324504befd01cab6e0c994f34b2ffa257849ee019d3fb3b64fb2c858887d89e"
+-dependencies = [
+- "as-raw-xcb-connection",
+- "ctor-lite",
+- "libloading 0.8.9",
+- "pkg-config",
+- "tracing",
+-]
+-
+ [[package]]
+ name = "tinystr"
+ version = "0.7.6"
+@@ -11752,6 +11630,15 @@ version = "0.4.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+ 
++[[package]]
++name = "windowfunctions"
++version = "0.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "90628d739333b7c5d2ee0b70210b97b8cddc38440c682c96fd9e2c24c2db5f3a"
++dependencies = [
++ "num-traits",
++]
++
+ [[package]]
+ name = "windows"
+ version = "0.44.0"
+diff --git a/apps/gui-test/Cargo.toml b/apps/gui-test/Cargo.toml
+index c0b0a40..0ad933e 100644
+--- a/apps/gui-test/Cargo.toml
++++ b/apps/gui-test/Cargo.toml
+@@ -16,8 +16,20 @@ path = "src/main_softbuffer.rs"
+ name = "gui-test-parented"
+ path = "src/main_parented.rs"
+ 
++[[bin]]
++name = "gui-test-screenshot"
++path = "src/main_screenshot.rs"
++
+ [dependencies]
+ nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
++png = "0.17"
++atomic_float = "1"
++
++# Only one plugin at a time to avoid duplicate CLAP/VST3 entry point symbols.
++# Switch to a different plugin crate to screenshot it.
++comp-plugin = { path = "../../crates/fts-comp/comp-plugin" }
++# delay-plugin = { path = "../../crates/fts-delay/delay-plugin" }
++# eq-plugin = { path = "../../crates/fts-eq/eq-plugin" }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
+ x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
+diff --git a/apps/gui-test/src/main_screenshot.rs b/apps/gui-test/src/main_screenshot.rs
+index bf6e371..1c81ca0 100644
+--- a/apps/gui-test/src/main_screenshot.rs
++++ b/apps/gui-test/src/main_screenshot.rs
+@@ -1,181 +1,68 @@
+-//! Headless screenshot tool for GUI testing.
++//! Headless screenshot tool for plugin GUI testing.
+ //!
+-//! Renders a Dioxus component offscreen via wgpu and saves as PNG.
+-//! This lets you visually verify rendering without opening a window.
++//! Renders actual plugin editor GUIs offscreen via wgpu and saves as PNG.
++//! This lets you visually verify rendering without a DAW.
+ //!
+ //! Run with:
+-//!   cargo run -p gui-test --bin gui-test-screenshot [output.png]
++//!   cargo run -p gui-test --bin gui-test-screenshot [plugin] [output.png]
++//!
++//! Examples:
++//!   cargo run -p gui-test --bin gui-test-screenshot comp /tmp/comp.png
++//!
++//! To screenshot other plugins, uncomment the corresponding dependency in
++//! Cargo.toml (only one plugin at a time to avoid duplicate CLAP/VST3 symbols).
+ 
+-use nih_plug_dioxus::dioxus_native::prelude::*;
+-use nih_plug_dioxus::TAILWIND_CSS;
++use nih_plug_dioxus::SharedState;
+ use std::path::PathBuf;
++use std::sync::Arc;
+ 
+ fn main() {
+-    let output_path = std::env::args()
+-        .nth(1)
+-        .map(PathBuf::from)
+-        .unwrap_or_else(|| PathBuf::from("screenshot.png"));
++    let args: Vec<String> = std::env::args().collect();
+ 
+-    let width = 800;
+-    let height = 600;
+-
+-    eprintln!("Rendering {}x{} screenshot...", width, height);
+-
+-    let pixels = nih_plug_dioxus::render_screenshot(App, width, height, None);
++    let plugin_name = args.get(1).map(|s| s.as_str()).unwrap_or("comp");
++    let output_path = args
++        .get(2)
++        .map(PathBuf::from)
++        .unwrap_or_else(|| PathBuf::from(format!("/tmp/fts-{}.png", plugin_name)));
++
++    match plugin_name {
++        "comp" => screenshot_comp(&output_path),
++        // Uncomment in Cargo.toml to enable:
++        // "delay" => screenshot_delay(&output_path),
++        // "eq" => screenshot_eq(&output_path),
++        _ => {
++            eprintln!("Unknown plugin: {}", plugin_name);
++            eprintln!("Available: comp");
++            eprintln!("(Uncomment delay-plugin or eq-plugin in Cargo.toml to enable others)");
++            std::process::exit(1);
++        }
++    }
++}
+ 
+-    // Save as PNG
+-    let file = std::fs::File::create(&output_path).expect("Failed to create output file");
++fn save_png(pixels: &[u8], width: u32, height: u32, path: &std::path::Path) {
++    let file = std::fs::File::create(path).expect("Failed to create output file");
+     let mut encoder = png::Encoder::new(file, width, height);
+     encoder.set_color(png::ColorType::Rgba);
+     encoder.set_depth(png::BitDepth::Eight);
+     let mut writer = encoder.write_header().expect("Failed to write PNG header");
+-    writer.write_image_data(&pixels).expect("Failed to write PNG data");
+-
+-    eprintln!("Saved to {}", output_path.display());
++    writer
++        .write_image_data(pixels)
++        .expect("Failed to write PNG data");
++    eprintln!("Saved to {}", path.display());
+ }
+ 
+-/// Test component — exercises various layout and styling patterns.
+-#[component]
+-fn App() -> Element {
+-    rsx! {
+-        document::Style { {TAILWIND_CSS} }
+-        div {
+-            style: "width: 100%; height: 100%; background: #1a1a2e; padding: 16px; font-family: sans-serif; color: white; box-sizing: border-box;",
+-
+-            // Title bar
+-            div {
+-                style: "font-size: 20px; font-weight: bold; color: #e94560; margin-bottom: 16px;",
+-                "FTS GUI Component Gallery"
+-            }
+-
+-            // Row of colored boxes (tests flexbox + border-radius + hsl colors)
+-            div {
+-                style: "display: flex; gap: 8px; margin-bottom: 16px;",
+-                for i in 0..8 {
+-                    {
+-                        let hue = i * 45;
+-                        rsx! {
+-                            div {
+-                                style: "width: 48px; height: 48px; border-radius: 8px; background: hsl({hue}, 70%, 50%); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;",
+-                                "{hue}"
+-                            }
+-                        }
+-                    }
+-                }
+-            }
++fn screenshot_comp(output: &std::path::Path) {
++    use comp_plugin::{CompUiState, FtsCompParams};
+ 
+-            // Layout test: two columns
+-            div {
+-                style: "display: flex; gap: 16px; margin-bottom: 16px;",
++    let width = 900;
++    let height = 620;
+ 
+-                // Left column — simulated knob area
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
++    let params = Arc::new(FtsCompParams::default());
++    let ui_state = Arc::new(CompUiState::new(params));
++    let shared = SharedState::new(ui_state);
+ 
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Controls"
+-                    }
+-
+-                    // Simulated knobs (circles with labels)
+-                    div {
+-                        style: "display: flex; gap: 16px; flex-wrap: wrap;",
+-                        for label in ["Gain", "Freq", "Q", "Mix"] {
+-                            div {
+-                                style: "display: flex; flex-direction: column; align-items: center; gap: 4px;",
+-                                div {
+-                                    style: "width: 48px; height: 48px; border-radius: 50%; background: #0f3460; border: 2px solid #e94560; display: flex; align-items: center; justify-content: center; font-size: 11px;",
+-                                    "0.5"
+-                                }
+-                                div {
+-                                    style: "font-size: 10px; color: #888;",
+-                                    "{label}"
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Right column — simulated dropdown + text
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Settings"
+-                    }
+-
+-                    // Simulated dropdown
+-                    div {
+-                        style: "background: #0f3460; border: 1px solid #333; border-radius: 4px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between;",
+-                        span { "Algorithm: Clean" }
+-                        span { style: "color: #888;", "▼" }
+-                    }
+-
+-                    // Simulated toggle
+-                    div {
+-                        style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;",
+-                        div {
+-                            style: "width: 36px; height: 20px; border-radius: 10px; background: #e94560; position: relative;",
+-                            div {
+-                                style: "width: 16px; height: 16px; border-radius: 50%; background: white; position: absolute; top: 2px; right: 2px;",
+-                            }
+-                        }
+-                        span { style: "font-size: 13px;", "Enabled" }
+-                    }
+-
+-                    // Simulated slider
+-                    div {
+-                        style: "margin-bottom: 4px;",
+-                        div {
+-                            style: "font-size: 11px; color: #888; margin-bottom: 4px;",
+-                            "Dry/Wet"
+-                        }
+-                        div {
+-                            style: "height: 6px; background: #0f3460; border-radius: 3px; position: relative;",
+-                            div {
+-                                style: "width: 65%; height: 100%; background: #e94560; border-radius: 3px;",
+-                            }
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Bottom panel — simulated meter / waveform area
+-            div {
+-                style: "background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                div {
+-                    style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                    "Output"
+-                }
+-
+-                // Simulated level meters
+-                div {
+-                    style: "display: flex; gap: 4px; height: 24px;",
+-                    for level in [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.3, 0.65, 0.55, 0.75, 0.45, 0.6, 0.8, 0.5, 0.7] {
+-                        {
+-                            let pct = (level * 100.0) as u32;
+-                            let color = if level > 0.85 { "#ff4444" } else if level > 0.7 { "#ffaa00" } else { "#44ff44" };
+-                            rsx! {
+-                                div {
+-                                    style: "flex: 1; background: #0f3460; border-radius: 2px; display: flex; align-items: flex-end;",
+-                                    div {
+-                                        style: "width: 100%; height: {pct}%; background: {color}; border-radius: 2px;",
+-                                    }
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Labels
+-                div {
+-                    style: "display: flex; justify-content: space-between; margin-top: 4px;",
+-                    span { style: "font-size: 10px; color: #888;", "L" }
+-                    span { style: "font-size: 10px; color: #888;", "R" }
+-                }
+-            }
+-        }
+-    }
++    eprintln!("Rendering compressor ({}x{})...", width, height);
++    let pixels =
++        nih_plug_dioxus::render_screenshot(comp_plugin::editor::App, width, height, Some(shared));
++    save_png(&pixels, width, height, output);
+ }
+diff --git a/crates/audio-gui/src/viz/eq_graph.rs b/crates/audio-gui/src/viz/eq_graph.rs
+index 8ef4b6e..631a927 100644
+--- a/crates/audio-gui/src/viz/eq_graph.rs
++++ b/crates/audio-gui/src/viz/eq_graph.rs
+@@ -205,9 +205,9 @@ pub fn get_band_fill_color(index: usize) -> String {
+         u8::from_str_radix(&hex[3..5], 16),
+         u8::from_str_radix(&hex[5..7], 16),
+     ) {
+-        format!("rgba({r}, {g}, {b}, 0.15)")
++        format!("rgba({r}, {g}, {b}, 0.30)")
+     } else {
+-        "rgba(100, 100, 100, 0.15)".to_string()
++        "rgba(100, 100, 100, 0.30)".to_string()
+     }
+ }
+ 
+@@ -1082,13 +1082,13 @@ pub fn EqGraph(
+             }
+ 
+             // Per-band influence curves (rendered behind main curve)
+-            for (band_idx, (stroke_path, fill_path)) in curve_paths.band_curves.iter().enumerate() {
+-                // Band fill
++            for (band_idx, stroke_path, fill_path) in curve_paths.band_curves.iter() {
++                // Band fill (higher opacity for visibility like ReEQ)
+                 if fill_curve {
+                     path {
+                         key: "band-fill-{band_idx}",
+                         d: "{fill_path}",
+-                        fill: "{get_band_fill_color(band_idx)}",
++                        fill: "{get_band_fill_color(*band_idx)}",
+                         stroke: "none",
+                     }
+                 }
+@@ -1096,7 +1096,7 @@ pub fn EqGraph(
+                 path {
+                     d: "{stroke_path}",
+                     fill: "none",
+-                    stroke: "{get_band_color(band_idx)}",
++                    stroke: "{get_band_color(*band_idx)}",
+                     stroke_width: "1.5",
+                     stroke_linecap: "round",
+                     stroke_linejoin: "round",
+@@ -1104,6 +1104,41 @@ pub fn EqGraph(
+                 }
+             }
+ 
++            // Connecting lines from band nodes to 0dB line (shows each band's contribution)
++            {
++                let zero_line_y = db_to_y(0.0);
++                let connecting_lines: Vec<(f64, f64, f64, &str)> = bands_snapshot.iter()
++                    .filter(|b| b.used && b.enabled)
++                    .filter_map(|band| {
++                        let curve_db = calculate_band_response(band, band.frequency as f64, sample_rate);
++                        if curve_db.abs() <= 0.1 {
++                            return None;
++                        }
++                        let bx = freq_to_x(band.frequency as f64);
++                        let node_y = db_to_y(band.gain as f64);
++                        let node_radius = 7.0;
++                        let start_y = if node_y < zero_line_y { node_y + node_radius } else { node_y - node_radius };
++                        Some((bx, start_y, zero_line_y, get_band_color(band.index)))
++                    })
++                    .collect();
++
++                rsx! {
++                    for (i, (lx, ly1, ly2, color)) in connecting_lines.iter().enumerate() {
++                        line {
++                            key: "conn-{i}",
++                            x1: "{lx}",
++                            y1: "{ly1}",
++                            x2: "{lx}",
++                            y2: "{ly2}",
++                            stroke: "{color}",
++                            stroke_width: "1.5",
++                            stroke_opacity: "0.5",
++                            pointer_events: "none",
++                        }
++                    }
++                }
++            }
++
+             // Main combined curve fill
+             if fill_curve {
+                 path {
+@@ -1668,8 +1703,8 @@ struct AllEqCurves {
+     combined_stroke: String,
+     /// Combined curve fill path.
+     combined_fill: String,
+-    /// Per-band curves: Vec of (stroke_path, fill_path) for each active band.
+-    band_curves: Vec<(String, String)>,
++    /// Per-band curves: Vec of (band_index, stroke_path, fill_path) for each active band.
++    band_curves: Vec<(usize, String, String)>,
+ }
+ 
+ /// Generate all EQ curves (combined and per-band).
+@@ -1721,9 +1756,9 @@ fn generate_all_eq_curves(
+         zero_y,
+     );
+ 
+-    // Generate per-band curves
++    // Generate per-band curves (with band index for color mapping)
+     let mut band_curves = Vec::new();
+-    for band in bands {
++    for (idx, band) in bands.iter().enumerate() {
+         if !band.used || !band.enabled {
+             continue;
+         }
+@@ -1735,7 +1770,7 @@ fn generate_all_eq_curves(
+ 
+         let (stroke, fill) =
+             build_curve_paths(&frequencies, &band_response, &freq_to_x, &db_to_y, zero_y);
+-        band_curves.push((stroke, fill));
++        band_curves.push((idx, stroke, fill));
+     }
+ 
+     AllEqCurves {
+diff --git a/crates/fts-comp/comp-plugin/src/lib.rs b/crates/fts-comp/comp-plugin/src/lib.rs
+index 35834c1..0c8fee8 100644
+--- a/crates/fts-comp/comp-plugin/src/lib.rs
++++ b/crates/fts-comp/comp-plugin/src/lib.rs
+@@ -8,7 +8,7 @@ use std::sync::Arc;
+ use comp_dsp::chain::CompChain;
+ use fts_dsp::{AudioConfig, Processor};
+ 
+-mod editor;
++pub mod editor;
+ 
+ // ── Shared UI State ──────────────────────────────────────────────────
+ 
+@@ -33,7 +33,7 @@ pub struct CompUiState {
+ pub const WAVEFORM_LEN: usize = 200;
+ 
+ impl CompUiState {
+-    fn new(params: Arc<FtsCompParams>) -> Self {
++    pub fn new(params: Arc<FtsCompParams>) -> Self {
+         let waveform_input: Box<[AtomicF32]> = (0..WAVEFORM_LEN)
+             .map(|_| AtomicF32::new(0.0))
+             .collect::<Vec<_>>()
+diff --git a/crates/fts-delay/delay-dsp/src/chain.rs b/crates/fts-delay/delay-dsp/src/chain.rs
+index f64ecf1..f0114f4 100644
+--- a/crates/fts-delay/delay-dsp/src/chain.rs
++++ b/crates/fts-delay/delay-dsp/src/chain.rs
+@@ -1,10 +1,12 @@
+-//! Delay chain — composes tape delay, pitch delay, ducking, and diffusion
++//! Delay chain — composes delay engines, ducking, and diffusion
+ //! into a full stereo processor.
+ 
++use fts_dsp::delay_line::DelayLine;
++use fts_dsp::smoothing::ParamSmoother;
+ use fts_dsp::{AudioConfig, Processor};
+ 
++use crate::engine::{DelayEngine, DelayStyle};
+ use crate::modulation::{Diffuser, DuckingFollower};
+-use crate::tape_delay::TapeDelay;
+ 
+ // r[impl delay.chain.signal-flow]
+ /// Stereo mode for the delay chain.
+@@ -39,11 +41,12 @@ pub enum HeadMode {
+ 
+ /// Full stereo delay processing chain.
+ ///
+-/// Signal flow: Input → Tape Delay (L/R) → Diffusion → Duck → Stereo Width → Mix
++/// Signal flow: Input → InputLevel → Diffusion(loop) → Stereo Routing →
++/// Engine → Diffusion(post) → Accent → Duck → LR Offset → Width → OutputLevel → Mix
+ pub struct DelayChain {
+     // Delay engines
+-    pub delay_l: TapeDelay,
+-    pub delay_r: TapeDelay,
++    pub delay_l: DelayEngine,
++    pub delay_r: DelayEngine,
+ 
+     // Global parameters
+     /// Dry/wet mix (0.0 = fully dry, 1.0 = fully wet).
+@@ -52,7 +55,7 @@ pub struct DelayChain {
+     pub stereo_mode: StereoMode,
+     /// Stereo width (0.0 = mono, 1.0 = normal, 2.0 = extra wide).
+     pub width: f64,
+-    /// Tape head configuration (RE-201 style).
++    /// Tape head configuration (RE-201 style, only applies to Tape style).
+     pub head_mode: HeadMode,
+     /// Enable diffusion.
+     pub diffusion_enabled: bool,
+@@ -65,18 +68,67 @@ pub struct DelayChain {
+     /// Ping-pong feedback (used when stereo_mode == PingPong).
+     pub pingpong_feedback: f64,
+ 
++    // --- New parameters ---
++
++    /// Accent: alternating repeat volume. Bipolar -1.0 to 1.0, 0.0 = off.
++    /// Positive emphasizes odd repeats, negative emphasizes even repeats.
++    pub accent: f64,
++
++    /// Groove: shuffle/swing. Bipolar -1.0 to 1.0, 0.0 = off.
++    /// Negative = shuffle, positive = swing.
++    pub groove: f64,
++
++    /// Feel: draggin'/rushin'. Bipolar -1.0 to 1.0, 0.0 = neutral.
++    /// Negative = draggin' (adds pre-delay), positive = rushin' (subtracts pre-delay).
++    pub feel: f64,
++    /// Maximum feel offset in ms.
++    pub feel_max_ms: f64,
++
++    /// Prime numbers: anti-resonance toggle.
++    /// Multiplies delay time by (1.0 + 0.0013) to prevent comb filtering.
++    pub prime_numbers: bool,
++
++    /// L/R offset in ms (0.0–25.0). Delays the R channel for stereo spread.
++    pub lr_offset_ms: f64,
++
++    /// Diffusion placement: false = post (default), true = loop (before delay).
++    pub diffusion_in_loop: bool,
++
++    /// Input level: scales signal going INTO the delay (0.0–2.0, default 1.0).
++    pub input_level: f64,
++    /// Output level: scales the wet signal before mixing (0.0–2.0, default 1.0).
++    pub output_level: f64,
++
+     // Internal
+     diffuser_l: Diffuser,
+     diffuser_r: Diffuser,
+     pub ducker: DuckingFollower,
+     sample_rate: f64,
++
++    // Accent internal state
++    accent_phase_l: f64,
++    accent_phase_r: f64,
++    accent_flip_l: bool,
++    accent_flip_r: bool,
++
++    // Groove internal state
++    groove_phase_l: f64,
++    groove_phase_r: f64,
++
++    // LR offset internal state
++    lr_offset_delay: DelayLine,
++    lr_offset_smoother: ParamSmoother,
+ }
+ 
+ impl DelayChain {
+     pub fn new() -> Self {
++        let mut lr_smoother = ParamSmoother::new(8.0);
++        lr_smoother.set_time_ms(5.0, 48000.0);
++        lr_smoother.set_epsilon(0.01);
++
+         Self {
+-            delay_l: TapeDelay::new(),
+-            delay_r: TapeDelay::new(),
++            delay_l: DelayEngine::new(),
++            delay_r: DelayEngine::new(),
+             mix: 0.5,
+             stereo_mode: StereoMode::Stereo,
+             width: 1.0,
+@@ -86,12 +138,41 @@ impl DelayChain {
+             diffusion_smear: 0.5,
+             ducking_enabled: false,
+             pingpong_feedback: 0.5,
++
++            accent: 0.0,
++            groove: 0.0,
++            feel: 0.0,
++            feel_max_ms: 50.0,
++            prime_numbers: false,
++            lr_offset_ms: 8.0,
++            diffusion_in_loop: false,
++            input_level: 1.0,
++            output_level: 1.0,
++
+             diffuser_l: Diffuser::new(48000.0, false),
+             diffuser_r: Diffuser::new(48000.0, true),
+             ducker: DuckingFollower::new(),
+             sample_rate: 48000.0,
++
++            accent_phase_l: 0.0,
++            accent_phase_r: 0.0,
++            accent_flip_l: false,
++            accent_flip_r: false,
++
++            groove_phase_l: 0.0,
++            groove_phase_r: 0.0,
++
++            // 25ms at 48kHz = 1200 samples, add margin
++            lr_offset_delay: DelayLine::new(2048),
++            lr_offset_smoother: lr_smoother,
+         }
+     }
++
++    /// Switch both engines to a new delay style.
++    pub fn set_style(&mut self, style: DelayStyle) {
++        self.delay_l.set_style(style);
++        self.delay_r.set_style(style);
++    }
+ }
+ 
+ impl Processor for DelayChain {
+@@ -101,12 +182,23 @@ impl Processor for DelayChain {
+         self.diffuser_l.reset();
+         self.diffuser_r.reset();
+         self.ducker.reset();
++
++        self.accent_phase_l = 0.0;
++        self.accent_phase_r = 0.0;
++        self.accent_flip_l = false;
++        self.accent_flip_r = false;
++
++        self.groove_phase_l = 0.0;
++        self.groove_phase_r = 0.0;
++
++        self.lr_offset_delay.clear();
++        self.lr_offset_smoother.reset(self.lr_offset_ms);
+     }
+ 
+     fn update(&mut self, config: AudioConfig) {
+         self.sample_rate = config.sample_rate;
+ 
+-        // Configure tape heads based on head mode
++        // Configure tape heads based on head mode (only applies to Tape style)
+         let (h1, h2, h3) = match self.head_mode {
+             HeadMode::Mode1 => (false, false, true), // Head 3 only
+             HeadMode::Mode2 => (true, false, true),  // Head 1 + 3
+@@ -134,26 +226,59 @@ impl Processor for DelayChain {
+ 
+         self.ducker.set_sample_rate(config.sample_rate);
+         self.ducker.update_coeffs();
++
++        // Update LR offset smoother and delay line
++        self.lr_offset_smoother
++            .set_time_ms(5.0, config.sample_rate);
++        self.lr_offset_smoother.set_target(self.lr_offset_ms);
++
++        // Ensure delay line is large enough for max offset at this sample rate
++        let max_offset_samples = (25.0 * config.sample_rate / 1000.0) as usize + 64;
++        if self.lr_offset_delay.len() < max_offset_samples {
++            self.lr_offset_delay = DelayLine::new(max_offset_samples);
++        }
+     }
+ 
+     // r[impl delay.chain.process]
+     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
+         let n = left.len().min(right.len());
+ 
++        // Cache delay times in samples for accent/groove phase tracking
++        let delay_time_samples_l = self.delay_l.time_ms * self.sample_rate / 1000.0;
++        let delay_time_samples_r = self.delay_r.time_ms * self.sample_rate / 1000.0;
++
++        // Store original delay times so we can restore after process
++        let orig_time_l = self.delay_l.time_ms;
++        let orig_time_r = self.delay_r.time_ms;
++
+         for i in 0..n {
+             let dry_l = left[i];
+             let dry_r = right[i];
+ 
++            // --- Input level ---
++            let scaled_l = dry_l * self.input_level;
++            let scaled_r = dry_r * self.input_level;
++
++            // --- Diffusion (loop mode: applied to input before delay) ---
++            let (diff_in_l, diff_in_r) = if self.diffusion_in_loop && self.diffusion_enabled {
++                (
++                    self.diffuser_l.tick(scaled_l),
++                    self.diffuser_r.tick(scaled_r),
++                )
++            } else {
++                (scaled_l, scaled_r)
++            };
++
+             // Compute delay input based on stereo mode
+             let (in_l, in_r) = match self.stereo_mode {
+-                StereoMode::Stereo => (dry_l, dry_r),
++                StereoMode::Stereo => (diff_in_l, diff_in_r),
+                 StereoMode::Mono => {
+-                    let mono = (dry_l + dry_r) * 0.5;
++                    let mono = (diff_in_l + diff_in_r) * 0.5;
+                     (mono, mono)
+                 }
+                 StereoMode::PingPong => {
+                     // In ping-pong, we feed mono to L and cross-feed from outputs
+-                    let mono = (dry_l + dry_r) * 0.5;
++                    let mono = (diff_in_l + diff_in_r) * 0.5;
+                     let fb_r = self.delay_r.last_feedback();
+                     let fb_l = self.delay_l.last_feedback();
+                     (
+@@ -163,15 +288,85 @@ impl Processor for DelayChain {
+                 }
+             };
+ 
++            // --- Feel: offset delay time ---
++            let feel_offset = self.feel * self.feel_max_ms;
++            let mut time_l = orig_time_l + feel_offset;
++            let mut time_r = orig_time_r + feel_offset;
++
++            // --- Prime numbers: anti-resonance ---
++            if self.prime_numbers {
++                time_l *= 1.0 + 0.0013;
++                time_r *= 1.0 + 0.0013;
++            }
++
++            // --- Groove: modulate delay time based on phase ---
++            if self.groove.abs() > 1e-6 && delay_time_samples_l > 1.0 {
++                // L channel groove
++                if self.groove_phase_l > delay_time_samples_l * 0.5 {
++                    time_l += self.groove * time_l * 0.333;
++                }
++                // R channel groove
++                if self.groove_phase_r > delay_time_samples_r * 0.5 {
++                    time_r += self.groove * time_r * 0.333;
++                }
++            }
++
++            // Clamp to positive
++            time_l = time_l.max(0.1);
++            time_r = time_r.max(0.1);
++
++            // Set modulated delay times
++            self.delay_l.time_ms = time_l;
++            self.delay_r.time_ms = time_r;
++
+             let mut wet_l = self.delay_l.tick(in_l, 0);
+             let mut wet_r = self.delay_r.tick(in_r, 1);
+ 
+-            // Diffusion
+-            if self.diffusion_enabled {
++            // --- Diffusion (post mode: applied after delay output) ---
++            if !self.diffusion_in_loop && self.diffusion_enabled {
+                 wet_l = self.diffuser_l.tick(wet_l);
+                 wet_r = self.diffuser_r.tick(wet_r);
+             }
+ 
++            // --- Accent: alternating repeat volume ---
++            if self.accent.abs() > 1e-6 && delay_time_samples_l > 1.0 {
++                // L channel accent
++                let accent_gain_l =
++                    1.0 + self.accent * if self.accent_flip_l { 1.0 } else { -1.0 };
++                wet_l *= accent_gain_l;
++
++                // R channel accent
++                let accent_gain_r =
++                    1.0 + self.accent * if self.accent_flip_r { 1.0 } else { -1.0 };
++                wet_r *= accent_gain_r;
++
++                // Advance accent phases
++                self.accent_phase_l += 1.0;
++                if self.accent_phase_l >= delay_time_samples_l {
++                    self.accent_phase_l -= delay_time_samples_l;
++                    self.accent_flip_l = !self.accent_flip_l;
++                }
++                self.accent_phase_r += 1.0;
++                if self.accent_phase_r >= delay_time_samples_r {
++                    self.accent_phase_r -= delay_time_samples_r;
++                    self.accent_flip_r = !self.accent_flip_r;
++                }
++            }
++
++            // --- Groove phase tracking ---
++            if delay_time_samples_l > 1.0 {
++                self.groove_phase_l += 1.0;
++                if self.groove_phase_l >= delay_time_samples_l {
++                    self.groove_phase_l -= delay_time_samples_l;
++                }
++            }
++            if delay_time_samples_r > 1.0 {
++                self.groove_phase_r += 1.0;
++                if self.groove_phase_r >= delay_time_samples_r {
++                    self.groove_phase_r -= delay_time_samples_r;
++                }
++            }
++
+             // Ducking
+             if self.ducking_enabled {
+                 let input_level = (dry_l.abs() + dry_r.abs()) * 0.5;
+@@ -180,6 +375,17 @@ impl Processor for DelayChain {
+                 wet_r *= duck_gain;
+             }
+ 
++            // --- LR offset: delay the R channel ---
++            if self.width > 0.001 {
++                self.lr_offset_smoother.set_target(self.lr_offset_ms);
++                let offset_ms = self.lr_offset_smoother.tick();
++                let offset_samples = offset_ms * self.sample_rate / 1000.0;
++                self.lr_offset_delay.write(wet_r);
++                if offset_samples > 0.5 {
++                    wet_r = self.lr_offset_delay.read_linear(offset_samples);
++                }
++            }
++
+             // Stereo width (mid-side)
+             if (self.width - 1.0).abs() > 0.001 {
+                 let mid = (wet_l + wet_r) * 0.5;
+@@ -188,10 +394,18 @@ impl Processor for DelayChain {
+                 wet_r = mid - side * self.width;
+             }
+ 
++            // --- Output level ---
++            wet_l *= self.output_level;
++            wet_r *= self.output_level;
++
+             // Mix dry/wet
+             left[i] = dry_l * (1.0 - self.mix) + wet_l * self.mix;
+             right[i] = dry_r * (1.0 - self.mix) + wet_r * self.mix;
+         }
++
++        // Restore original delay times
++        self.delay_l.time_ms = orig_time_l;
++        self.delay_r.time_ms = orig_time_r;
+     }
+ }
+ 
+@@ -380,4 +594,86 @@ mod tests {
+             "Width should create stereo difference: avg_diff={diff}"
+         );
+     }
++
++    #[test]
++    fn style_switching_works() {
++        for i in 0..DelayStyle::COUNT {
++            let style = DelayStyle::from_index(i);
++            let mut c = DelayChain::new();
++            c.set_style(style);
++            c.delay_l.time_ms = 30.0;
++            c.delay_r.time_ms = 30.0;
++            c.delay_l.feedback = 0.3;
++            c.delay_r.feedback = 0.3;
++            c.head_mode = HeadMode::Mode4;
++            c.mix = 1.0;
++            c.update(config());
++
++            let n = 48000;
++            let mut l: Vec<f64> = (0..n)
++                .map(|s| if s < 100 { 0.8 } else { 0.0 })
++                .collect();
++            let mut r = l.clone();
++
++            c.process(&mut l, &mut r);
++
++            let energy: f64 = l.iter().map(|x| x * x).sum();
++            assert!(
++                energy > 0.001,
++                "{:?} style should produce output in chain: energy={energy}",
++                style
++            );
++        }
++    }
++
++    #[test]
++    fn lr_offset_creates_stereo_difference() {
++        let mut c = make_chain();
++        c.delay_l.time_ms = 50.0;
++        c.delay_r.time_ms = 50.0;
++        c.lr_offset_ms = 10.0; // 10ms offset on R channel
++        c.width = 1.0;
++        c.mix = 1.0;
++        c.update(config());
++
++        let n = 19200;
++        let mut l: Vec<f64> = (0..n).map(|i| if i < 100 { 0.8 } else { 0.0 }).collect();
++        let mut r = l.clone();
++
++        c.process(&mut l, &mut r);
++
++        // Find the sample index of peak output in each channel (after the delay)
++        let l_peak_idx = l
++            .iter()
++            .enumerate()
++            .skip(2000) // skip past initial transient
++            .max_by(|(_, a), (_, b)| a.abs().partial_cmp(&b.abs()).unwrap())
++            .map(|(i, _)| i)
++            .unwrap();
++        let r_peak_idx = r
++            .iter()
++            .enumerate()
++            .skip(2000)
++            .max_by(|(_, a), (_, b)| a.abs().partial_cmp(&b.abs()).unwrap())
++            .map(|(i, _)| i)
++            .unwrap();
++
++        // The R channel peak should be offset from L channel peak
++        // 10ms at 48kHz = 480 samples
++        let idx_diff = (r_peak_idx as i64 - l_peak_idx as i64).unsigned_abs();
++
++        // Also verify L and R differ in content
++        let sample_diff: f64 = l
++            .iter()
++            .zip(r.iter())
++            .skip(2000)
++            .take(4800)
++            .map(|(a, b)| (a - b).abs())
++            .sum::<f64>();
++
++        assert!(
++            sample_diff > 0.01 || idx_diff > 100,
++            "LR offset should make channels differ: sample_diff={sample_diff}, idx_diff={idx_diff}"
++        );
++    }
+ }
+diff --git a/crates/fts-delay/delay-dsp/src/lib.rs b/crates/fts-delay/delay-dsp/src/lib.rs
+index fb799ef..f592b34 100644
+--- a/crates/fts-delay/delay-dsp/src/lib.rs
++++ b/crates/fts-delay/delay-dsp/src/lib.rs
+@@ -5,11 +5,20 @@
+ //! - [`tape_delay::TapeDelay`] — Tape echo with wow/flutter, feedback filtering,
+ //!   saturation, ducking, and diffusion
+ //! - [`pitch_delay::PitchDelay`] — Per-repeat pitch shifting with granular crossfade
++//! - [`engine::DelayEngine`] — Unified wrapper over all delay styles
+ //! - [`chain::DelayChain`] — Full stereo delay with ping-pong, swing, and mix
+ 
++pub mod bbd_delay;
+ pub mod chain;
++pub mod clean_delay;
++pub mod engine;
++pub mod lofi_delay;
+ pub mod modulation;
+ pub mod pitch_delay;
++pub mod reverse_delay;
++pub mod shimmer_delay;
+ pub mod tape_delay;
+ 
+ pub use chain::{DelayChain, HeadMode};
++pub use engine::{DelayEngine, DelayStyle};
++pub use tape_delay::SaturationType;
+diff --git a/crates/fts-delay/delay-dsp/src/tape_delay.rs b/crates/fts-delay/delay-dsp/src/tape_delay.rs
+index 1c3b5ac..51aefa8 100644
+--- a/crates/fts-delay/delay-dsp/src/tape_delay.rs
++++ b/crates/fts-delay/delay-dsp/src/tape_delay.rs
+@@ -13,6 +13,66 @@ use fts_dsp::soft_clip::sin_clip;
+ 
+ use crate::modulation::{Flutter, Wow};
+ 
++/// Saturation character types.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum SaturationType {
++    /// Clean — no saturation, just limiting at high drive.
++    Clean,
++    /// Tape — high-frequency compression + low-end warmth (sin clip).
++    Tape,
++    /// Warm — smooth even-harmonic distortion (tanh).
++    Warm,
++    /// Dirt — asymmetric odd-harmonic grit.
++    Dirt,
++    /// Pump — hard limiter that creates pumping compression.
++    Pump,
++    /// Hard Limit — brickwall limiting.
++    HardLimit,
++    /// Soft Limit — gentle smooth limiting.
++    SoftLimit,
++}
++
++impl SaturationType {
++    pub const COUNT: usize = 7;
++
++    pub fn from_index(i: usize) -> Self {
++        match i {
++            0 => Self::Clean,
++            1 => Self::Tape,
++            2 => Self::Warm,
++            3 => Self::Dirt,
++            4 => Self::Pump,
++            5 => Self::HardLimit,
++            6 => Self::SoftLimit,
++            _ => Self::Tape,
++        }
++    }
++
++    pub fn to_index(self) -> usize {
++        match self {
++            Self::Clean => 0,
++            Self::Tape => 1,
++            Self::Warm => 2,
++            Self::Dirt => 3,
++            Self::Pump => 4,
++            Self::HardLimit => 5,
++            Self::SoftLimit => 6,
++        }
++    }
++
++    pub fn label(self) -> &'static str {
++        match self {
++            Self::Clean => "Clean",
++            Self::Tape => "Tape",
++            Self::Warm => "Warm",
++            Self::Dirt => "Dirt",
++            Self::Pump => "Pump",
++            Self::HardLimit => "Hard",
++            Self::SoftLimit => "Soft",
++        }
++    }
++}
++
+ // RE-201 Space Echo head spacing ratios (relative to Head 1).
+ // From Cherry Audio Stardust 201 documentation.
+ pub const HEAD2_RATIO: f64 = 1.94;
+@@ -33,6 +93,8 @@ pub struct TapeDelay {
+     pub feedback: f64,
+     /// Saturation drive (0.0 = clean, 1.0 = heavy).
+     pub drive: f64,
++    /// Saturation type.
++    pub saturation_type: SaturationType,
+     /// High-cut filter frequency in Hz (0 = disabled).
+     pub hicut_freq: f64,
+     /// Low-cut filter frequency in Hz (0 = disabled).
+@@ -84,6 +146,7 @@ impl TapeDelay {
+             time_ms: 250.0,
+             feedback: 0.4,
+             drive: 0.0,
++            saturation_type: SaturationType::Tape,
+             hicut_freq: 8000.0,
+             locut_freq: 0.0,
+             filter_q: 0.707,
+@@ -202,10 +265,53 @@ impl TapeDelay {
+             fb = self.locut.tick(fb, ch);
+         }
+ 
+-        // Saturation in feedback path (cubic soft clip scaled by drive)
++        // Saturation in feedback path
+         if self.drive > 0.0 {
+-            let driven = fb * (1.0 + self.drive * 3.0);
+-            fb = sin_clip(driven);
++            let drive_gain = 1.0 + self.drive * 3.0;
++            fb = match self.saturation_type {
++                SaturationType::Clean => {
++                    // Just gain + soft limit
++                    (fb * drive_gain).clamp(-1.0, 1.0)
++                }
++                SaturationType::Tape => {
++                    // Sin clip — HF compression + warmth
++                    sin_clip(fb * drive_gain)
++                }
++                SaturationType::Warm => {
++                    // Tanh — smooth even-harmonic warmth
++                    (fb * drive_gain).tanh()
++                }
++                SaturationType::Dirt => {
++                    // Asymmetric cubic — odd harmonic grit
++                    let x = fb * drive_gain;
++                    let y = x - x * x * x / 3.0;
++                    y.clamp(-1.0, 1.0)
++                }
++                SaturationType::Pump => {
++                    // Hard compression with gain reduction
++                    let x = fb * drive_gain;
++                    let level = x.abs();
++                    if level > 0.5 {
++                        let reduction = 0.5 + (level - 0.5) * 0.2;
++                        x.signum() * reduction
++                    } else {
++                        x
++                    }
++                }
++                SaturationType::HardLimit => {
++                    // Brickwall
++                    (fb * drive_gain).clamp(-1.0, 1.0)
++                }
++                SaturationType::SoftLimit => {
++                    // Gentle polynomial limiting
++                    let x = (fb * drive_gain).clamp(-2.0, 2.0);
++                    if x.abs() > 1.0 {
++                        x.signum() * (1.0 - 0.25 * (2.0 - x.abs()).powi(2))
++                    } else {
++                        x * (1.5 - 0.5 * x * x)
++                    }
++                }
++            };
+         }
+ 
+         // Hard limit feedback to prevent runaway
+diff --git a/crates/fts-delay/delay-plugin/Cargo.toml b/crates/fts-delay/delay-plugin/Cargo.toml
+index 5a096d5..9e88232 100644
+--- a/crates/fts-delay/delay-plugin/Cargo.toml
++++ b/crates/fts-delay/delay-plugin/Cargo.toml
+@@ -7,7 +7,7 @@ edition.workspace = true
+ description = "FTS Delay — CLAP/VST3 audio plugin entry point"
+ 
+ [lib]
+-crate-type = ["cdylib"]
++crate-type = ["cdylib", "lib"]
+ 
+ [dependencies]
+ fts-plugin-core = { path = "../../fts-plugin-core" }
+diff --git a/crates/fts-delay/delay-plugin/src/editor.rs b/crates/fts-delay/delay-plugin/src/editor.rs
+index 238ee96..d1cc37a 100644
+--- a/crates/fts-delay/delay-plugin/src/editor.rs
++++ b/crates/fts-delay/delay-plugin/src/editor.rs
+@@ -14,6 +14,8 @@ use audio_gui::prelude::{
+ use fts_dsp::note_sync::NoteValue;
+ use fts_plugin_core::prelude::*;
+ 
++use delay_dsp::engine::DelayStyle;
++
+ use crate::{DelayUiState, FtsDelayParams};
+ 
+ /// Root editor component.
+@@ -32,6 +34,9 @@ pub fn App() -> Element {
+     let output_db = ui.output_peak_db.load(Ordering::Relaxed);
+ 
+     // State
++    let style_idx = params.style.value() as usize;
++    let style = DelayStyle::from_index(style_idx);
++    let is_tape = style == DelayStyle::Tape;
+     let mode = params.stereo_mode.value() as i32;
+     let head = params.head_mode.value() as i32;
+     let link = params.link_lr.value() > 0.5;
+@@ -39,6 +44,18 @@ pub fn App() -> Element {
+     let diff_on = params.diff_enable.value() > 0.5;
+     let duck_on = params.duck_enable.value() > 0.5;
+ 
++    // Style setter
++    let style_setter = |value: f32| {
++        let ctx = ctx.clone();
++        let p = params.clone();
++        move |_: ()| {
++            let max = (DelayStyle::COUNT - 1) as f32;
++            ctx.begin_set_raw(p.style.as_ptr());
++            ctx.set_normalized_raw(p.style.as_ptr(), value / max);
++            ctx.end_set_raw(p.style.as_ptr());
++        }
++    };
++
+     // Stereo mode setter
+     let mode_setter = |value: f32| {
+         let ctx = ctx.clone();
+@@ -141,6 +158,20 @@ pub fn App() -> Element {
+                 }
+             }
+ 
++            // ── Style selector ────────────────────────────────────
++            div {
++                style: format!(
++                    "display:flex; gap:{spacing_label}; justify-content:center; flex-wrap:wrap;",
++                ),
++                for i in 0..DelayStyle::COUNT {
++                    SegmentButton {
++                        label: DelayStyle::from_index(i).label(),
++                        selected: style_idx == i,
++                        on_click: style_setter(i as f32),
++                    }
++                }
++            }
++
+             // ── Main content: controls + meters ──────────────────
+             div {
+                 style: format!("display:flex; gap:{spacing_section}; flex:1; min-height:0;"),
+@@ -271,25 +302,27 @@ pub fn App() -> Element {
+                             ),
+                         }
+ 
+-                        // Head Mode (RE-201 style)
+-                        div {
+-                            style: format!(
+-                                "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
+-                            ),
+-                            SectionLabel { text: "Heads" }
++                        // Head Mode (RE-201 style, Tape only)
++                        if is_tape {
+                             div {
+-                                style: format!("display:flex; gap:{spacing_label};"),
+-                                SegmentButton { label: "1", selected: head == 0, on_click: head_setter(0.0) }
+-                                SegmentButton { label: "2", selected: head == 1, on_click: head_setter(1.0) }
+-                                SegmentButton { label: "3", selected: head == 2, on_click: head_setter(2.0) }
+-                                SegmentButton { label: "4", selected: head == 3, on_click: head_setter(3.0) }
++                                style: format!(
++                                    "display:flex; flex-direction:column; gap:{spacing_section}; align-items:center;",
++                                ),
++                                SectionLabel { text: "Heads" }
++                                div {
++                                    style: format!("display:flex; gap:{spacing_label};"),
++                                    SegmentButton { label: "1", selected: head == 0, on_click: head_setter(0.0) }
++                                    SegmentButton { label: "2", selected: head == 1, on_click: head_setter(1.0) }
++                                    SegmentButton { label: "3", selected: head == 2, on_click: head_setter(2.0) }
++                                    SegmentButton { label: "4", selected: head == 3, on_click: head_setter(3.0) }
++                                }
+                             }
+-                        }
+ 
+-                        div {
+-                            style: format!(
+-                                "width:1px; background:{border}; align-self:stretch;",
+-                            ),
++                            div {
++                                style: format!(
++                                    "width:1px; background:{border}; align-self:stretch;",
++                                ),
++                            }
+                         }
+ 
+                         // Feedback EQ
+@@ -299,40 +332,43 @@ pub fn App() -> Element {
+                             Knob { param_ptr: params.locut.as_ptr(), size: KnobSize::Medium }
+                         }
+ 
+-                        div {
+-                            style: format!(
+-                                "width:1px; background:{border}; align-self:stretch;",
+-                            ),
+-                        }
+-
+-                        // Drive
+-                        ControlGroup {
+-                            label: "Saturation",
+-                            Knob { param_ptr: params.drive.as_ptr(), size: KnobSize::Medium }
++                        // Drive (Tape only)
++                        if is_tape {
++                            div {
++                                style: format!(
++                                    "width:1px; background:{border}; align-self:stretch;",
++                                ),
++                            }
++                            ControlGroup {
++                                label: "Saturation",
++                                Knob { param_ptr: params.drive.as_ptr(), size: KnobSize::Medium }
++                            }
+                         }
+                     }
+ 
+-                    // ── Row 3: Tape Modulation ───────────────────────
+-                    div {
+-                        style: "display:flex; gap:20px; justify-content:center;",
++                    // ── Row 3: Tape Modulation (Tape only) ────────────
++                    if is_tape {
++                        div {
++                            style: "display:flex; gap:20px; justify-content:center;",
+ 
+-                        ControlGroup {
+-                            label: "Wow",
+-                            Knob { param_ptr: params.wow_depth.as_ptr(), size: KnobSize::Medium }
+-                            Knob { param_ptr: params.wow_rate.as_ptr(), size: KnobSize::Small }
+-                            Knob { param_ptr: params.wow_drift.as_ptr(), size: KnobSize::Small }
+-                        }
++                            ControlGroup {
++                                label: "Wow",
++                                Knob { param_ptr: params.wow_depth.as_ptr(), size: KnobSize::Medium }
++                                Knob { param_ptr: params.wow_rate.as_ptr(), size: KnobSize::Small }
++                                Knob { param_ptr: params.wow_drift.as_ptr(), size: KnobSize::Small }
++                            }
+ 
+-                        div {
+-                            style: format!(
+-                                "width:1px; background:{border}; align-self:stretch;",
+-                            ),
+-                        }
++                            div {
++                                style: format!(
++                                    "width:1px; background:{border}; align-self:stretch;",
++                                ),
++                            }
+ 
+-                        ControlGroup {
+-                            label: "Flutter",
+-                            Knob { param_ptr: params.flutter_depth.as_ptr(), size: KnobSize::Medium }
+-                            Knob { param_ptr: params.flutter_rate.as_ptr(), size: KnobSize::Small }
++                            ControlGroup {
++                                label: "Flutter",
++                                Knob { param_ptr: params.flutter_depth.as_ptr(), size: KnobSize::Medium }
++                                Knob { param_ptr: params.flutter_rate.as_ptr(), size: KnobSize::Small }
++                            }
+                         }
+                     }
+ 
+diff --git a/crates/fts-delay/delay-plugin/src/lib.rs b/crates/fts-delay/delay-plugin/src/lib.rs
+index 54bb100..5180714 100644
+--- a/crates/fts-delay/delay-plugin/src/lib.rs
++++ b/crates/fts-delay/delay-plugin/src/lib.rs
+@@ -8,11 +8,13 @@ use std::sync::Arc;
+ 
+ use atomic_float::AtomicF32;
+ use delay_dsp::chain::{DelayChain, HeadMode, StereoMode};
++use delay_dsp::engine::DelayStyle;
++use delay_dsp::SaturationType;
+ use fts_dsp::note_sync::NoteValue;
+ use fts_dsp::{AudioConfig, Processor};
+ use fts_plugin_core::prelude::*;
+ 
+-mod editor;
++pub mod editor;
+ 
+ // ── UI State ────────────────────────────────────────────────────────
+ 
+@@ -34,6 +36,10 @@ fn note_value_formatter() -> Arc<dyn Fn(i32) -> String + Send + Sync> {
+ 
+ #[derive(Params)]
+ pub struct FtsDelayParams {
++    // Style
++    #[id = "style"]
++    pub style: FloatParam,
++
+     // Time & Rhythm
+     #[id = "time_l"]
+     pub time_l: FloatParam,
+@@ -77,6 +83,28 @@ pub struct FtsDelayParams {
+     // Saturation
+     #[id = "drive"]
+     pub drive: FloatParam,
++    #[id = "sat_type"]
++    pub sat_type: FloatParam,
++
++    // Accent / Groove / Feel
++    #[id = "accent"]
++    pub accent: FloatParam,
++    #[id = "groove"]
++    pub groove: FloatParam,
++    #[id = "feel"]
++    pub feel: FloatParam,
++    #[id = "prime_numbers"]
++    pub prime_numbers: FloatParam,
++
++    // L/R Offset
++    #[id = "lr_offset"]
++    pub lr_offset: FloatParam,
++
++    // Input/Output levels (wet-only)
++    #[id = "input_level"]
++    pub input_level: FloatParam,
++    #[id = "output_level"]
++    pub output_level: FloatParam,
+ 
+     // Tape Modulation
+     #[id = "wow_depth"]
+@@ -97,6 +125,8 @@ pub struct FtsDelayParams {
+     pub diff_size: FloatParam,
+     #[id = "diff_smear"]
+     pub diff_smear: FloatParam,
++    #[id = "diff_loop"]
++    pub diff_loop: FloatParam,
+ 
+     // Ducking
+     #[id = "duck_enable"]
+@@ -147,6 +177,20 @@ impl Default for FtsDelayParams {
+         let default_note = NoteValue::Quarter.to_index() as i32;
+ 
+         Self {
++            // Style
++            style: FloatParam::new(
++                "Style",
++                0.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: (DelayStyle::COUNT - 1) as f32,
++                },
++            )
++            .with_step_size(1.0)
++            .with_value_to_string(Arc::new(|v| {
++                DelayStyle::from_index(v as usize).label().to_string()
++            })),
++
+             // Time & Rhythm
+             time_l: FloatParam::new(
+                 "Time L",
+@@ -268,6 +312,70 @@ impl Default for FtsDelayParams {
+             drive: FloatParam::new("Drive", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
+ 
++            sat_type: FloatParam::new(
++                "Sat Type",
++                1.0, // Tape default
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: (SaturationType::COUNT - 1) as f32,
++                },
++            )
++            .with_step_size(1.0)
++            .with_value_to_string(Arc::new(|v| {
++                SaturationType::from_index(v as usize).label().to_string()
++            })),
++
++            // Accent / Groove / Feel
++            accent: FloatParam::new("Accent", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            groove: FloatParam::new("Groove", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            feel: FloatParam::new("Feel", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            prime_numbers: FloatParam::new(
++                "Prime",
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(bool_formatter())
++            .with_string_to_value(bool_parser()),
++
++            // L/R Offset
++            lr_offset: FloatParam::new(
++                "L/R Offset",
++                8.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 25.0,
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            // Input/Output levels
++            input_level: FloatParam::new(
++                "In Level",
++                1.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 2.0,
++                },
++            )
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            output_level: FloatParam::new(
++                "Out Level",
++                1.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 2.0,
++                },
++            )
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
+             // Tape Modulation
+             wow_depth: FloatParam::new("Wow", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
+@@ -407,6 +515,10 @@ impl FtsDelay {
+         let p = &self.params;
+         let c = &mut self.chain;
+ 
++        // Style
++        let style = DelayStyle::from_index(p.style.value() as usize);
++        c.set_style(style);
++
+         // Time — either manual ms or tempo-synced
+         let sync = p.sync_enable.value() > 0.5;
+         let link = p.link_lr.value() > 0.5;
+diff --git a/crates/fts-eq/eq-dsp/src/band.rs b/crates/fts-eq/eq-dsp/src/band.rs
+index ac0a8a5..e2b6ed6 100644
+--- a/crates/fts-eq/eq-dsp/src/band.rs
++++ b/crates/fts-eq/eq-dsp/src/band.rs
+@@ -27,6 +27,9 @@ pub struct Band {
+     pub q: f64,
+     pub order: usize, // 1, 2, 4, 6, 8, 10, 12
+     pub enabled: bool,
++    /// Tuning: peak cascade Q compensation fraction (0.0–1.0).
++    /// Fraction of theoretical bandwidth narrowing correction applied.
++    pub peak_q_comp: f64,
+ 
+     // Processing state — one of these is active
+     tdf2: [Tdf2Section; MAX_SECTIONS],
+@@ -47,6 +50,7 @@ impl Band {
+             q: 0.707,
+             order: 2,
+             enabled: true,
++            peak_q_comp: 0.105,
+             tdf2: std::array::from_fn(|_| Tdf2Section::new()),
+             svf: std::array::from_fn(|_| SvfSection::new()),
+             num_sections: 1,
+@@ -318,13 +322,12 @@ impl Band {
+         let g_per = g.powf(1.0 / num as f64);
+         let gain_per = 20.0 * g_per.log10();
+ 
+-        // Mild Q compensation for cascade bandwidth narrowing.
++        // Q compensation for cascade bandwidth narrowing.
+         // Cascading N identical peaks narrows bandwidth by √(2^(1/N)−1).
+-        // Apply 15% of theoretical correction to approximate Pro-Q 4's
+-        // wider response without breaking the overall shape.
++        // peak_q_comp controls fraction of theoretical correction applied.
+         let n = self.num_sections as f64;
+         let full_comp = 1.0 / (2.0_f64.powf(1.0 / n) - 1.0).sqrt();
+-        let q_adjusted = self.q * (1.0 + 0.15 * (full_comp - 1.0));
++        let q_adjusted = self.q * (1.0 + self.peak_q_comp * (full_comp - 1.0));
+ 
+         for i in 0..self.num_sections {
+             let c = coeff::calculate(
+diff --git a/crates/fts-eq/eq-plugin/src/editor.rs b/crates/fts-eq/eq-plugin/src/editor.rs
+index e42d127..230adcf 100644
+--- a/crates/fts-eq/eq-plugin/src/editor.rs
++++ b/crates/fts-eq/eq-plugin/src/editor.rs
+@@ -60,6 +60,16 @@ pub fn App() -> Element {
+     let output_db = ui.output_peak_db.load(Ordering::Relaxed);
+     let sample_rate = ui.sample_rate.load(Ordering::Relaxed) as f64;
+ 
++    // Read dB range from parameter (0=6, 1=12, 2=18, 3=24, 4=30)
++    let db_range_idx = params.db_range.value();
++    let db_range: f64 = match db_range_idx {
++        0 => 6.0,
++        1 => 12.0,
++        2 => 18.0,
++        3 => 24.0,
++        _ => 30.0,
++    };
++
+     // Read spectrum bins
+     let spectrum: Vec<f32> = (0..SPECTRUM_BINS)
+         .map(|i| ui.spectrum_bins[i].load(Ordering::Relaxed))
+@@ -68,7 +78,10 @@ pub fn App() -> Element {
+     // Focused band for detail panel
+     let focused_band: Signal<Option<usize>> = use_signal(|| None);
+ 
+-    // Build EqBand vec from current parameter state
++    // Read gain scale (0-200%)
++    let gain_scale = params.gain_scale.value() / 100.0;
++
++    // Build EqBand vec from current parameter state (gains scaled for display)
+     let mut bands_vec: Vec<EqBand> = Vec::with_capacity(NUM_BANDS);
+     for i in 0..NUM_BANDS {
+         let bp = &params.bands[i];
+@@ -77,7 +90,7 @@ pub fn App() -> Element {
+             used: bp.enabled.value() > 0.5,
+             enabled: bp.enabled.value() > 0.5,
+             frequency: bp.freq_hz.value(),
+-            gain: bp.gain_db.value(),
++            gain: bp.gain_db.value() * gain_scale,
+             q: bp.q.value(),
+             shape: int_to_shape(bp.filter_type.value()),
+             solo: false,
+@@ -149,7 +162,7 @@ pub fn App() -> Element {
+                 ),
+                 EqGraph {
+                     bands: bands_signal,
+-                    db_range: 30.0,
++                    db_range: db_range,
+                     sample_rate: sample_rate,
+                     spectrum_db: spectrum,
+                     focused_band_out: focused_band,
+@@ -293,45 +306,201 @@ pub fn App() -> Element {
+                 LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 40.0 }
+                 LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 40.0 }
+ 
+-                // Band detail panel (always rendered, hidden when no band focused)
++                // Band detail panel with inline controls
+                 {
+                     let focus_idx = *focused_band.read();
+-                    let (detail_text, detail_color, detail_opacity) = if let Some(idx) = focus_idx {
++                    if let Some(idx) = focus_idx {
+                         let bp = &params.bands[idx];
+                         let freq = bp.freq_hz.value();
+                         let gain = bp.gain_db.value();
+                         let q = bp.q.value();
+                         let shape = int_to_shape(bp.filter_type.value());
+                         let enabled = bp.enabled.value() > 0.5;
++                        let color = get_band_color(idx);
++                        let opacity = if enabled { "1.0" } else { "0.5" };
++
+                         let freq_str = if freq >= 1000.0 {
+-                            format!("{:.1}k Hz", freq / 1000.0)
++                            format!("{:.1}k", freq / 1000.0)
+                         } else {
+-                            format!("{:.0} Hz", freq)
++                            format!("{:.0}", freq)
+                         };
+-                        let text = format!(
+-                            "B{}  {}  {}  {:+.1} dB  Q {:.2}",
+-                            idx + 1, shape.label(), freq_str, gain, q
+-                        );
+-                        let color = get_band_color(idx);
+-                        let op = if enabled { "1.0" } else { "0.5" };
+-                        (text, color.to_string(), op.to_string())
++
++                        rsx! {
++                            div {
++                                style: format!(
++                                    "display:flex; align-items:center; gap:12px; \
++                                     padding:{spacing_tight} 10px; margin-left:8px; \
++                                     border-left:3px solid {color}; opacity:{opacity};",
++                                ),
++
++                                // Band number
++                                div {
++                                    style: format!(
++                                        "font-weight:700; font-size:13px; color:{color}; \
++                                         min-width:24px; text-align:center;",
++                                    ),
++                                    "{idx + 1}"
++                                }
++
++                                // Bypass toggle
++                                div {
++                                    style: format!(
++                                        "{style_label} cursor:pointer; padding:2px 6px; \
++                                         border:1px solid {border}; border-radius:3px; \
++                                         background:{bg};",
++                                        bg = if enabled { "transparent" } else { "rgba(255,80,80,0.2)" },
++                                    ),
++                                    onclick: {
++                                        let ctx = ctx.clone();
++                                        let enabled_ptr = bp.enabled.as_ptr();
++                                        move |_| {
++                                            let new_val = if enabled { 0.0_f32 } else { 1.0 };
++                                            ctx.begin_set_raw(enabled_ptr);
++                                            ctx.set_normalized_raw(enabled_ptr, new_val);
++                                            ctx.end_set_raw(enabled_ptr);
++                                        }
++                                    },
++                                    if enabled { "ON" } else { "OFF" }
++                                }
++
++                                // Filter type (clickable to cycle)
++                                div {
++                                    style: format!(
++                                        "{style_label} cursor:pointer; padding:2px 6px; \
++                                         border:1px solid {border}; border-radius:3px;",
++                                    ),
++                                    title: "Click to cycle filter type",
++                                    onclick: {
++                                        let ctx = ctx.clone();
++                                        let ft_ptr = bp.filter_type.as_ptr();
++                                        let current_shape = shape_to_int(shape);
++                                        move |_| {
++                                            let next = (current_shape + 1) % 10;
++                                            ctx.begin_set_raw(ft_ptr);
++                                            ctx.set_normalized_raw(ft_ptr, next as f32 / 9.0);
++                                            ctx.end_set_raw(ft_ptr);
++                                        }
++                                    },
++                                    "{shape.label()}"
++                                }
++
++                                // Frequency knob
++                                div {
++                                    style: "display:flex; align-items:center; gap:4px;",
++                                    span { style: format!("{style_label}"), "{freq_str} Hz" }
++                                    audio_gui::controls::knob::Knob {
++                                        param_ptr: bp.freq_hz.as_ptr(),
++                                        size: audio_gui::controls::knob::KnobSize::Small,
++                                    }
++                                }
++
++                                // Gain knob
++                                div {
++                                    style: "display:flex; align-items:center; gap:4px;",
++                                    span { style: format!("{style_label}"), "{gain:+.1} dB" }
++                                    audio_gui::controls::knob::Knob {
++                                        param_ptr: bp.gain_db.as_ptr(),
++                                        size: audio_gui::controls::knob::KnobSize::Small,
++                                    }
++                                }
++
++                                // Q knob
++                                div {
++                                    style: "display:flex; align-items:center; gap:4px;",
++                                    span { style: format!("{style_label}"), "Q {q:.2}" }
++                                    audio_gui::controls::knob::Knob {
++                                        param_ptr: bp.q.as_ptr(),
++                                        size: audio_gui::controls::knob::KnobSize::Small,
++                                    }
++                                }
++
++                                // Delete button
++                                div {
++                                    style: format!(
++                                        "{style_label} cursor:pointer; padding:2px 6px; \
++                                         border:1px solid {border}; border-radius:3px; \
++                                         color:rgba(255,80,80,0.8);",
++                                    ),
++                                    onclick: {
++                                        let ctx = ctx.clone();
++                                        let enabled_ptr = bp.enabled.as_ptr();
++                                        let gain_ptr = bp.gain_db.as_ptr();
++                                        move |_| {
++                                            ctx.begin_set_raw(enabled_ptr);
++                                            ctx.set_normalized_raw(enabled_ptr, 0.0);
++                                            ctx.end_set_raw(enabled_ptr);
++                                            ctx.begin_set_raw(gain_ptr);
++                                            ctx.set_normalized_raw(gain_ptr, 0.5);
++                                            ctx.end_set_raw(gain_ptr);
++                                        }
++                                    },
++                                    "DEL"
++                                }
++                            }
++                        }
+                     } else {
+-                        (String::new(), text_dim.to_string(), "0".to_string())
+-                    };
++                        rsx! {
++                            div {
++                                style: format!(
++                                    "{style_label} padding:{spacing_tight} 10px; margin-left:8px; \
++                                     opacity:0.3;",
++                                ),
++                                "Click a band to edit"
++                            }
++                        }
++                    }
++                }
+ 
++                div { style: "flex:1;" }
++
++                // dB range selector
++                {
++                    let db_range_label = match db_range_idx {
++                        0 => "6 dB",
++                        1 => "12 dB",
++                        2 => "18 dB",
++                        3 => "24 dB",
++                        _ => "30 dB",
++                    };
+                     rsx! {
+                         div {
+                             style: format!(
+-                                "{style_value} padding:{spacing_tight} 10px; margin-left:8px; \
+-                                 border-left:2px solid {detail_color}; \
+-                                 opacity:{detail_opacity};",
++                                "{style_label} cursor:pointer; padding:4px 8px; \
++                                 border:1px solid {border}; border-radius:4px; \
++                                 user-select:none;",
+                             ),
+-                            "{detail_text}"
++                            title: "Click to cycle dB range",
++                            onclick: {
++                                let ctx = ctx.clone();
++                                let db_range_param = params.db_range.as_ptr();
++                                let current = db_range_idx;
++                                move |_| {
++                                    let next = (current + 1) % 5;
++                                    ctx.begin_set_raw(db_range_param);
++                                    ctx.set_normalized_raw(
++                                        db_range_param,
++                                        next as f32 / 4.0,
++                                    );
++                                    ctx.end_set_raw(db_range_param);
++                                }
++                            },
++                            "{db_range_label}"
+                         }
+                     }
+                 }
+ 
+-                div { style: "flex:1;" }
++                // Gain scale knob
++                div {
++                    style: "display:flex; align-items:center; gap:8px;",
++                    span {
++                        style: format!("{style_label}"),
++                        "Scale"
++                    }
++                    audio_gui::controls::knob::Knob {
++                        param_ptr: params.gain_scale.as_ptr(),
++                        size: audio_gui::controls::knob::KnobSize::Small,
++                    }
++                }
+ 
+                 // Output gain knob
+                 div {
+diff --git a/crates/fts-eq/eq-plugin/src/lib.rs b/crates/fts-eq/eq-plugin/src/lib.rs
+index 63bd98b..793826c 100644
+--- a/crates/fts-eq/eq-plugin/src/lib.rs
++++ b/crates/fts-eq/eq-plugin/src/lib.rs
+@@ -214,6 +214,20 @@ pub struct FtsEqParams {
+     #[id = "output_gain"]
+     pub output_gain_db: FloatParam,
+ 
++    /// Display dB range for the EQ graph (0=6dB, 1=12dB, 2=18dB, 3=24dB, 4=30dB).
++    #[id = "db_range"]
++    pub db_range: IntParam,
++
++    /// Global gain scale (0-200%). Multiplies all band gains proportionally.
++    #[id = "gain_scale"]
++    pub gain_scale: FloatParam,
++
++    // Hidden tuning parameters for coefficient optimization.
++    // These are not shown in the UI but can be set via the CLAP API
++    // by the analyzer's sweep-eq command.
++    #[id = "tune_peak_q_comp"]
++    pub tune_peak_q_comp: FloatParam,
++
+     #[nested(array, group = "Band {}")]
+     pub bands: [BandParams; NUM_BANDS],
+ }
+@@ -232,6 +246,43 @@ impl Default for FtsEqParams {
+             .with_unit(" dB")
+             .with_value_to_string(formatters::v2s_f32_rounded(1)),
+ 
++            db_range: IntParam::new(
++                "dB Range",
++                3, // Default: 24dB (index 3)
++                IntRange::Linear { min: 0, max: 4 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                match v {
++                    0 => "6 dB".to_string(),
++                    1 => "12 dB".to_string(),
++                    2 => "18 dB".to_string(),
++                    3 => "24 dB".to_string(),
++                    4 => "30 dB".to_string(),
++                    _ => format!("{v}"),
++                }
++            })),
++
++            gain_scale: FloatParam::new(
++                "Scale",
++                100.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 200.0,
++                },
++            )
++            .with_unit("%")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            tune_peak_q_comp: FloatParam::new(
++                "Tune: Peak Q Comp",
++                0.105,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 1.0,
++                },
++            )
++            .with_value_to_string(formatters::v2s_f32_rounded(4)),
++
+             bands: std::array::from_fn(|i| BandParams::new(i)),
+         }
+     }
+@@ -263,11 +314,13 @@ impl Default for FtsEq {
+         for _ in 0..NUM_BANDS {
+             chain.add_band();
+         }
+-        // Hann window for FFT
++        // Blackman-Harris window for FFT (better sidelobe rejection than Hann,
++        // matching ReEQ's default and standard for spectrum analyzers)
+         let fft_window: Vec<f32> = (0..FFT_SIZE)
+             .map(|i| {
+-                let t = i as f32 / (FFT_SIZE - 1) as f32;
+-                0.5 * (1.0 - (2.0 * std::f32::consts::PI * t).cos())
++                let t = 2.0 * std::f32::consts::PI * i as f32 / (FFT_SIZE - 1) as f32;
++                0.35875 - 0.48829 * t.cos() + 0.14128 * (2.0 * t).cos()
++                    - 0.01168 * (3.0 * t).cos()
+             })
+             .collect();
+         Self {
+@@ -363,7 +416,8 @@ impl FtsEq {
+                 };
+                 let ft = shape_to_filter_type(bp.filter_type.value());
+                 let freq = bp.freq_hz.value() as f64;
+-                let gain = bp.gain_db.value() as f64;
++                let scale = self.params.gain_scale.value() as f64 / 100.0;
++                let gain = bp.gain_db.value() as f64 * scale;
+                 // Pro-Q 4 convention: display Q=1.0 = Butterworth (filter Q = 1/√2).
+                 let q = bp.q.value() as f64 * std::f64::consts::FRAC_1_SQRT_2;
+                 let order = match ft {
+@@ -373,12 +427,15 @@ impl FtsEq {
+                     _ => slope_to_order(bp.slope.value()),
+                 };
+ 
++                let peak_q_comp = self.params.tune_peak_q_comp.value() as f64;
++
+                 if band.enabled != enabled
+                     || band.filter_type != ft
+                     || (band.freq_hz - freq).abs() > 0.01
+                     || (band.gain_db - gain).abs() > 0.01
+                     || (band.q - q).abs() > 0.001
+                     || band.order != order
++                    || (band.peak_q_comp - peak_q_comp).abs() > 0.0001
+                 {
+                     band.enabled = enabled;
+                     band.filter_type = ft;
+@@ -386,6 +443,7 @@ impl FtsEq {
+                     band.gain_db = gain;
+                     band.q = q;
+                     band.order = order;
++                    band.peak_q_comp = peak_q_comp;
+                     band.structure = FilterStructure::Tdf2;
+                     self.chain.update_band(i);
+                 }
+@@ -394,6 +452,11 @@ impl FtsEq {
+     }
+ }
+ 
++/// Spectral tilt in dB/octave (4.5 dB/oct compensates for typical music spectrum slope).
++const SPECTRUM_TILT_DB_PER_OCT: f32 = 4.5;
++/// Reference frequency for tilt compensation.
++const SPECTRUM_TILT_REF_HZ: f32 = 1000.0;
++
+ impl FtsEq {
+     /// Run FFT on accumulated buffer and write spectrum bins to UI state.
+     fn run_spectrum_fft(&mut self) {
+@@ -419,6 +482,9 @@ impl FtsEq {
+         let log_min = min_freq.log10();
+         let log_max = max_freq.log10();
+ 
++        // Decay constant for smooth falloff (higher = slower decay / more visible trails)
++        let decay = 0.80_f32;
++
+         // Map logarithmically-spaced UI bins to FFT bins
+         for i in 0..SPECTRUM_BINS {
+             let t = i as f32 / (SPECTRUM_BINS - 1) as f32;
+@@ -435,28 +501,35 @@ impl FtsEq {
+             let bin_lo = ((freq / bin_hz) as usize).max(1).min(half - 1);
+             let bin_hi = ((freq_next / bin_hz) as usize).max(bin_lo + 1).min(half);
+ 
+-            // Average magnitudes in the range
+-            let mut sum_mag = 0.0_f32;
+-            let count = (bin_hi - bin_lo).max(1);
++            // Peak magnitude in the range (peak-hold gives better transient response
++            // than averaging, making the analyzer feel more responsive)
++            let mut peak_mag = 0.0_f32;
+             for b in bin_lo..bin_hi {
+                 let mag = complex_buf[b].norm();
+-                sum_mag += mag;
++                peak_mag = peak_mag.max(mag);
+             }
+-            let avg_mag = sum_mag / count as f32;
+ 
+             // Convert to dB with normalization
+-            let db = if avg_mag > 1e-10 {
+-                20.0 * avg_mag.log10() - 20.0 * (FFT_SIZE as f32 / 2.0).log10()
++            let mut db = if peak_mag > 1e-10 {
++                20.0 * peak_mag.log10() - 20.0 * (FFT_SIZE as f32 / 2.0).log10()
+             } else {
+                 -100.0
+             };
+ 
++            // Apply spectral tilt compensation (4.5 dB/oct around 1kHz).
++            // This makes the spectrum appear flatter for typical music content,
++            // matching the approach used by ReEQ, Pro-Q, and ZLEqualizer.
++            let octaves_from_ref = (freq / SPECTRUM_TILT_REF_HZ).log2();
++            db += SPECTRUM_TILT_DB_PER_OCT * octaves_from_ref;
++
+             // Smooth with previous value (exponential decay)
+             let prev = self.ui_state.spectrum_bins[i].load(Ordering::Relaxed);
+             let smoothed = if db > prev {
+-                db
++                // Fast attack: quickly rise to new peaks
++                prev * 0.3 + db * 0.7
+             } else {
+-                prev * 0.85 + db * 0.15
++                // Smooth release: gradual decay
++                prev * decay + db * (1.0 - decay)
+             };
+             self.ui_state.spectrum_bins[i].store(smoothed, Ordering::Relaxed);
+         }
+diff --git a/crates/fts-pitch/pitch-dsp/Cargo.toml b/crates/fts-pitch/pitch-dsp/Cargo.toml
+index f4e7b6c..262c4a3 100644
+--- a/crates/fts-pitch/pitch-dsp/Cargo.toml
++++ b/crates/fts-pitch/pitch-dsp/Cargo.toml
+@@ -8,7 +8,6 @@ license.workspace = true
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ serde = { workspace = true }
+-realfft = "3"
+ 
+ # External pitch/time-stretch libraries
+ signalsmith-stretch = "0.1"
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index f843397..9763330 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -638,8 +638,8 @@ mod tests {
+             Algorithm::Signalsmith,
+             Algorithm::Rubberband,
+             Algorithm::Allpass,
+-            // PolyOctave excluded: STFT dry path has FFT_SIZE latency;
+-            // dry-wet correctness is tested in pog::tests::dry_wet_mix.
++            // PolyOctave excluded: SSB filter bank has 1-sample latency
++            // on dry path; dry-wet correctness tested in pog::tests::dry_wet_mix.
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -731,22 +731,16 @@ mod tests {
+             eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
+         }
+ 
+-        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
++        // In live mode, all algorithms should be under 25ms (~1200 samples at 48k).
+         // Rubberband R2 real-time has ~1024 sample minimum internal latency.
+-        // PolyOctave uses STFT with FFT_SIZE=2048 latency regardless of live mode.
+         let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
+         for algo in ALL_ALGOS {
+             chain.algorithm = algo;
+             chain.process(&mut l, &mut r);
+             let lat = chain.latency();
+-            let limit = if algo == Algorithm::PolyOctave {
+-                2048
+-            } else {
+-                live_limit_samples
+-            };
+             assert!(
+-                lat <= limit,
+-                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {limit}",
++                lat <= live_limit_samples,
++                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
+                 lat as f64 / SR * 1000.0,
+             );
+         }
+diff --git a/crates/fts-pitch/pitch-dsp/src/pog.rs b/crates/fts-pitch/pitch-dsp/src/pog.rs
+index 122fd4f..172f83d 100644
+--- a/crates/fts-pitch/pitch-dsp/src/pog.rs
++++ b/crates/fts-pitch/pitch-dsp/src/pog.rs
+@@ -1,30 +1,41 @@
+-//! Polyphonic Octave Generator — STFT phase-vocoder octave shifter.
++//! Polyphonic Octave Generator — Filter Bank + SSB Frequency Shifting.
+ //!
+-//! Uses an overlap-add STFT to perform exact octave shifts by scaling
+-//! spectral bin phases. This approach gives near-perfect spectral
+-//! reconstruction compared to filter-bank methods, at the cost of latency.
++//! Architecture inspired by the EHX POG and the Rollers algorithm (ICALIP 2008):
++//! 1. Broadband allpass Hilbert transformer → I/Q signal pair (90° apart)
++//! 2. Log-spaced IIR bandpass filter bank → narrowband I/Q per band
++//! 3. Single-sideband (SSB) frequency shifting per band
++//! 4. Sum all shifted bands
+ //!
+-//! For octave up (×2): bin k's content is placed at bin 2k with phase doubled.
+-//! For octave down (÷2): bin k's content is placed at bin k/2 with phase halved.
+-//! Two-octave shifts apply the operation twice.
++//! This matches the signal-processing architecture of analog/digital polyphonic
++//! octave generators like the EHX POG, Micro POG, and similar pedals that use
++//! filter-bank decomposition rather than FFT-based pitch shifting.
+ //!
+-//! Latency: FFT_SIZE samples (2048 @ 44.1 kHz ≈ 46 ms).
+-//! Character: Clean, transparent polyphonic octave shift.
++//! Latency: 1 sample (Hilbert B-path delay only).
++//! Character: Organ-like, polyphonic, near-zero latency.
+ 
+-use std::f64::consts::{PI, TAU};
++use std::f64::consts::TAU;
+ 
+ use fts_dsp::biquad::{Biquad, FilterType};
+-use realfft::{ComplexToReal, RealFftPlanner, RealToComplex};
+-use std::sync::Arc;
+ 
+-/// FFT size for STFT processing.
+-const FFT_SIZE: usize = 2048;
++/// Number of bandpass filter bands in the filter bank.
++const NUM_BANDS: usize = 64;
+ 
+-/// Overlap factor (4 = 75% overlap, hop = FFT_SIZE/4).
+-const OVERLAP: usize = 4;
++/// Lowest band center frequency (Hz).
++const FREQ_LO: f64 = 55.0;
+ 
+-/// Hop size in samples.
+-const HOP_SIZE: usize = FFT_SIZE / OVERLAP;
++/// Highest band center frequency (Hz).
++const FREQ_HI: f64 = 14000.0;
++
++/// Quality factor for bandpass filters.
++/// Q=4 gives ~1/4 octave bandwidth with good overlap between adjacent bands.
++const BAND_Q: f64 = 4.0;
++
++/// Hilbert allpass coefficients — path A (3 first-order stages).
++/// Design valid ~15 Hz to ~fs/2 for fs = 44100–48000 Hz.
++const HILBERT_A_COEFFS: [f64; 3] = [0.4021921162426, 0.8561710882420, 0.9722909545651];
++
++/// Hilbert allpass coefficients — path B (3 first-order stages).
++const HILBERT_B_COEFFS: [f64; 3] = [0.1380250855023, 0.6338814966693, 0.9452290073780];
+ 
+ /// Which octave shift to produce.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+@@ -54,436 +65,325 @@ impl OctaveShift {
+     }
+ }
+ 
+-/// Polyphonic Octave Generator using STFT phase vocoder.
+-pub struct PolyOctave {
+-    /// Which octave shift to apply.
+-    pub shift: OctaveShift,
+-    /// Dry/wet mix: 0.0 = dry, 1.0 = wet.
+-    pub mix: f64,
++// ── Hilbert Transform ──────────────────────────────────────────────────
+ 
+-    // FFT plan and scratch buffers.
+-    fft: Arc<dyn RealToComplex<f64>>,
+-    ifft: Arc<dyn ComplexToReal<f64>>,
+-
+-    /// Analysis window (Hann).
+-    window: Vec<f64>,
+-
+-    /// Circular input buffer. We write incoming samples here and read
+-    /// FFT_SIZE frames from it every HOP_SIZE samples.
+-    input_buf: Vec<f64>,
+-    /// Write position in input_buf.
+-    in_pos: usize,
+-
+-    /// Overlap-add output buffer (2× FFT_SIZE for safe wraparound).
+-    output_buf: Vec<f64>,
+-    /// Read position in output_buf (tracks output sample extraction).
+-    out_read: usize,
+-    /// Write position in output_buf (tracks where next IFFT frame goes).
+-    out_write: usize,
+-
+-    /// Dry delay line to align dry signal with wet latency.
+-    dry_buf: Vec<f64>,
+-    dry_pos: usize,
+-
+-    /// Samples accumulated since last hop.
+-    hop_counter: usize,
+-
+-    /// Previous frame phases for phase accumulation (input side).
+-    prev_phase_in: Vec<f64>,
+-    /// Phase accumulator for output bins.
+-    phase_acc: Vec<f64>,
+-
+-    /// FFT scratch buffers.
+-    fft_in: Vec<f64>,
+-    fft_out: Vec<realfft::num_complex::Complex<f64>>,
+-    ifft_in: Vec<realfft::num_complex::Complex<f64>>,
+-    ifft_out: Vec<f64>,
+-
+-    /// Total samples processed (for initial latency fill).
+-    total_samples: usize,
+-
+-    /// Post-processing LPF for down-shifts (cascaded biquads for 4th-order).
+-    post_lpf: [Biquad; 2],
+-    /// Current sample rate for filter design.
+-    sample_rate: f64,
+-    /// Last shift mode — track changes to update LPF.
+-    last_shift: OctaveShift,
++/// First-order allpass filter for Hilbert transform.
++///
++/// Transfer function: H(z) = (a + z⁻¹) / (1 + a·z⁻¹)
++#[derive(Clone)]
++struct Allpass1 {
++    coeff: f64,
++    x1: f64,
++    y1: f64,
+ }
+ 
+-impl PolyOctave {
+-    pub fn new() -> Self {
+-        let mut planner = RealFftPlanner::<f64>::new();
+-        let fft = planner.plan_fft_forward(FFT_SIZE);
+-        let ifft = planner.plan_fft_inverse(FFT_SIZE);
+-
+-        let num_bins = FFT_SIZE / 2 + 1;
+-
+-        // Hann window.
+-        let window: Vec<f64> = (0..FFT_SIZE)
+-            .map(|i| 0.5 * (1.0 - (TAU * i as f64 / FFT_SIZE as f64).cos()))
+-            .collect();
+-
+-        let out_buf_size = FFT_SIZE * 2;
+-
++impl Allpass1 {
++    fn new(coeff: f64) -> Self {
+         Self {
+-            shift: OctaveShift::Sub1,
+-            mix: 1.0,
+-            fft,
+-            ifft,
+-            window,
+-            input_buf: vec![0.0; FFT_SIZE],
+-            in_pos: 0,
+-            output_buf: vec![0.0; out_buf_size],
+-            out_read: 0,
+-            out_write: 0,
+-            dry_buf: vec![0.0; FFT_SIZE],
+-            dry_pos: 0,
+-            hop_counter: 0,
+-            prev_phase_in: vec![0.0; num_bins],
+-            phase_acc: vec![0.0; num_bins],
+-            fft_in: vec![0.0; FFT_SIZE],
+-            fft_out: vec![realfft::num_complex::Complex::new(0.0, 0.0); num_bins],
+-            ifft_in: vec![realfft::num_complex::Complex::new(0.0, 0.0); num_bins],
+-            ifft_out: vec![0.0; FFT_SIZE],
+-            total_samples: 0,
+-            post_lpf: [Biquad::new(), Biquad::new()],
+-            sample_rate: 48000.0,
+-            last_shift: OctaveShift::Sub1,
++            coeff,
++            x1: 0.0,
++            y1: 0.0,
+         }
+     }
+ 
+-    pub fn update(&mut self, sample_rate: f64) {
+-        self.sample_rate = sample_rate;
+-        self.update_lpf();
+-        self.reset();
++    #[inline]
++    fn tick(&mut self, x: f64) -> f64 {
++        let y = self.coeff * (x - self.y1) + self.x1;
++        self.x1 = x;
++        self.y1 = y;
++        y
+     }
+ 
+-    /// Configure the post-LPF based on current shift direction.
+-    fn update_lpf(&mut self) {
+-        // Gentle post-LPF for down-shifts to tame excess HF content.
+-        // Single 2nd-order stage (-12 dB/oct) to avoid over-cutting.
+-        let cutoff = match self.shift {
+-            OctaveShift::Sub1 => self.sample_rate * 0.22,
+-            OctaveShift::Sub2 => self.sample_rate * 0.11,
+-            _ => self.sample_rate * 0.499,
+-        };
+-        self.post_lpf[0].set(FilterType::Lowpass, cutoff, 0.707, self.sample_rate);
+-        self.post_lpf[1] = Biquad::new();
+-        self.last_shift = self.shift;
++    fn reset(&mut self) {
++        self.x1 = 0.0;
++        self.y1 = 0.0;
+     }
++}
+ 
+-    pub fn reset(&mut self) {
+-        self.input_buf.fill(0.0);
+-        self.in_pos = 0;
+-        self.output_buf.fill(0.0);
+-        self.out_read = 0;
+-        self.out_write = 0;
+-        self.dry_buf.fill(0.0);
+-        self.dry_pos = 0;
+-        self.hop_counter = 0;
+-        self.prev_phase_in.fill(0.0);
+-        self.phase_acc.fill(0.0);
+-        self.total_samples = 0;
+-        for lpf in &mut self.post_lpf {
+-            lpf.reset();
++/// Broadband allpass Hilbert transformer.
++///
++/// Uses two parallel chains of 3 first-order allpass filters whose
++/// combined phase responses differ by ~90° across the audio band.
++/// Path B is delayed by one sample for proper I/Q alignment.
++struct HilbertPair {
++    path_a: [Allpass1; 3],
++    path_b: [Allpass1; 3],
++    /// One-sample delay for path B alignment.
++    b_delay: f64,
++}
++
++impl HilbertPair {
++    fn new() -> Self {
++        Self {
++            path_a: [
++                Allpass1::new(HILBERT_A_COEFFS[0]),
++                Allpass1::new(HILBERT_A_COEFFS[1]),
++                Allpass1::new(HILBERT_A_COEFFS[2]),
++            ],
++            path_b: [
++                Allpass1::new(HILBERT_B_COEFFS[0]),
++                Allpass1::new(HILBERT_B_COEFFS[1]),
++                Allpass1::new(HILBERT_B_COEFFS[2]),
++            ],
++            b_delay: 0.0,
+         }
+     }
+ 
+-    /// Process one sample. Returns the mixed output.
++    /// Process one sample, returning (I, Q) — a quadrature pair.
+     #[inline]
+-    pub fn tick(&mut self, input: f64) -> f64 {
+-        let out_buf_size = self.output_buf.len();
+-
+-        // Store input in circular buffer.
+-        self.input_buf[self.in_pos] = input;
+-        self.in_pos = (self.in_pos + 1) % FFT_SIZE;
+-
+-        // Store dry signal in delay line for latency compensation.
+-        let dry_delayed = self.dry_buf[self.dry_pos];
+-        self.dry_buf[self.dry_pos] = input;
+-        self.dry_pos = (self.dry_pos + 1) % FFT_SIZE;
+-
+-        self.hop_counter += 1;
+-        self.total_samples += 1;
+-
+-        // Every HOP_SIZE samples, process an STFT frame.
+-        if self.hop_counter >= HOP_SIZE {
+-            self.hop_counter = 0;
+-            self.process_frame();
++    fn tick(&mut self, input: f64) -> (f64, f64) {
++        // Path A: cascade of 3 allpasses.
++        let mut a = input;
++        for ap in &mut self.path_a {
++            a = ap.tick(a);
+         }
+ 
+-        // Update LPF if shift changed.
+-        if self.shift != self.last_shift {
+-            self.update_lpf();
++        // Path B: cascade of 3 allpasses + 1-sample delay.
++        let mut b = input;
++        for ap in &mut self.path_b {
++            b = ap.tick(b);
+         }
++        let q = self.b_delay;
++        self.b_delay = b;
+ 
+-        // Read from output buffer.
+-        let mut wet = self.output_buf[self.out_read];
+-        self.output_buf[self.out_read] = 0.0; // Clear for next overlap-add.
+-        self.out_read = (self.out_read + 1) % out_buf_size;
+-
+-        // Apply post-LPF (cascaded biquads for 4th-order rolloff).
+-        for lpf in &mut self.post_lpf {
+-            wet = lpf.tick(wet, 0);
+-        }
+-
+-        dry_delayed * (1.0 - self.mix) + wet * self.mix
++        (a, q)
+     }
+ 
+-    /// Process one STFT frame: window → FFT → shift bins → IFFT → overlap-add.
+-    fn process_frame(&mut self) {
+-        let num_bins = FFT_SIZE / 2 + 1;
+-
+-        // Copy input with window, reading backwards from current position.
+-        for i in 0..FFT_SIZE {
+-            let idx = (self.in_pos + i) % FFT_SIZE;
+-            self.fft_in[i] = self.input_buf[idx] * self.window[i];
++    fn reset(&mut self) {
++        for ap in &mut self.path_a {
++            ap.reset();
+         }
+-
+-        // Forward FFT.
+-        self.fft
+-            .process(&mut self.fft_in, &mut self.fft_out)
+-            .expect("FFT failed");
+-
+-        // Compute input magnitudes and phases.
+-        // Then shift bins according to the octave shift mode.
+-        self.ifft_in
+-            .iter_mut()
+-            .for_each(|c| *c = realfft::num_complex::Complex::new(0.0, 0.0));
+-
+-        match self.shift {
+-            OctaveShift::Up1 => self.shift_up(1),
+-            OctaveShift::Up2 => self.shift_up(2),
+-            OctaveShift::Sub1 => self.shift_down(1),
+-            OctaveShift::Sub2 => self.shift_down(2),
++        for ap in &mut self.path_b {
++            ap.reset();
+         }
++        self.b_delay = 0.0;
++    }
++}
+ 
+-        // Update previous input phases for next frame.
+-        for k in 0..num_bins {
+-            self.prev_phase_in[k] = self.fft_out[k].arg();
+-        }
++// ── Filter Bank Band ───────────────────────────────────────────────────
++
++/// Per-band state: bandpass filter + SSB oscillator.
++struct Band {
++    /// Bandpass filter. Channel 0 = I path, channel 1 = Q path.
++    bp: Biquad,
++    /// Center frequency of this band (Hz).
++    fc: f64,
++    /// Oscillator state — real part (cosine).
++    osc_re: f64,
++    /// Oscillator state — imaginary part (sine).
++    osc_im: f64,
++    /// Phase increment as complex rotation — real part.
++    delta_re: f64,
++    /// Phase increment as complex rotation — imaginary part.
++    delta_im: f64,
++    /// Sample counter for periodic renormalization.
++    sample_count: u32,
++}
+ 
+-        // realfft requires DC and Nyquist bins to be real-valued.
+-        self.ifft_in[0] = realfft::num_complex::Complex::new(self.ifft_in[0].re, 0.0);
+-        self.ifft_in[num_bins - 1] =
+-            realfft::num_complex::Complex::new(self.ifft_in[num_bins - 1].re, 0.0);
+-
+-        // Inverse FFT.
+-        self.ifft
+-            .process(&mut self.ifft_in, &mut self.ifft_out)
+-            .expect("IFFT failed");
+-
+-        // Normalize IFFT output (realfft doesn't normalize).
+-        let norm = 1.0 / FFT_SIZE as f64;
+-
+-        // Window the output and overlap-add.
+-        // With OVERLAP=4 and Hann window, the synthesis window gain is:
+-        // sum of w²(n) for 4 overlapping frames = 1.5, so divide by 1.5.
+-        let ola_norm = norm / 1.5;
+-        let out_buf_size = self.output_buf.len();
+-        for i in 0..FFT_SIZE {
+-            let pos = (self.out_write + i) % out_buf_size;
+-            self.output_buf[pos] += self.ifft_out[i] * self.window[i] * ola_norm;
++impl Band {
++    fn new(fc: f64, q: f64, sample_rate: f64) -> Self {
++        let mut bp = Biquad::new();
++        bp.set(FilterType::Bandpass, fc, q, sample_rate);
++        Self {
++            bp,
++            fc,
++            osc_re: 1.0,
++            osc_im: 0.0,
++            delta_re: 1.0,
++            delta_im: 0.0,
++            sample_count: 0,
+         }
++    }
+ 
+-        // Advance output write position by hop.
+-        self.out_write = (self.out_write + HOP_SIZE) % out_buf_size;
++    /// Configure the oscillator for a given shift frequency.
++    fn set_osc_freq(&mut self, freq: f64, sample_rate: f64) {
++        let phase_inc = TAU * freq / sample_rate;
++        self.delta_re = phase_inc.cos();
++        self.delta_im = phase_inc.sin();
++        // Reset oscillator to cos(0)=1, sin(0)=0.
++        self.osc_re = 1.0;
++        self.osc_im = 0.0;
++        self.sample_count = 0;
+     }
+ 
+-    /// Shift bins up by `octaves` octaves (1 or 2).
++    /// Advance the oscillator by one sample, returning (cos, sin).
+     ///
+-    /// Uses phase accumulation with instantaneous-frequency estimation for
+-    /// coherent resynthesis.
+-    fn shift_up(&mut self, octaves: u32) {
+-        let num_bins = FFT_SIZE / 2 + 1;
+-        let ratio = (1u32 << octaves) as usize; // 2 or 4
+-        let expected_hop_phase = TAU * HOP_SIZE as f64 / FFT_SIZE as f64;
+-
+-        // Gain compensation for sidelobe energy lost in gaps between shifted bins.
+-        // Tuned for broadband guitar signals (slightly less than the pure-sine
+-        // calibration values of 1.64/2.45 since broadband content has less
+-        // concentrated sidelobe loss).
+-        let gain = match ratio {
+-            2 => 1.50, // ~+3.5 dB
+-            4 => 2.45, // ~+7.8 dB
+-            _ => 1.0,
+-        };
+-
+-        for k in 0..num_bins {
+-            let dest = k * ratio;
+-            if dest >= num_bins {
+-                break;
+-            }
+-
+-            let mag = self.fft_out[k].norm() * gain;
+-            let phase_in = self.fft_out[k].arg();
++    /// Uses complex rotation to avoid calling sin/cos every sample.
++    /// Renormalizes periodically to prevent amplitude drift.
++    #[inline]
++    fn advance_osc(&mut self) -> (f64, f64) {
++        let cos_val = self.osc_re;
++        let sin_val = self.osc_im;
++
++        // Complex rotation: (re + j·im) × (Δre + j·Δim)
++        let new_re = cos_val * self.delta_re - sin_val * self.delta_im;
++        let new_im = sin_val * self.delta_re + cos_val * self.delta_im;
++        self.osc_re = new_re;
++        self.osc_im = new_im;
++
++        // Renormalize every 1024 samples to prevent floating-point drift.
++        self.sample_count += 1;
++        if self.sample_count >= 1024 {
++            self.sample_count = 0;
++            let norm = 1.0 / (new_re * new_re + new_im * new_im).sqrt();
++            self.osc_re *= norm;
++            self.osc_im *= norm;
++        }
+ 
+-            // Estimate instantaneous frequency via phase difference.
+-            let expected = expected_hop_phase * k as f64;
+-            let phase_diff = phase_in - self.prev_phase_in[k];
+-            let deviation = wrap_phase(phase_diff - expected);
+-            let true_freq = expected + deviation;
++        (cos_val, sin_val)
++    }
+ 
+-            // At the destination bin, phase advances at scaled rate.
+-            let dest_advance = true_freq * ratio as f64;
+-            self.phase_acc[dest] = wrap_phase(self.phase_acc[dest] + dest_advance);
++    fn reset(&mut self) {
++        self.bp.reset();
++        self.osc_re = 1.0;
++        self.osc_im = 0.0;
++        self.sample_count = 0;
++    }
++}
+ 
+-            self.ifft_in[dest] =
+-                realfft::num_complex::Complex::from_polar(mag, self.phase_acc[dest]);
+-        }
++// ── PolyOctave (public API) ────────────────────────────────────────────
+ 
+-        // Zero DC bin — gain compensation amplifies DC content beyond what
+-        // analog octave generators produce.
+-        self.ifft_in[0] = realfft::num_complex::Complex::new(0.0, 0.0);
+-
+-        // Phase-lock non-peak bins to the nearest peak for coherent sidelobes.
+-        self.phase_lock(num_bins);
+-    }
+-
+-    /// Shift bins down by `octaves` octaves (1 or 2).
+-    fn shift_down(&mut self, octaves: u32) {
+-        let num_bins = FFT_SIZE / 2 + 1;
+-        let ratio = (1u32 << octaves) as usize; // 2 or 4
+-        let expected_hop_phase = TAU * HOP_SIZE as f64 / FFT_SIZE as f64;
+-
+-        // Iterate over destination bins. For each dest, find the dominant source
+-        // bin among the `ratio` source bins that map to it.
+-        let num_dest = num_bins / ratio;
+-        for d in 0..num_dest {
+-            let src_start = d * ratio;
+-            let src_end = ((d + 1) * ratio).min(num_bins);
+-
+-            // Find the source bin with largest magnitude and compute energy sum.
+-            let mut best_k = src_start;
+-            let mut best_mag = 0.0f64;
+-            let mut energy = 0.0f64;
+-
+-            for k in src_start..src_end {
+-                let mag = self.fft_out[k].norm();
+-                energy += mag * mag;
+-                if mag > best_mag {
+-                    best_mag = mag;
+-                    best_k = k;
+-                }
+-            }
++/// Polyphonic Octave Generator using filter bank + SSB frequency shifting.
++pub struct PolyOctave {
++    /// Which octave shift to apply.
++    pub shift: OctaveShift,
++    /// Dry/wet mix: 0.0 = dry, 1.0 = wet.
++    pub mix: f64,
+ 
+-            if energy < 1e-40 {
+-                continue;
+-            }
++    /// Broadband Hilbert transformer.
++    hilbert: HilbertPair,
++    /// Log-spaced bandpass filter bank with per-band SSB oscillators.
++    bands: Vec<Band>,
+ 
+-            // Energy-preserving magnitude: sqrt(sum of squared mags).
+-            // Gain compensation for phase incoherence in reconstruction.
+-            let gain = match ratio {
+-                2 => 1.50, // +3.5 dB
+-                4 => 1.50, // +3.4 dB
+-                _ => 1.0,
+-            };
+-            let out_mag = energy.sqrt() * gain;
++    /// Current sample rate.
++    sample_rate: f64,
++    /// Track shift changes to update oscillators.
++    last_shift: OctaveShift,
++    /// One-sample delay for dry signal (matches Hilbert B-path delay).
++    dry_z1: f64,
++}
+ 
+-            // Use the dominant bin's phase for coherent output.
+-            let phase_in = self.fft_out[best_k].arg();
+-            let expected = expected_hop_phase * best_k as f64;
+-            let phase_diff = phase_in - self.prev_phase_in[best_k];
+-            let deviation = wrap_phase(phase_diff - expected);
+-            let true_freq = expected + deviation;
++impl PolyOctave {
++    pub fn new() -> Self {
++        let mut s = Self {
++            shift: OctaveShift::Sub1,
++            mix: 1.0,
++            hilbert: HilbertPair::new(),
++            bands: Vec::new(),
++            sample_rate: 48000.0,
++            last_shift: OctaveShift::Sub1,
++            dry_z1: 0.0,
++        };
++        s.init_bands();
++        s.configure_oscillators();
++        s
++    }
+ 
+-            // Phase advances at reduced rate for the destination bin.
+-            let dest_advance = true_freq / ratio as f64;
+-            self.phase_acc[d] = wrap_phase(self.phase_acc[d] + dest_advance);
++    pub fn update(&mut self, sample_rate: f64) {
++        self.sample_rate = sample_rate;
++        self.init_bands();
++        self.configure_oscillators();
++        self.reset();
++    }
+ 
+-            self.ifft_in[d] = realfft::num_complex::Complex::from_polar(out_mag, self.phase_acc[d]);
++    pub fn reset(&mut self) {
++        self.hilbert.reset();
++        for band in &mut self.bands {
++            band.reset();
+         }
++        self.dry_z1 = 0.0;
++    }
+ 
+-        // Apply a spectral rolloff to the upper destination bins.
+-        // Combined with the time-domain post-LPF for smooth overall rolloff.
+-        let taper_start = (num_dest as f64 * 0.6) as usize;
+-        let taper_len = num_dest - taper_start;
+-        for d in taper_start..num_dest {
+-            let t = (d - taper_start) as f64 / taper_len as f64;
+-            // Cosine taper: 1 at start → 0 at end.
+-            let gain = 0.5 * (1.0 + (PI * t).cos());
+-            let mag = self.ifft_in[d].norm() * gain;
+-            let phase = self.ifft_in[d].arg();
+-            self.ifft_in[d] = realfft::num_complex::Complex::from_polar(mag, phase);
++    /// Process one sample. Returns the mixed output.
++    #[inline]
++    pub fn tick(&mut self, input: f64) -> f64 {
++        // Reconfigure oscillators if shift mode changed.
++        if self.shift != self.last_shift {
++            self.configure_oscillators();
+         }
+ 
+-        // Phase-lock for coherent reconstruction.
+-        self.phase_lock(num_dest);
+-    }
++        // Hilbert pair → quadrature signals.
++        let (i_sig, q_sig) = self.hilbert.tick(input);
+ 
+-    /// Rigid phase locking: propagate each spectral peak's phase to neighboring
+-    /// bins so the Hann window sidelobes reconstruct coherently.
+-    fn phase_lock(&mut self, num_bins: usize) {
+-        let expected_hop_phase = TAU * HOP_SIZE as f64 / FFT_SIZE as f64;
++        // Dry signal with 1-sample delay to match Hilbert B-path delay.
++        let dry = self.dry_z1;
++        self.dry_z1 = input;
+ 
+-        // Find peaks: bins where magnitude > both neighbors.
+-        // For each non-peak bin, inherit phase from the nearest peak.
+-        let mut peak_bin = vec![0usize; num_bins];
+-        let mut is_peak = vec![false; num_bins];
++        let nyquist = self.sample_rate * 0.5;
++        let is_down = matches!(self.shift, OctaveShift::Sub1 | OctaveShift::Sub2);
+ 
+-        // Identify peaks.
+-        for k in 1..num_bins.saturating_sub(1) {
+-            let m = self.ifft_in[k].norm();
+-            let m_prev = self.ifft_in[k - 1].norm();
+-            let m_next = self.ifft_in[k + 1].norm();
+-            if m >= m_prev && m >= m_next && m > 1e-20 {
+-                is_peak[k] = true;
+-            }
+-        }
+-        // Bin 0 is always a "peak" for purposes of phase locking.
+-        if self.ifft_in[0].norm() > 1e-20 {
+-            is_peak[0] = true;
+-        }
++        let mut wet = 0.0;
+ 
+-        // Assign each bin to its nearest peak.
+-        let mut last_peak = 0;
+-        for k in 0..num_bins {
+-            if is_peak[k] {
+-                last_peak = k;
+-            }
+-            peak_bin[k] = last_peak;
+-        }
+-        // Backward pass: check if a later peak is closer.
+-        let mut next_peak = num_bins.saturating_sub(1);
+-        for k in (0..num_bins).rev() {
+-            if is_peak[k] {
+-                next_peak = k;
+-            }
+-            if next_peak.abs_diff(k) < peak_bin[k].abs_diff(k) {
+-                peak_bin[k] = next_peak;
+-            }
+-        }
++        for band in &mut self.bands {
++            // Bandpass filter both I and Q paths (ch 0 = I, ch 1 = Q).
++            let i_band = band.bp.tick(i_sig, 0);
++            let q_band = band.bp.tick(q_sig, 1);
++
++            // Check if destination frequency would alias.
++            let dest_fc = match self.shift {
++                OctaveShift::Sub1 => band.fc * 0.5,
++                OctaveShift::Sub2 => band.fc * 0.25,
++                OctaveShift::Up1 => band.fc * 2.0,
++                OctaveShift::Up2 => band.fc * 4.0,
++            };
+ 
+-        // Apply phase locking: set non-peak bins' phases relative to their peak.
+-        for k in 0..num_bins {
+-            if is_peak[k] || self.ifft_in[k].norm() < 1e-20 {
++            if dest_fc >= nyquist {
++                // Still advance oscillator to keep phase coherent, but skip output.
++                band.advance_osc();
+                 continue;
+             }
+-            let p = peak_bin[k];
+-            let peak_phase = self.phase_acc[p];
+-            // Phase at bin k should be peak's phase + frequency-difference term.
+-            let locked_phase = peak_phase + (k as f64 - p as f64) * expected_hop_phase;
+-            let mag = self.ifft_in[k].norm();
+-            self.ifft_in[k] = realfft::num_complex::Complex::from_polar(mag, locked_phase);
++
++            let (cos_val, sin_val) = band.advance_osc();
++
++            // SSB modulation: lower sideband for down-shift, upper for up-shift.
++            let shifted = if is_down {
++                i_band * cos_val + q_band * sin_val
++            } else {
++                i_band * cos_val - q_band * sin_val
++            };
++
++            wet += shifted;
+         }
++
++        dry * (1.0 - self.mix) + wet * self.mix
+     }
+ 
++    /// Latency in samples. Near-zero (1 sample for Hilbert B-path delay).
+     pub fn latency(&self) -> usize {
+-        FFT_SIZE
++        1
+     }
+-}
+ 
+-/// Wrap phase to [-π, π].
+-#[inline]
+-fn wrap_phase(phase: f64) -> f64 {
+-    let mut p = phase;
+-    while p > PI {
+-        p -= TAU;
++    /// Initialize the bandpass filter bank with log-spaced center frequencies.
++    fn init_bands(&mut self) {
++        self.bands.clear();
++        let log_lo = FREQ_LO.ln();
++        let log_hi = FREQ_HI.ln();
++        for i in 0..NUM_BANDS {
++            let t = i as f64 / (NUM_BANDS - 1) as f64;
++            let fc = (log_lo + t * (log_hi - log_lo)).exp();
++            self.bands.push(Band::new(fc, BAND_Q, self.sample_rate));
++        }
+     }
+-    while p < -PI {
+-        p += TAU;
++
++    /// Set each band's oscillator frequency based on the current shift mode.
++    fn configure_oscillators(&mut self) {
++        let sr = self.sample_rate;
++        for band in &mut self.bands {
++            // Oscillator frequency = the amount we shift each band.
++            // Sub1: shift down by fc/2 → oscillator at fc/2
++            // Sub2: shift down by 3·fc/4 → oscillator at 3·fc/4
++            // Up1: shift up by fc → oscillator at fc
++            // Up2: shift up by 3·fc → oscillator at 3·fc
++            let osc_freq = match self.shift {
++                OctaveShift::Sub1 => band.fc * 0.5,
++                OctaveShift::Sub2 => band.fc * 0.75,
++                OctaveShift::Up1 => band.fc,
++                OctaveShift::Up2 => band.fc * 3.0,
++            };
++            band.set_osc_freq(osc_freq, sr);
++        }
++        self.last_shift = self.shift;
+     }
+-    p
+ }
+ 
+ impl Default for PolyOctave {
+@@ -511,8 +411,8 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn latency_is_fft_size() {
+-        assert_eq!(make_pog(OctaveShift::Sub1).latency(), FFT_SIZE);
++    fn latency_is_one_sample() {
++        assert_eq!(make_pog(OctaveShift::Sub1).latency(), 1);
+     }
+ 
+     #[test]
+@@ -550,9 +450,11 @@ mod tests {
+         ] {
+             let mut p = make_pog(shift);
+             let mut energy = 0.0;
++            // Allow generous warmup for IIR filters to settle.
++            let warmup = 8000;
+             for i in 0..48000 {
+                 let out = p.tick(sine(220.0, i));
+-                if i > p.latency() + 4800 {
++                if i > warmup {
+                     energy += out * out;
+                 }
+             }
+@@ -682,7 +584,7 @@ mod tests {
+         let mut p = make_pog(OctaveShift::Sub1);
+         p.mix = 0.0;
+ 
+-        // Need to go past latency for dry signal to come through.
++        // Need to go past 1-sample latency for dry signal to come through.
+         for i in 0..48000 {
+             let input = sine(440.0, i);
+             let out = p.tick(input);
+@@ -804,7 +706,7 @@ mod tests {
+         ] {
+             let mut p = make_pog(shift);
+             let n = 96000;
+-            let warmup = p.latency() + 24000;
++            let warmup = 24000;
+             let mut in_sq = 0.0;
+             let mut out_sq = 0.0;
+             let mut count = 0;
+@@ -841,7 +743,7 @@ mod tests {
+             for i in 0..((sr * 1.0) as usize) {
+                 let input = (TAU * 440.0 * i as f64 / sr).sin() * 0.5;
+                 let out = p.tick(input);
+-                if i > p.latency() + (sr * 0.1) as usize {
++                if i > (sr * 0.2) as usize {
+                     energy += out * out;
+                 }
+                 assert!(out.is_finite(), "NaN at sr={sr}, sample {i}");

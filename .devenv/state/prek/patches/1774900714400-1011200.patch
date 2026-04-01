@@ -1,0 +1,513 @@
+diff --git a/apps/gui-test/Cargo.toml b/apps/gui-test/Cargo.toml
+index c0b0a40..0ad933e 100644
+--- a/apps/gui-test/Cargo.toml
++++ b/apps/gui-test/Cargo.toml
+@@ -16,8 +16,20 @@ path = "src/main_softbuffer.rs"
+ name = "gui-test-parented"
+ path = "src/main_parented.rs"
+ 
++[[bin]]
++name = "gui-test-screenshot"
++path = "src/main_screenshot.rs"
++
+ [dependencies]
+ nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
++png = "0.17"
++atomic_float = "1"
++
++# Only one plugin at a time to avoid duplicate CLAP/VST3 entry point symbols.
++# Switch to a different plugin crate to screenshot it.
++comp-plugin = { path = "../../crates/fts-comp/comp-plugin" }
++# delay-plugin = { path = "../../crates/fts-delay/delay-plugin" }
++# eq-plugin = { path = "../../crates/fts-eq/eq-plugin" }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
+ x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
+diff --git a/apps/gui-test/src/main_screenshot.rs b/apps/gui-test/src/main_screenshot.rs
+index bf6e371..1c81ca0 100644
+--- a/apps/gui-test/src/main_screenshot.rs
++++ b/apps/gui-test/src/main_screenshot.rs
+@@ -1,181 +1,68 @@
+-//! Headless screenshot tool for GUI testing.
++//! Headless screenshot tool for plugin GUI testing.
+ //!
+-//! Renders a Dioxus component offscreen via wgpu and saves as PNG.
+-//! This lets you visually verify rendering without opening a window.
++//! Renders actual plugin editor GUIs offscreen via wgpu and saves as PNG.
++//! This lets you visually verify rendering without a DAW.
+ //!
+ //! Run with:
+-//!   cargo run -p gui-test --bin gui-test-screenshot [output.png]
++//!   cargo run -p gui-test --bin gui-test-screenshot [plugin] [output.png]
++//!
++//! Examples:
++//!   cargo run -p gui-test --bin gui-test-screenshot comp /tmp/comp.png
++//!
++//! To screenshot other plugins, uncomment the corresponding dependency in
++//! Cargo.toml (only one plugin at a time to avoid duplicate CLAP/VST3 symbols).
+ 
+-use nih_plug_dioxus::dioxus_native::prelude::*;
+-use nih_plug_dioxus::TAILWIND_CSS;
++use nih_plug_dioxus::SharedState;
+ use std::path::PathBuf;
++use std::sync::Arc;
+ 
+ fn main() {
+-    let output_path = std::env::args()
+-        .nth(1)
+-        .map(PathBuf::from)
+-        .unwrap_or_else(|| PathBuf::from("screenshot.png"));
++    let args: Vec<String> = std::env::args().collect();
+ 
+-    let width = 800;
+-    let height = 600;
+-
+-    eprintln!("Rendering {}x{} screenshot...", width, height);
+-
+-    let pixels = nih_plug_dioxus::render_screenshot(App, width, height, None);
++    let plugin_name = args.get(1).map(|s| s.as_str()).unwrap_or("comp");
++    let output_path = args
++        .get(2)
++        .map(PathBuf::from)
++        .unwrap_or_else(|| PathBuf::from(format!("/tmp/fts-{}.png", plugin_name)));
++
++    match plugin_name {
++        "comp" => screenshot_comp(&output_path),
++        // Uncomment in Cargo.toml to enable:
++        // "delay" => screenshot_delay(&output_path),
++        // "eq" => screenshot_eq(&output_path),
++        _ => {
++            eprintln!("Unknown plugin: {}", plugin_name);
++            eprintln!("Available: comp");
++            eprintln!("(Uncomment delay-plugin or eq-plugin in Cargo.toml to enable others)");
++            std::process::exit(1);
++        }
++    }
++}
+ 
+-    // Save as PNG
+-    let file = std::fs::File::create(&output_path).expect("Failed to create output file");
++fn save_png(pixels: &[u8], width: u32, height: u32, path: &std::path::Path) {
++    let file = std::fs::File::create(path).expect("Failed to create output file");
+     let mut encoder = png::Encoder::new(file, width, height);
+     encoder.set_color(png::ColorType::Rgba);
+     encoder.set_depth(png::BitDepth::Eight);
+     let mut writer = encoder.write_header().expect("Failed to write PNG header");
+-    writer.write_image_data(&pixels).expect("Failed to write PNG data");
+-
+-    eprintln!("Saved to {}", output_path.display());
++    writer
++        .write_image_data(pixels)
++        .expect("Failed to write PNG data");
++    eprintln!("Saved to {}", path.display());
+ }
+ 
+-/// Test component — exercises various layout and styling patterns.
+-#[component]
+-fn App() -> Element {
+-    rsx! {
+-        document::Style { {TAILWIND_CSS} }
+-        div {
+-            style: "width: 100%; height: 100%; background: #1a1a2e; padding: 16px; font-family: sans-serif; color: white; box-sizing: border-box;",
+-
+-            // Title bar
+-            div {
+-                style: "font-size: 20px; font-weight: bold; color: #e94560; margin-bottom: 16px;",
+-                "FTS GUI Component Gallery"
+-            }
+-
+-            // Row of colored boxes (tests flexbox + border-radius + hsl colors)
+-            div {
+-                style: "display: flex; gap: 8px; margin-bottom: 16px;",
+-                for i in 0..8 {
+-                    {
+-                        let hue = i * 45;
+-                        rsx! {
+-                            div {
+-                                style: "width: 48px; height: 48px; border-radius: 8px; background: hsl({hue}, 70%, 50%); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;",
+-                                "{hue}"
+-                            }
+-                        }
+-                    }
+-                }
+-            }
++fn screenshot_comp(output: &std::path::Path) {
++    use comp_plugin::{CompUiState, FtsCompParams};
+ 
+-            // Layout test: two columns
+-            div {
+-                style: "display: flex; gap: 16px; margin-bottom: 16px;",
++    let width = 900;
++    let height = 620;
+ 
+-                // Left column — simulated knob area
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
++    let params = Arc::new(FtsCompParams::default());
++    let ui_state = Arc::new(CompUiState::new(params));
++    let shared = SharedState::new(ui_state);
+ 
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Controls"
+-                    }
+-
+-                    // Simulated knobs (circles with labels)
+-                    div {
+-                        style: "display: flex; gap: 16px; flex-wrap: wrap;",
+-                        for label in ["Gain", "Freq", "Q", "Mix"] {
+-                            div {
+-                                style: "display: flex; flex-direction: column; align-items: center; gap: 4px;",
+-                                div {
+-                                    style: "width: 48px; height: 48px; border-radius: 50%; background: #0f3460; border: 2px solid #e94560; display: flex; align-items: center; justify-content: center; font-size: 11px;",
+-                                    "0.5"
+-                                }
+-                                div {
+-                                    style: "font-size: 10px; color: #888;",
+-                                    "{label}"
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Right column — simulated dropdown + text
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Settings"
+-                    }
+-
+-                    // Simulated dropdown
+-                    div {
+-                        style: "background: #0f3460; border: 1px solid #333; border-radius: 4px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between;",
+-                        span { "Algorithm: Clean" }
+-                        span { style: "color: #888;", "▼" }
+-                    }
+-
+-                    // Simulated toggle
+-                    div {
+-                        style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;",
+-                        div {
+-                            style: "width: 36px; height: 20px; border-radius: 10px; background: #e94560; position: relative;",
+-                            div {
+-                                style: "width: 16px; height: 16px; border-radius: 50%; background: white; position: absolute; top: 2px; right: 2px;",
+-                            }
+-                        }
+-                        span { style: "font-size: 13px;", "Enabled" }
+-                    }
+-
+-                    // Simulated slider
+-                    div {
+-                        style: "margin-bottom: 4px;",
+-                        div {
+-                            style: "font-size: 11px; color: #888; margin-bottom: 4px;",
+-                            "Dry/Wet"
+-                        }
+-                        div {
+-                            style: "height: 6px; background: #0f3460; border-radius: 3px; position: relative;",
+-                            div {
+-                                style: "width: 65%; height: 100%; background: #e94560; border-radius: 3px;",
+-                            }
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Bottom panel — simulated meter / waveform area
+-            div {
+-                style: "background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                div {
+-                    style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                    "Output"
+-                }
+-
+-                // Simulated level meters
+-                div {
+-                    style: "display: flex; gap: 4px; height: 24px;",
+-                    for level in [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.3, 0.65, 0.55, 0.75, 0.45, 0.6, 0.8, 0.5, 0.7] {
+-                        {
+-                            let pct = (level * 100.0) as u32;
+-                            let color = if level > 0.85 { "#ff4444" } else if level > 0.7 { "#ffaa00" } else { "#44ff44" };
+-                            rsx! {
+-                                div {
+-                                    style: "flex: 1; background: #0f3460; border-radius: 2px; display: flex; align-items: flex-end;",
+-                                    div {
+-                                        style: "width: 100%; height: {pct}%; background: {color}; border-radius: 2px;",
+-                                    }
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Labels
+-                div {
+-                    style: "display: flex; justify-content: space-between; margin-top: 4px;",
+-                    span { style: "font-size: 10px; color: #888;", "L" }
+-                    span { style: "font-size: 10px; color: #888;", "R" }
+-                }
+-            }
+-        }
+-    }
++    eprintln!("Rendering compressor ({}x{})...", width, height);
++    let pixels =
++        nih_plug_dioxus::render_screenshot(comp_plugin::editor::App, width, height, Some(shared));
++    save_png(&pixels, width, height, output);
+ }
+diff --git a/crates/fts-comp/comp-dsp/src/compressor.rs b/crates/fts-comp/comp-dsp/src/compressor.rs
+index 2555306..a699f3c 100644
+--- a/crates/fts-comp/comp-dsp/src/compressor.rs
++++ b/crates/fts-comp/comp-dsp/src/compressor.rs
+@@ -14,15 +14,13 @@ use crate::gain::GainComputer;
+ /// Maximum number of stereo channels.
+ const MAX_CH: usize = 2;
+ 
+-/// Peak-to-mean threshold offset: 4.2 dB.
++/// Residual threshold offset after mean rectification.
+ ///
+-/// Pro-C 3 thresholds reference mean rectified level (2A/π ≈ -3.92 dB
+-/// below peak for a sine wave). FTS-Comp's 2-stage detector measures
+-/// instantaneous peak level, so the threshold must be shifted up by
+-/// ~4.2 dB to produce the same onset/amount of compression at the same
+-/// displayed threshold value. The extra 0.28 dB above the theoretical
+-/// 3.92 dB accounts for discrete-time and knee-shape corrections.
+-pub const PEAK_TO_MEAN_DB: f64 = 4.2;
++/// With the mean rectifier in the detector, the level naturally reads
++/// ~3.92 dB below peak for a sine wave (matching Pro-C 3's detection).
++/// This offset accounts for any remaining difference. Set to 0.0 now
++/// that the detector uses mean-rectified level instead of peak.
++pub const PEAK_TO_MEAN_DB: f64 = 0.0;
+ 
+ // r[impl comp.chain.signal-flow]
+ /// Complete stereo compressor with all APComp features.
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 95d44e8..7b603b5 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -1,10 +1,15 @@
+-//! Two-stage compressor detector: instant gain curve + GR smoothing.
++//! Two-stage compressor detector: mean-rectified level + GR smoothing.
+ //!
+ //! Architecture:
+-//! 1. Compute instantaneous level: 20*log10(|x|)
+-//! 2. Apply gain curve (threshold/ratio/knee) → raw GR in dB
+-//! 3. Transform raw GR to power domain (gr^p), smooth with asymmetric 1-pole
+-//! 4. Inverse transform smoothed value back to dB
++//! 1. Mean-rectify input: 1-pole lowpass of |x| → program-dependent level
++//! 2. Convert to dB: 20*log10(mean_level)
++//! 3. Apply gain curve (threshold/ratio/knee) → raw GR in dB
++//! 4. Transform raw GR to power domain (gr^p), smooth with asymmetric 1-pole
++//! 5. Inverse transform smoothed value back to dB
++//!
++//! The mean rectifier eliminates the need for PEAK_TO_MEAN_DB threshold
++//! correction, making user-facing thresholds match Pro-C 3 on all signals
++//! (not just sine waves).
+ //!
+ //! Smoothing in gr^p domain (p < 1) reduces Jensen's inequality bias
+ //! when attack > release, while maintaining threshold proportionality
+@@ -36,16 +41,25 @@ const MIN_ATTACK_S: f64 = 0.000005;
+ /// p≈0.75 matches Pro-C 3's steady-state GR profile.
+ const SMOOTH_POWER: f64 = 0.80;
+ 
+-/// Two-stage detector: instant level → gain curve → smoothed GR.
++/// Time constant for the mean rectifier (1-pole lowpass of |x|).
++/// ~5ms smooths audio-rate oscillation while preserving transient response.
++/// For a 1kHz sine this averages over ~5 cycles; the steady-state output
++/// converges to 2A/π (mean rectified value), which is -3.92 dB below peak.
++const MEAN_RECT_TAU_S: f64 = 0.005;
++
++/// Two-stage detector: mean-rectified level → gain curve → smoothed GR.
+ pub struct Detector {
+     /// Smoothed GR in transformed domain (gr^p) per channel.
+     smooth_grp: [f64; MAX_CH],
+     /// Previous output sample per channel (for feedback detection).
+     prev_output: [f64; MAX_CH],
++    /// Mean rectifier state per channel (1-pole lowpass of |x|).
++    mean_level: [f64; MAX_CH],
+ 
+     // Coefficients
+     attack_coeff: f64,
+     release_coeff: f64,
++    mean_rect_coeff: f64,
+     sample_rate: f64,
+ 
+     // Hold
+@@ -60,8 +74,10 @@ impl Detector {
+         Self {
+             smooth_grp: [0.0; MAX_CH],
+             prev_output: [0.0; MAX_CH],
++            mean_level: [0.0; MAX_CH],
+             attack_coeff: 0.0,
+             release_coeff: 0.0,
++            mean_rect_coeff: Self::coeff(MEAN_RECT_TAU_S, 48000.0, 1.0),
+             sample_rate: 48000.0,
+             hold_samples: 0,
+             hold_countdown: [0; MAX_CH],
+@@ -73,6 +89,7 @@ impl Detector {
+         self.sample_rate = sample_rate;
+         self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, ATTACK_SCALE);
+         self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, RELEASE_SCALE);
++        self.mean_rect_coeff = Self::coeff(MEAN_RECT_TAU_S, sample_rate, 1.0);
+     }
+ 
+     /// Set hold time. Called whenever hold_ms or sample rate changes.
+@@ -89,11 +106,18 @@ impl Detector {
+         }
+     }
+ 
+-    /// Feed a sample and return the instantaneous level in dB.
++    /// Feed a sample and return the mean-rectified level in dB.
++    ///
++    /// Uses a 1-pole lowpass on |x| (mean rectifier) to produce a
++    /// program-dependent level that matches Pro-C 3's detection.
++    /// For a sine wave, this converges to 2A/π (-3.92 dB below peak).
+     #[inline]
+     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
+         let combined = input_abs + self.prev_output[ch].abs() * feedback;
+-        linear_to_db(combined).max(DB_FLOOR)
++        // Mean rectifier: 1-pole lowpass of |x|
++        let c = self.mean_rect_coeff;
++        self.mean_level[ch] = c * self.mean_level[ch] + (1.0 - c) * combined;
++        linear_to_db(self.mean_level[ch]).max(DB_FLOOR)
+     }
+ 
+     /// Smooth a raw GR value with asymmetric attack/hold/release in power-dB domain.
+@@ -135,6 +159,7 @@ impl Detector {
+     pub fn reset(&mut self) {
+         self.smooth_grp = [0.0; MAX_CH];
+         self.prev_output = [0.0; MAX_CH];
++        self.mean_level = [0.0; MAX_CH];
+         self.hold_countdown = [0; MAX_CH];
+     }
+ }
+diff --git a/crates/fts-eq/eq-dsp/Cargo.toml b/crates/fts-eq/eq-dsp/Cargo.toml
+index 346c67f..fd160e8 100644
+--- a/crates/fts-eq/eq-dsp/Cargo.toml
++++ b/crates/fts-eq/eq-dsp/Cargo.toml
+@@ -27,3 +27,6 @@ harness = false
+ 
+ [[example]]
+ name = "process_wav"
++
++[[example]]
++name = "cascade_sweep"
+diff --git a/crates/fts-pitch/pitch-dsp/Cargo.toml b/crates/fts-pitch/pitch-dsp/Cargo.toml
+index f4e7b6c..262c4a3 100644
+--- a/crates/fts-pitch/pitch-dsp/Cargo.toml
++++ b/crates/fts-pitch/pitch-dsp/Cargo.toml
+@@ -8,7 +8,6 @@ license.workspace = true
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ serde = { workspace = true }
+-realfft = "3"
+ 
+ # External pitch/time-stretch libraries
+ signalsmith-stretch = "0.1"
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index f843397..9763330 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -638,8 +638,8 @@ mod tests {
+             Algorithm::Signalsmith,
+             Algorithm::Rubberband,
+             Algorithm::Allpass,
+-            // PolyOctave excluded: STFT dry path has FFT_SIZE latency;
+-            // dry-wet correctness is tested in pog::tests::dry_wet_mix.
++            // PolyOctave excluded: SSB filter bank has 1-sample latency
++            // on dry path; dry-wet correctness tested in pog::tests::dry_wet_mix.
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -731,22 +731,16 @@ mod tests {
+             eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
+         }
+ 
+-        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
++        // In live mode, all algorithms should be under 25ms (~1200 samples at 48k).
+         // Rubberband R2 real-time has ~1024 sample minimum internal latency.
+-        // PolyOctave uses STFT with FFT_SIZE=2048 latency regardless of live mode.
+         let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
+         for algo in ALL_ALGOS {
+             chain.algorithm = algo;
+             chain.process(&mut l, &mut r);
+             let lat = chain.latency();
+-            let limit = if algo == Algorithm::PolyOctave {
+-                2048
+-            } else {
+-                live_limit_samples
+-            };
+             assert!(
+-                lat <= limit,
+-                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {limit}",
++                lat <= live_limit_samples,
++                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
+                 lat as f64 / SR * 1000.0,
+             );
+         }
+diff --git a/crates/fts-trigger/trigger-plugin/src/editor.rs b/crates/fts-trigger/trigger-plugin/src/editor.rs
+index f794a86..f11b141 100644
+--- a/crates/fts-trigger/trigger-plugin/src/editor.rs
++++ b/crates/fts-trigger/trigger-plugin/src/editor.rs
+@@ -216,17 +216,14 @@ pub fn App() -> Element {
+ 
+                         Divider {}
+ 
+-                        // MIDI output controls
+-                        div {
+-                            style: "display:flex; gap:6px; align-items:center;",
+-                            div {
+-                                style: format!("{style_label}"),
+-                                "MIDI"
+-                            }
+-                            ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
+-                            Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
+-                            Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
+-                        }
++                        // TODO: MIDI output controls (params not yet added)
++                        // div {
++                        //     style: "display:flex; gap:6px; align-items:center;",
++                        //     div { style: format!("{style_label}"), "MIDI" }
++                        //     ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
++                        //     Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
++                        //     Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
++                        // }
+                     }
+                 }
+ 
+@@ -314,7 +311,7 @@ pub fn App() -> Element {
+                         enabled_ptr: params.slots[slot].enabled.as_ptr(),
+                         mute_ptr: params.slots[slot].mute.as_ptr(),
+                         solo_ptr: params.slots[slot].solo.as_ptr(),
+-                        midi_note_ptr: params.slots[slot].midi_note.as_ptr(),
++                        // TODO: midi_note_ptr (param not yet added)
+                         on_load: {
+                             let ui = ui_for_load.clone();
+                             move |slot: usize| {
+diff --git a/crates/fts-trigger/trigger-ui/src/control_view.rs b/crates/fts-trigger/trigger-ui/src/control_view.rs
+index 00ab042..9d10f31 100644
+--- a/crates/fts-trigger/trigger-ui/src/control_view.rs
++++ b/crates/fts-trigger/trigger-ui/src/control_view.rs
+@@ -18,7 +18,7 @@ pub fn MixerStrip(
+     enabled_ptr: ParamPtr,
+     mute_ptr: ParamPtr,
+     solo_ptr: ParamPtr,
+-    midi_note_ptr: ParamPtr,
++    // TODO: midi_note_ptr: ParamPtr, (param not yet added)
+     on_load: EventHandler<usize>,
+ ) -> Element {
+     let t = use_theme();
+@@ -132,8 +132,8 @@ pub fn MixerStrip(
+                 Knob { param_ptr: pitch_ptr, size: KnobSize::Small }
+             }
+ 
+-            // MIDI note knob
+-            Knob { param_ptr: midi_note_ptr, size: KnobSize::Small }
++            // TODO: MIDI note knob (param not yet added)
++            // Knob { param_ptr: midi_note_ptr, size: KnobSize::Small }
+ 
+             // Mute / Solo row
+             div {

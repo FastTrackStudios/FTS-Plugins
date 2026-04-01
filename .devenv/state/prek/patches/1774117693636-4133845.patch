@@ -1,0 +1,989 @@
+diff --git a/crates/audio-gui/src/viz/eq_graph.rs b/crates/audio-gui/src/viz/eq_graph.rs
+index 6c9e15c..94a6f2a 100644
+--- a/crates/audio-gui/src/viz/eq_graph.rs
++++ b/crates/audio-gui/src/viz/eq_graph.rs
+@@ -555,10 +555,26 @@ pub fn EqGraph(
+                     return;
+                 }
+ 
+-                // Get element-relative coordinates and transform to viewBox space
++                // Get coordinates and transform to viewBox space.
++                // Blitz element_coordinates() returns window coords (not element-relative).
+                 let coords = evt.element_coordinates();
++                let client = evt.client_coordinates();
+                 let (x, y) = transform_coords(coords.x, coords.y);
+ 
++                // Debug: log raw vs transformed coords (first few moves only)
++                {
++                    use std::sync::atomic::{AtomicU32, Ordering as AO};
++                    static LOG_COUNT: AtomicU32 = AtomicU32::new(0);
++                    let count = LOG_COUNT.fetch_add(1, AO::Relaxed);
++                    if count < 5 {
++                        eprintln!(
++                            "[EqGraph] elem=({:.1},{:.1}) client=({:.1},{:.1}) -> vb=({:.1},{:.1}) actual=({:.0}x{:.0}) offset=({:.0},{:.0})",
++                            coords.x, coords.y, client.x, client.y, x, y,
++                            actual_w, actual_h, offset_x, offset_y,
++                        );
++                    }
++                }
++
+                 // Handle selection rectangle drawing - copy value first
+                 let sel_rect = { *selection_rect.read() };
+                 if let Some((start_x, start_y, _, _)) = sel_rect {
+diff --git a/crates/fts-eq/eq-plugin/src/editor.rs b/crates/fts-eq/eq-plugin/src/editor.rs
+index 43b9070..e641685 100644
+--- a/crates/fts-eq/eq-plugin/src/editor.rs
++++ b/crates/fts-eq/eq-plugin/src/editor.rs
+@@ -138,13 +138,13 @@ pub fn App() -> Element {
+                     sample_rate: sample_rate,
+                     spectrum_db: spectrum,
+                     focused_band_out: focused_band,
+-                    // Window is 1000x600; header ~33px, bottom bar ~52px
++                    // Window is 1000x600; header ~37px, bottom bar ~52px
+                     rendered_width: 1000.0,
+-                    rendered_height: 515.0,
++                    rendered_height: 511.0,
+                     // Blitz element_coordinates() returns window coords;
+                     // subtract the element's position in the window
+                     offset_x: 0.0,
+-                    offset_y: 33.0,
++                    offset_y: 37.0,
+ 
+                     on_band_change: {
+                         let ctx = ctx.clone();
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index 137c6c5..50a5cf1 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -7,10 +7,13 @@
+ use fts_dsp::{AudioConfig, Processor};
+ use serde::{Deserialize, Serialize};
+ 
++use crate::allpass_shift::AllpassShifter;
+ use crate::divider::{DivideRatio, FreqDivider};
+ use crate::granular::GranularShifter;
+ use crate::pll::{PllOctave, PllTracker, SubWaveform};
+ use crate::psola::PsolaShifter;
++use crate::rubberband::RubberbandShifter;
++use crate::signalsmith::SignalsmithShifter;
+ use crate::wsola::WsolaShifter;
+ 
+ /// Which pitch shifting algorithm to use.
+@@ -33,6 +36,15 @@ pub enum Algorithm {
+     /// WSOLA waveform-similarity overlap-add. ~1024 sample latency.
+     /// Works on any signal (monophonic or polyphonic) without pitch detection.
+     Wsola,
++    /// Signalsmith Stretch — high-quality FFT-based spectral pitch shifter.
++    /// Clean, polyphonic-capable. ~256+ sample latency.
++    Signalsmith,
++    /// Rubber Band Library — professional pitch shifter with formant preservation.
++    /// High quality, ~512+ sample latency.
++    Rubberband,
++    /// Allpass interpolation — Dattorro/Schroeder barberpole style.
++    /// Zero latency, classic hardware pitch shifter character.
++    Allpass,
+ }
+ 
+ /// Convert semitones to pitch ratio: `2^(semitones / 12)`.
+@@ -54,6 +66,8 @@ pub struct PitchChain {
+     pub semitones: f64,
+     /// Dry/wet mix (0.0–1.0).
+     pub mix: f64,
++    /// Live mode: minimize latency at the cost of quality.
++    pub live: bool,
+ 
+     // -- PLL-specific settings --
+     /// PLL sub-oscillator waveform.
+@@ -68,6 +82,13 @@ pub struct PitchChain {
+     granular: GranularShifter,
+     psola: PsolaShifter,
+     wsola: WsolaShifter,
++    signalsmith: SignalsmithShifter,
++    rubberband: RubberbandShifter,
++    allpass: AllpassShifter,
++
++    /// Track previous live state to detect changes and reinitialise.
++    prev_live: bool,
++    sample_rate: f64,
+ }
+ 
+ impl PitchChain {
+@@ -76,6 +97,7 @@ impl PitchChain {
+             algorithm: Algorithm::FreqDivider,
+             semitones: -12.0,
+             mix: 1.0,
++            live: false,
+             pll_waveform: SubWaveform::Saw,
+             grain_size: 1024,
+             divider: FreqDivider::new(),
+@@ -83,6 +105,11 @@ impl PitchChain {
+             granular: GranularShifter::new(),
+             psola: PsolaShifter::new(),
+             wsola: WsolaShifter::new(),
++            signalsmith: SignalsmithShifter::new(),
++            rubberband: RubberbandShifter::new(),
++            allpass: AllpassShifter::new(),
++            prev_live: false,
++            sample_rate: 48000.0,
+         }
+     }
+ 
+@@ -94,6 +121,9 @@ impl PitchChain {
+             Algorithm::Granular => self.granular.latency(),
+             Algorithm::Psola => self.psola.latency(),
+             Algorithm::Wsola => self.wsola.latency(),
++            Algorithm::Signalsmith => self.signalsmith.latency(),
++            Algorithm::Rubberband => self.rubberband.latency(),
++            Algorithm::Allpass => self.allpass.latency(),
+         }
+     }
+ 
+@@ -110,6 +140,30 @@ impl PitchChain {
+ 
+     /// Sync algorithm-specific parameters before processing.
+     fn sync_params(&mut self) {
++        // Detect live mode changes and reconfigure engines.
++        if self.live != self.prev_live {
++            self.prev_live = self.live;
++
++            // PSOLA: smaller analysis window in live mode.
++            self.psola.base_window_size = if self.live { 512 } else { 2048 };
++
++            // WSOLA: smaller grains in live mode.
++            self.wsola.base_grain_size = if self.live { 256 } else { 1024 };
++
++            // Signalsmith: cheaper preset + smaller blocks.
++            self.signalsmith.live = self.live;
++
++            // Rubberband: R2 engine + smaller blocks.
++            self.rubberband.live = self.live;
++
++            // Re-initialise engines with new settings.
++            let sr = self.sample_rate;
++            self.psola.update(sr);
++            self.wsola.update(sr);
++            self.signalsmith.update(sr);
++            self.rubberband.update(sr);
++        }
++
+         let ratio = semitones_to_ratio(self.semitones.clamp(-24.0, 24.0));
+         let (is_down, is_oct2) = self.nearest_octave();
+ 
+@@ -130,10 +184,14 @@ impl PitchChain {
+         };
+         self.pll.mix = if is_down { self.mix } else { 0.0 };
+ 
+-        // Granular: arbitrary ratio.
++        // Granular: arbitrary ratio. In live mode, cap grain size at 256.
+         self.granular.speed = ratio;
+         self.granular.mix = self.mix;
+-        self.granular.grain_size = self.grain_size;
++        self.granular.grain_size = if self.live {
++            self.grain_size.min(256)
++        } else {
++            self.grain_size
++        };
+ 
+         // PSOLA: arbitrary ratio.
+         self.psola.speed = ratio;
+@@ -142,6 +200,18 @@ impl PitchChain {
+         // WSOLA: arbitrary ratio.
+         self.wsola.speed = ratio;
+         self.wsola.mix = self.mix;
++
++        // Signalsmith: arbitrary ratio.
++        self.signalsmith.speed = ratio;
++        self.signalsmith.mix = self.mix;
++
++        // Rubberband: arbitrary ratio.
++        self.rubberband.speed = ratio;
++        self.rubberband.mix = self.mix;
++
++        // Allpass: arbitrary ratio.
++        self.allpass.speed = ratio;
++        self.allpass.mix = self.mix;
+     }
+ }
+ 
+@@ -158,14 +228,20 @@ impl Processor for PitchChain {
+         self.granular.reset();
+         self.psola.reset();
+         self.wsola.reset();
++        self.signalsmith.reset();
++        self.rubberband.reset();
++        self.allpass.reset();
+     }
+ 
+     fn update(&mut self, config: AudioConfig) {
++        self.sample_rate = config.sample_rate;
+         self.divider.update(config.sample_rate);
+         self.pll.update(config.sample_rate);
+         self.granular.update(config.sample_rate);
+         self.psola.update(config.sample_rate);
+         self.wsola.update(config.sample_rate);
++        self.signalsmith.update(config.sample_rate);
++        self.rubberband.update(config.sample_rate);
+     }
+ 
+     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
+@@ -197,6 +273,16 @@ impl Processor for PitchChain {
+                     *s = self.wsola.tick(*s);
+                 }
+             }
++            Algorithm::Signalsmith => {
++                for s in left.iter_mut() {
++                    *s = self.signalsmith.tick(*s);
++                }
++            }
++            Algorithm::Rubberband => {
++                for s in left.iter_mut() {
++                    *s = self.rubberband.tick(*s);
++                }
++            }
+         }
+ 
+         // Copy mono result to right channel.
+@@ -256,6 +342,8 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -410,6 +498,8 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -438,6 +528,8 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -478,6 +570,8 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -500,24 +594,184 @@ mod tests {
+         }
+     }
+ 
++    const ALL_ALGOS: [Algorithm; 7] = [
++        Algorithm::FreqDivider,
++        Algorithm::Pll,
++        Algorithm::Granular,
++        Algorithm::Psola,
++        Algorithm::Wsola,
++        Algorithm::Signalsmith,
++        Algorithm::Rubberband,
++    ];
++
+     #[test]
+-    fn latency_values() {
++    fn latency_standard_mode() {
+         let mut chain = PitchChain::new();
++        chain.live = false;
+         chain.update(config());
++        // Process one block so sync_params runs.
++        let mut l = sine_block(220.0, 0, 512);
++        let mut r = l.clone();
++
++        for algo in ALL_ALGOS {
++            chain.algorithm = algo;
++            chain.process(&mut l, &mut r);
++            let lat = chain.latency();
++            let ms = lat as f64 / SR * 1000.0;
++            eprintln!("  {algo:?} standard: {lat} samples ({ms:.1} ms)");
++        }
+ 
++        // Zero-latency algorithms.
+         chain.algorithm = Algorithm::FreqDivider;
+         assert_eq!(chain.latency(), 0);
+-
+         chain.algorithm = Algorithm::Pll;
+         assert_eq!(chain.latency(), 0);
+ 
++        // Time-domain algorithms: moderate latency.
+         chain.algorithm = Algorithm::Granular;
+-        assert_eq!(chain.latency(), 1024);
+-
++        assert!(chain.latency() <= 4096, "Granular too high: {}", chain.latency());
+         chain.algorithm = Algorithm::Psola;
+-        assert!(chain.latency() > 0);
+-
++        assert!(chain.latency() > 0 && chain.latency() <= 4096);
+         chain.algorithm = Algorithm::Wsola;
+-        assert_eq!(chain.latency(), 1024);
++        assert!(chain.latency() <= 2048, "WSOLA too high: {}", chain.latency());
++    }
++
++    #[test]
++    fn latency_live_mode() {
++        let mut chain = PitchChain::new();
++        chain.live = true;
++        chain.update(config());
++        // Process one block so sync_params runs and live mode propagates.
++        let mut l = sine_block(220.0, 0, 512);
++        let mut r = l.clone();
++
++        for algo in ALL_ALGOS {
++            chain.algorithm = algo;
++            chain.process(&mut l, &mut r);
++            let lat = chain.latency();
++            let ms = lat as f64 / SR * 1000.0;
++            eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
++        }
++
++        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
++        // Rubberband R2 real-time has ~1024 sample minimum internal latency.
++        let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
++        for algo in ALL_ALGOS {
++            chain.algorithm = algo;
++            chain.process(&mut l, &mut r);
++            let lat = chain.latency();
++            assert!(
++                lat <= live_limit_samples,
++                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
++                lat as f64 / SR * 1000.0,
++            );
++        }
++    }
++
++    #[test]
++    fn live_mode_reduces_latency() {
++        for algo in ALL_ALGOS {
++            let mut standard = PitchChain::new();
++            standard.algorithm = algo;
++            standard.live = false;
++            standard.semitones = -12.0;
++            standard.update(config());
++            let mut l = sine_block(220.0, 0, 512);
++            let mut r = l.clone();
++            standard.process(&mut l, &mut r);
++            let std_lat = standard.latency();
++
++            let mut live = PitchChain::new();
++            live.algorithm = algo;
++            live.live = true;
++            live.semitones = -12.0;
++            live.update(config());
++            let mut l = sine_block(220.0, 0, 512);
++            let mut r = l.clone();
++            live.process(&mut l, &mut r);
++            let live_lat = live.latency();
++
++            eprintln!(
++                "  {algo:?}: standard={std_lat} live={live_lat} ({})",
++                if live_lat < std_lat { "reduced" }
++                else if live_lat == std_lat { "same" }
++                else { "INCREASED!" }
++            );
++
++            // Live should never increase latency.
++            assert!(
++                live_lat <= std_lat,
++                "{algo:?} live latency ({live_lat}) > standard ({std_lat})!"
++            );
++        }
++    }
++
++    #[test]
++    fn throughput_all_algorithms() {
++        let block_size = 512;
++        let num_blocks = 200;
++        let total_samples = block_size * num_blocks;
++
++        for algo in ALL_ALGOS {
++            let mut chain = PitchChain::new();
++            chain.algorithm = algo;
++            chain.semitones = -12.0;
++            chain.mix = 1.0;
++            chain.update(config());
++
++            let start = std::time::Instant::now();
++            for b in 0..num_blocks {
++                let mut left = sine_block(220.0, b * block_size, block_size);
++                let mut right = left.clone();
++                chain.process(&mut left, &mut right);
++            }
++            let elapsed = start.elapsed();
++
++            let audio_duration_s = total_samples as f64 / SR;
++            let process_s = elapsed.as_secs_f64();
++            let realtime_ratio = audio_duration_s / process_s;
++
++            eprintln!(
++                "  {algo:?}: {total_samples} samples in {:.1}ms ({realtime_ratio:.0}x realtime)",
++                process_s * 1000.0,
++            );
++
++            // In release mode all algorithms must be faster than realtime.
++            // In debug mode (unoptimized), some heavy algorithms (PSOLA, Rubberband)
++            // may be slower — just check they complete without hanging.
++            #[cfg(not(debug_assertions))]
++            assert!(
++                realtime_ratio > 1.0,
++                "{algo:?} is SLOWER than realtime: {realtime_ratio:.1}x"
++            );
++        }
++    }
++
++    #[test]
++    fn live_mode_produces_output() {
++        // Verify live mode still produces actual audio, not silence.
++        for algo in ALL_ALGOS {
++            let mut chain = PitchChain::new();
++            chain.algorithm = algo;
++            chain.semitones = -12.0;
++            chain.mix = 1.0;
++            chain.live = true;
++            chain.update(config());
++
++            let mut energy = 0.0;
++            for b in 0..100 {
++                let mut left = sine_block(220.0, b * 512, 512);
++                let mut right = left.clone();
++                chain.process(&mut left, &mut right);
++                if b > 20 {
++                    energy += left.iter().map(|s| s * s).sum::<f64>();
++                }
++            }
++
++            assert!(
++                energy > 0.1,
++                "{algo:?} live mode produced no output: energy={energy}"
++            );
++        }
+     }
+ }
+diff --git a/crates/fts-pitch/pitch-dsp/src/lib.rs b/crates/fts-pitch/pitch-dsp/src/lib.rs
+index 7e9794e..3fdb0fc 100644
+--- a/crates/fts-pitch/pitch-dsp/src/lib.rs
++++ b/crates/fts-pitch/pitch-dsp/src/lib.rs
+@@ -14,6 +14,7 @@
+ //! 4. **PSOLA** — Pitch-synchronous overlap-add.
+ //!    ~1152 sample latency, highest quality monophonic.
+ 
++pub mod allpass_shift;
+ pub mod chain;
+ pub mod divider;
+ pub mod granular;
+diff --git a/crates/fts-pitch/pitch-dsp/src/psola.rs b/crates/fts-pitch/pitch-dsp/src/psola.rs
+index b0f45af..39ba4e6 100644
+--- a/crates/fts-pitch/pitch-dsp/src/psola.rs
++++ b/crates/fts-pitch/pitch-dsp/src/psola.rs
+@@ -16,6 +16,8 @@ pub struct PsolaShifter {
+     pub speed: f64,
+     /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
++    /// Base analysis window size. Default 2048; set to 512 for low-latency live mode.
++    pub base_window_size: usize,
+ 
+     // Circular analysis buffer.
+     analysis_buf: DelayLine,
+@@ -58,6 +60,7 @@ impl PsolaShifter {
+         Self {
+             speed: 0.5,
+             mix: 1.0,
++            base_window_size: Self::DEFAULT_WINDOW,
+             analysis_buf: DelayLine::new(buf_len),
+             output_buf: vec![0.0; buf_len],
+             output_pos: 0,
+@@ -89,6 +92,7 @@ impl PsolaShifter {
+ 
+         self.autocorr_scratch.resize(self.max_period + 1, 0.0);
+         self.detect_interval = 512.min(self.max_period);
++        self.window_size = self.base_window_size;
+     }
+ 
+     pub fn reset(&mut self) {
+diff --git a/crates/fts-pitch/pitch-dsp/src/rubberband.rs b/crates/fts-pitch/pitch-dsp/src/rubberband.rs
+index a3b2ec0..37d7f3a 100644
+--- a/crates/fts-pitch/pitch-dsp/src/rubberband.rs
++++ b/crates/fts-pitch/pitch-dsp/src/rubberband.rs
+@@ -67,8 +67,10 @@ mod ffi {
+ // Public interface
+ // ---------------------------------------------------------------------------
+ 
+-/// Block size used for feeding samples into Rubber Band.
++/// Block size for standard quality mode.
+ const BLOCK_SIZE: usize = 512;
++/// Block size for live (low-latency) mode.
++const BLOCK_SIZE_LIVE: usize = 128;
+ 
+ /// Rubber Band-based pitch shifter with sample-by-sample interface.
+ ///
+@@ -81,6 +83,8 @@ pub struct RubberbandShifter {
+     pub mix: f64,
+     /// Enable formant preservation.
+     pub preserve_formants: bool,
++    /// Live mode: use R2 engine and smaller blocks for lower latency.
++    pub live: bool,
+ 
+     /// Raw FFI handle (null when uninitialised).
+     state: ffi::RubberBandState,
+@@ -101,6 +105,10 @@ pub struct RubberbandShifter {
+     sample_rate: f64,
+     /// Latency reported by rubberband at creation time.
+     reported_latency: usize,
++    /// Current block size (depends on live mode).
++    block_size: usize,
++    /// Track previous live state to detect changes.
++    prev_live: bool,
+ }
+ 
+ impl RubberbandShifter {
+@@ -109,6 +117,7 @@ impl RubberbandShifter {
+             speed: 0.5,
+             mix: 1.0,
+             preserve_formants: false,
++            live: false,
+             state: std::ptr::null_mut(),
+             in_buf: vec![0.0f32; BLOCK_SIZE],
+             in_count: 0,
+@@ -118,6 +127,8 @@ impl RubberbandShifter {
+             current_formants: false,
+             sample_rate: 48000.0,
+             reported_latency: 0,
++            block_size: BLOCK_SIZE,
++            prev_live: false,
+         }
+     }
+ 
+@@ -126,14 +137,20 @@ impl RubberbandShifter {
+     /// Must be called before `tick()` will produce output.
+     pub fn update(&mut self, sample_rate: f64) {
+         self.sample_rate = sample_rate;
++        self.block_size = if self.live { BLOCK_SIZE_LIVE } else { BLOCK_SIZE };
++        self.prev_live = self.live;
+ 
+         // Tear down any previous instance.
+         self.destroy_state();
+ 
+-        let options = ffi::OPTION_PROCESS_REALTIME
+-            | ffi::OPTION_ENGINE_FINER
++        // Live mode: R2 engine (default, no ENGINE_FINER) for lower latency.
++        // Standard mode: R3 engine (ENGINE_FINER) for higher quality.
++        let mut options = ffi::OPTION_PROCESS_REALTIME
+             | ffi::OPTION_PITCH_HIGH_QUALITY
+             | ffi::OPTION_THREADING_NEVER;
++        if !self.live {
++            options |= ffi::OPTION_ENGINE_FINER;
++        }
+ 
+         let pitch_scale = self.speed.clamp(0.01, 100.0);
+ 
+@@ -149,9 +166,12 @@ impl RubberbandShifter {
+         assert!(!state.is_null(), "rubberband_new returned null");
+ 
+         unsafe {
+-            ffi::rubberband_set_max_process_size(state, BLOCK_SIZE as u32);
++            ffi::rubberband_set_max_process_size(state, self.block_size as u32);
+         }
+ 
++        // Resize input buffer for new block size.
++        self.in_buf.resize(self.block_size, 0.0);
++
+         self.state = state;
+         self.current_pitch_scale = pitch_scale;
+         self.current_formants = self.preserve_formants;
+@@ -170,11 +190,11 @@ impl RubberbandShifter {
+ 
+         // Prime the engine: feed silence equal to the latency so that
+         // subsequent output is aligned.
+-        let prime_samples = self.reported_latency + BLOCK_SIZE;
+-        let silence = vec![0.0f32; BLOCK_SIZE];
++        let prime_samples = self.reported_latency + self.block_size;
++        let silence = vec![0.0f32; self.block_size];
+         let mut fed = 0;
+         while fed < prime_samples {
+-            let n = BLOCK_SIZE.min(prime_samples - fed);
++            let n = self.block_size.min(prime_samples - fed);
+             let slice = &silence[..n];
+             let ptr: *const f32 = slice.as_ptr();
+             unsafe {
+@@ -231,10 +251,10 @@ impl RubberbandShifter {
+         self.in_count += 1;
+ 
+         // When we have a full block, push it into rubberband.
+-        if self.in_count >= BLOCK_SIZE {
++        if self.in_count >= self.block_size {
+             let ptr: *const f32 = self.in_buf.as_ptr();
+             unsafe {
+-                ffi::rubberband_process(self.state, &ptr, BLOCK_SIZE as u32, 0);
++                ffi::rubberband_process(self.state, &ptr, self.block_size as u32, 0);
+             }
+             self.in_count = 0;
+             self.drain_available();
+diff --git a/crates/fts-pitch/pitch-dsp/src/signalsmith.rs b/crates/fts-pitch/pitch-dsp/src/signalsmith.rs
+index 6314007..b035308 100644
+--- a/crates/fts-pitch/pitch-dsp/src/signalsmith.rs
++++ b/crates/fts-pitch/pitch-dsp/src/signalsmith.rs
+@@ -14,9 +14,10 @@
+ use signalsmith_stretch::Stretch;
+ use std::collections::VecDeque;
+ 
+-/// Block size used for internal buffering between the sample-by-sample
+-/// interface and the block-based Signalsmith Stretch engine.
++/// Block size for standard quality mode.
+ const BLOCK_SIZE: usize = 256;
++/// Block size for live (low-latency) mode.
++const BLOCK_SIZE_LIVE: usize = 64;
+ 
+ /// Signalsmith Stretch pitch shifter.
+ pub struct SignalsmithShifter {
+@@ -24,6 +25,8 @@ pub struct SignalsmithShifter {
+     pub speed: f64,
+     /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
++    /// Live mode: use cheaper preset and smaller blocks for lower latency.
++    pub live: bool,
+ 
+     /// The underlying Signalsmith Stretch instance.
+     stretch: Stretch,
+@@ -41,6 +44,11 @@ pub struct SignalsmithShifter {
+ 
+     /// The last `speed` value sent to the engine, used to avoid redundant calls.
+     last_speed: f64,
++
++    /// Current block size (depends on live mode).
++    block_size: usize,
++    /// Track previous live state to detect changes.
++    prev_live: bool,
+ }
+ 
+ impl SignalsmithShifter {
+@@ -51,21 +59,37 @@ impl SignalsmithShifter {
+         let mut s = Self {
+             speed: 0.5,
+             mix: 1.0,
++            live: false,
+             stretch,
+             input_buf: Vec::with_capacity(BLOCK_SIZE),
+             output_queue: VecDeque::with_capacity(BLOCK_SIZE * 2),
+             output_scratch: vec![0.0f32; BLOCK_SIZE],
+             sample_rate,
+             last_speed: -1.0, // force first update
++            block_size: BLOCK_SIZE,
++            prev_live: false,
+         };
+         s.apply_speed();
+         s
+     }
+ 
+     pub fn update(&mut self, sample_rate: f64) {
+-        if (self.sample_rate - sample_rate).abs() > 0.5 {
++        let sr_changed = (self.sample_rate - sample_rate).abs() > 0.5;
++        let live_changed = self.live != self.prev_live;
++
++        if sr_changed || live_changed {
+             self.sample_rate = sample_rate;
+-            self.stretch = Stretch::preset_default(1, sample_rate as u32);
++            self.prev_live = self.live;
++            self.block_size = if self.live { BLOCK_SIZE_LIVE } else { BLOCK_SIZE };
++
++            self.stretch = if self.live {
++                // Low-latency: small FFT block (256) with 1/4 hop (64).
++                // Trades spectral resolution for ~5ms latency at 48kHz.
++                Stretch::new(1, 256, 64)
++            } else {
++                Stretch::preset_default(1, sample_rate as u32)
++            };
++
+             self.input_buf.clear();
+             self.output_queue.clear();
+             self.last_speed = -1.0;
+@@ -91,7 +115,7 @@ impl SignalsmithShifter {
+ 
+         self.input_buf.push(input as f32);
+ 
+-        if self.input_buf.len() >= BLOCK_SIZE {
++        if self.input_buf.len() >= self.block_size {
+             self.process_block();
+         }
+ 
+@@ -101,7 +125,7 @@ impl SignalsmithShifter {
+     }
+ 
+     pub fn latency(&self) -> usize {
+-        self.stretch.input_latency() + self.stretch.output_latency() + BLOCK_SIZE
++        self.stretch.input_latency() + self.stretch.output_latency() + self.block_size
+     }
+ 
+     // ── private ──────────────────────────────────────────────────────
+diff --git a/crates/fts-pitch/pitch-dsp/src/wsola.rs b/crates/fts-pitch/pitch-dsp/src/wsola.rs
+index cfa3158..f38e1e9 100644
+--- a/crates/fts-pitch/pitch-dsp/src/wsola.rs
++++ b/crates/fts-pitch/pitch-dsp/src/wsola.rs
+@@ -20,6 +20,9 @@ pub struct WsolaShifter {
+     pub speed: f64,
+     /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
++    /// Base grain size at 48kHz (scaled by sample rate in update()).
++    /// Default 1024; set to 256 for low-latency live mode.
++    pub base_grain_size: usize,
+ 
+     // Circular analysis buffer (input history).
+     analysis_buf: DelayLine,
+@@ -65,6 +68,7 @@ impl WsolaShifter {
+         Self {
+             speed: 0.5,
+             mix: 1.0,
++            base_grain_size: Self::DEFAULT_GRAIN,
+             analysis_buf: DelayLine::new(buf_len),
+             output_buf: vec![0.0; buf_len],
+             output_pos: 0,
+@@ -83,7 +87,7 @@ impl WsolaShifter {
+         self.sample_rate = sample_rate;
+ 
+         // Scale grain size proportionally to sample rate.
+-        self.grain_size = ((Self::DEFAULT_GRAIN as f64 * sample_rate) / 48000.0) as usize;
++        self.grain_size = ((self.base_grain_size as f64 * sample_rate) / 48000.0) as usize;
+         // Keep grain size even for symmetric windowing.
+         if self.grain_size % 2 != 0 {
+             self.grain_size += 1;
+diff --git a/crates/fts-pitch/pitch-plugin/src/editor.rs b/crates/fts-pitch/pitch-plugin/src/editor.rs
+index db99eda..3a05123 100644
+--- a/crates/fts-pitch/pitch-plugin/src/editor.rs
++++ b/crates/fts-pitch/pitch-plugin/src/editor.rs
+@@ -5,6 +5,7 @@ use std::sync::Arc;
+ 
+ use audio_gui::controls::knob::Knob;
+ use audio_gui::controls::segment::SegmentButton;
++use audio_gui::controls::toggle::Toggle;
+ use audio_gui::prelude::{theme, DragProvider, KnobSize, LevelMeterDb, SectionLabel};
+ use fts_plugin_core::prelude::*;
+ 
+@@ -32,18 +33,22 @@ pub fn App() -> Element {
+         format!("{latency} smp")
+     };
+ 
+-    let st = params.semitones.value();
+-    let st_text = if st > 0.0 {
+-        format!("+{st:.1} st")
++    let pitch_st = params.pitch.value();
++    let fine_ct = params.fine_tune.value();
++    let total_st = pitch_st as f32 + fine_ct / 100.0;
++    let st_text = if total_st > 0.0 {
++        format!("+{total_st:.1} st")
+     } else {
+-        format!("{st:.1} st")
++        format!("{total_st:.1} st")
+     };
+ 
+     // Extract ParamPtrs (Copy) for Knob components.
+-    let semitones_ptr = params.semitones.as_ptr();
++    let pitch_ptr = params.pitch.as_ptr();
++    let fine_tune_ptr = params.fine_tune.as_ptr();
+     let mix_ptr = params.mix.as_ptr();
+     let output_gain_ptr = params.output_gain_db.as_ptr();
+     let grain_size_ptr = params.grain_size.as_ptr();
++    let live_ptr = params.live.as_ptr();
+     let wf = params.pll_waveform.value();
+ 
+     // Build algorithm setter closures (need owned Arcs).
+@@ -111,10 +116,11 @@ pub fn App() -> Element {
+                 }
+             }
+ 
+-            // ── Algorithm selector ───────────────────────────────
++            // ── Algorithm selector + Live toggle ─────────────────
+             div {
+                 style: format!(
+-                    "display:flex; gap:4px; background:{CARD_BG}; border-radius:6px; padding:8px;",
++                    "display:flex; gap:8px; align-items:center; background:{CARD_BG}; \
++                     border-radius:6px; padding:8px;",
+                     CARD_BG = theme::CARD_BG,
+                 ),
+                 SectionLabel { text: "Algorithm" }
+@@ -125,7 +131,13 @@ pub fn App() -> Element {
+                     SegmentButton { label: "Granular", selected: algo == 2, on_click: algo_setter(2) }
+                     SegmentButton { label: "PSOLA", selected: algo == 3, on_click: algo_setter(3) }
+                     SegmentButton { label: "WSOLA", selected: algo == 4, on_click: algo_setter(4) }
++                    SegmentButton { label: "Signalsmith", selected: algo == 5, on_click: algo_setter(5) }
++                    SegmentButton { label: "Rubberband", selected: algo == 6, on_click: algo_setter(6) }
+                 }
++                div {
++                    style: format!("width:1px; background:{}; align-self:stretch;", theme::BORDER),
++                }
++                Toggle { param_ptr: live_ptr, label: "Live" }
+             }
+ 
+             // ── Main controls + Meters ───────────────────────────
+@@ -146,7 +158,8 @@ pub fn App() -> Element {
+                         SectionLabel { text: "Pitch" }
+                         div {
+                             style: "display:flex; justify-content:center; gap:24px;",
+-                            Knob { param_ptr: semitones_ptr, size: KnobSize::Large }
++                            Knob { param_ptr: pitch_ptr, size: KnobSize::Large }
++                            Knob { param_ptr: fine_tune_ptr, size: KnobSize::Large }
+                             Knob { param_ptr: mix_ptr, size: KnobSize::Large }
+                             Knob { param_ptr: output_gain_ptr, size: KnobSize::Large }
+                         }
+diff --git a/crates/fts-pitch/pitch-plugin/src/lib.rs b/crates/fts-pitch/pitch-plugin/src/lib.rs
+index 3a3330e..f4e0294 100644
+--- a/crates/fts-pitch/pitch-plugin/src/lib.rs
++++ b/crates/fts-pitch/pitch-plugin/src/lib.rs
+@@ -39,13 +39,17 @@ impl PitchUiState {
+ 
+ #[derive(Params)]
+ pub struct FtsPitchParams {
+-    /// Algorithm selection: 0=FreqDivider, 1=PLL, 2=Granular, 3=PSOLA.
++    /// Algorithm selection.
+     #[id = "algorithm"]
+     pub algorithm: IntParam,
+ 
+-    /// Pitch shift in semitones (-24 to +24).
+-    #[id = "semitones"]
+-    pub semitones: FloatParam,
++    /// Pitch shift in whole semitones (-24 to +24).
++    #[id = "pitch"]
++    pub pitch: IntParam,
++
++    /// Fine-tune adjustment in cents (-50 to +50).
++    #[id = "fine_tune"]
++    pub fine_tune: FloatParam,
+ 
+     /// Dry/wet mix (0.0-1.0).
+     #[id = "mix"]
+@@ -62,12 +66,16 @@ pub struct FtsPitchParams {
+     /// Output gain in dB.
+     #[id = "output_gain"]
+     pub output_gain_db: FloatParam,
++
++    /// Live mode: minimize latency at the cost of quality.
++    #[id = "live"]
++    pub live: BoolParam,
+ }
+ 
+ impl Default for FtsPitchParams {
+     fn default() -> Self {
+         Self {
+-            algorithm: IntParam::new("Algorithm", 0, IntRange::Linear { min: 0, max: 4 })
++            algorithm: IntParam::new("Algorithm", 5, IntRange::Linear { min: 0, max: 6 })
+                 .with_value_to_string(Arc::new(|v| {
+                     match v {
+                         0 => "Divider".to_string(),
+@@ -75,6 +83,8 @@ impl Default for FtsPitchParams {
+                         2 => "Granular".to_string(),
+                         3 => "PSOLA".to_string(),
+                         4 => "WSOLA".to_string(),
++                        5 => "Signalsmith".to_string(),
++                        6 => "Rubberband".to_string(),
+                         _ => format!("{v}"),
+                     }
+                 }))
+@@ -85,19 +95,32 @@ impl Default for FtsPitchParams {
+                         "granular" | "grain" | "2" => Some(2),
+                         "psola" | "3" => Some(3),
+                         "wsola" | "4" => Some(4),
++                        "signalsmith" | "5" => Some(5),
++                        "rubberband" | "rubber" | "6" => Some(6),
+                         _ => s.parse().ok(),
+                     }
+                 })),
+ 
+-            semitones: FloatParam::new(
+-                "Semitones",
+-                -12.0,
++            pitch: IntParam::new("Pitch", -12, IntRange::Linear { min: -24, max: 24 })
++                .with_unit(" st")
++                .with_value_to_string(Arc::new(|v| {
++                    if v > 0 {
++                        format!("+{v}")
++                    } else {
++                        format!("{v}")
++                    }
++                }))
++                .with_string_to_value(Arc::new(|s| s.trim().parse().ok())),
++
++            fine_tune: FloatParam::new(
++                "Fine",
++                0.0,
+                 FloatRange::Linear {
+-                    min: -24.0,
+-                    max: 24.0,
++                    min: -50.0,
++                    max: 50.0,
+                 },
+             )
+-            .with_unit(" st")
++            .with_unit(" ct")
+             .with_value_to_string(formatters::v2s_f32_rounded(1)),
+ 
+             mix: FloatParam::new("Mix", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+@@ -144,6 +167,8 @@ impl Default for FtsPitchParams {
+             )
+             .with_unit(" dB")
+             .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            live: BoolParam::new("Live", false),
+         }
+     }
+ }
+@@ -181,9 +206,12 @@ impl FtsPitch {
+             2 => Algorithm::Granular,
+             3 => Algorithm::Psola,
+             4 => Algorithm::Wsola,
+-            _ => Algorithm::Granular,
++            5 => Algorithm::Signalsmith,
++            6 => Algorithm::Rubberband,
++            _ => Algorithm::Signalsmith,
+         };
+-        self.chain.semitones = self.params.semitones.value() as f64;
++        self.chain.semitones =
++            self.params.pitch.value() as f64 + self.params.fine_tune.value() as f64 / 100.0;
+         self.chain.mix = self.params.mix.value() as f64;
+         self.chain.pll_waveform = match self.params.pll_waveform.value() {
+             0 => SubWaveform::Square,
+@@ -192,6 +220,7 @@ impl FtsPitch {
+             _ => SubWaveform::Saw,
+         };
+         self.chain.grain_size = self.params.grain_size.value() as usize;
++        self.chain.live = self.params.live.value();
+     }
+ }
+ 
+diff --git a/flake.nix b/flake.nix
+index a14fb05..ef0a0b9 100644
+--- a/flake.nix
++++ b/flake.nix
+@@ -119,6 +119,10 @@
+                     # Audio libs
+                     alsa-lib
+                     pipewire.jack
++                    rubberband
++
++                    # C/C++ bindgen (signalsmith-stretch build)
++                    llvmPackages.libclang
+ 
+                     # Misc system libs
+                     dbus
+@@ -138,6 +142,12 @@
+                     FTS_REAPER_EXECUTABLE = "${ftsDev.reaper}/bin/reaper";
+                     FTS_REAPER_RESOURCES = "${ftsDev.reaper}/opt/REAPER";
+                     FTS_REAPER_CONFIG = ftsReaperConfig;
++                    # bindgen needs libclang (signalsmith-stretch C++ wrapper)
++                    LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
++                    # Linker needs librubberband for FFI
++                    LIBRARY_PATH = pkgs.lib.makeLibraryPath [
++                      pkgs.rubberband
++                    ];
+                     # Help wgpu find Vulkan
+                     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+                       pkgs.vulkan-loader

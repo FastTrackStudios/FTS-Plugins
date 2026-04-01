@@ -1,0 +1,49 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index cc8c0e2..60f8976 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -4980,6 +4980,20 @@ dependencies = [
+  "realfft",
+ ]
+ 
++[[package]]
++name = "meter-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "fts-plugin-core",
++ "meter-dsp",
++ "meter-ui",
++ "nih_plug",
++ "nih_plug_dioxus",
++ "parking_lot",
++]
++
+ [[package]]
+ name = "meter-ui"
+ version = "0.1.0"
+diff --git a/Cargo.toml b/Cargo.toml
+index 63a9ff0..4bbdc44 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -85,6 +85,7 @@ members = [
+     # Metering library
+     "crates/fts-meter/meter-dsp",
+     "crates/fts-meter/meter-ui",
++    "crates/fts-meter/meter-plugin",
+ 
+     # Pitch plugin (octave shifter)
+     "crates/fts-pitch/pitch-dsp",
+diff --git a/Justfile b/Justfile
+index 315cc7b..b61e17a 100644
+--- a/Justfile
++++ b/Justfile
+@@ -96,6 +96,7 @@ install-all:
+     just install trem-plugin
+     just install nam-plugin
+     just install midi-guitar-plugin
++    just install meter-plugin
+ 
+ # Install and show REAPER reload instructions
+ install-reload plugin=PLUGIN_NAME: (install plugin)

@@ -1,0 +1,1463 @@
+diff --git a/crates/audio-gui/src/viz/mod.rs b/crates/audio-gui/src/viz/mod.rs
+index 4fd8470..170bc23 100644
+--- a/crates/audio-gui/src/viz/mod.rs
++++ b/crates/audio-gui/src/viz/mod.rs
+@@ -5,8 +5,8 @@ pub mod transfer_curve;
+ pub mod waveform;
+ 
+ pub use eq_graph::{
+-    EqBand, EqBandShape, EqGraph, StereoMode, get_band_color, get_band_fill_color, q_to_slope_db,
+-    slope_db_to_q, MAX_BANDS,
++    get_band_color, get_band_fill_color, q_to_slope_db, slope_db_to_q, EqBand, EqBandShape,
++    EqGraph, StereoMode, MAX_BANDS,
+ };
+ pub use transfer_curve::TransferCurve;
+ pub use waveform::{PeakWaveform, WaveformDisplay};
+diff --git a/crates/fts-comp/comp-dsp/src/compressor.rs b/crates/fts-comp/comp-dsp/src/compressor.rs
+index bc4125c..32ac854 100644
+--- a/crates/fts-comp/comp-dsp/src/compressor.rs
++++ b/crates/fts-comp/comp-dsp/src/compressor.rs
+@@ -191,4 +191,3 @@ impl Default for Compressor {
+         Self::new()
+     }
+ }
+-
+diff --git a/crates/fts-comp/comp-plugin/src/editor.rs b/crates/fts-comp/comp-plugin/src/editor.rs
+index 6d3b906..3a3ef9d 100644
+--- a/crates/fts-comp/comp-plugin/src/editor.rs
++++ b/crates/fts-comp/comp-plugin/src/editor.rs
+@@ -8,8 +8,8 @@ use std::sync::atomic::Ordering;
+ use audio_gui::controls::knob::Knob;
+ use audio_gui::controls::toggle::Toggle;
+ use audio_gui::prelude::{
+-    theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform,
+-    SectionLabel, TransferCurve,
++    theme, ControlGroup, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform, SectionLabel,
++    TransferCurve,
+ };
+ use fts_plugin_core::prelude::*;
+ 
+@@ -248,4 +248,3 @@ pub fn App() -> Element {
+         } // DragProvider
+     }
+ }
+-
+diff --git a/crates/fts-livetune/livetune-dsp/src/bitstream.rs b/crates/fts-livetune/livetune-dsp/src/bitstream.rs
+index 02ea779..477c022 100644
+--- a/crates/fts-livetune/livetune-dsp/src/bitstream.rs
++++ b/crates/fts-livetune/livetune-dsp/src/bitstream.rs
+@@ -40,7 +40,14 @@ struct Svf {
+ 
+ impl Svf {
+     fn new() -> Self {
+-        Self { ic1eq: 0.0, ic2eq: 0.0, a1: 0.0, a2: 0.0, a3: 0.0, k: 1.0 }
++        Self {
++            ic1eq: 0.0,
++            ic2eq: 0.0,
++            a1: 0.0,
++            a2: 0.0,
++            a3: 0.0,
++            k: 1.0,
++        }
+     }
+ 
+     fn set_params(&mut self, freq: f64, q: f64, sample_rate: f64) {
+@@ -236,7 +243,11 @@ impl BitstreamDetector {
+             rms += s * s;
+         }
+         rms = (rms / n as f64).sqrt();
+-        let db = if rms > 1e-20 { 20.0 * rms.log10() } else { -120.0 };
++        let db = if rms > 1e-20 {
++            20.0 * rms.log10()
++        } else {
++            -120.0
++        };
+         if db < self.gate_db {
+             return PitchEstimate::unvoiced();
+         }
+@@ -324,8 +335,7 @@ impl BitstreamDetector {
+                 let idx_a = (start + i) % n_words;
+                 let idx_b1 = (start + i + word_offset) % n_words;
+                 let idx_b2 = (start + i + word_offset + 1) % n_words;
+-                let shifted = (self.words[idx_b1] >> bit_shift)
+-                    | (self.words[idx_b2] << shift2);
++                let shifted = (self.words[idx_b1] >> bit_shift) | (self.words[idx_b2] << shift2);
+                 mismatch += (self.words[idx_a] ^ shifted).count_ones();
+             }
+         }
+diff --git a/crates/fts-livetune/livetune-dsp/src/chain.rs b/crates/fts-livetune/livetune-dsp/src/chain.rs
+index c03bbe1..8d4a67e 100644
+--- a/crates/fts-livetune/livetune-dsp/src/chain.rs
++++ b/crates/fts-livetune/livetune-dsp/src/chain.rs
+@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
+ use crate::bitstream::BitstreamDetector;
+ use crate::detector::{PitchDetector, PitchEstimate};
+ use crate::mpm::MpmDetector;
+-use crate::pyin::PyinDetector;
+ use crate::pvsola::PvsolaShifter;
++use crate::pyin::PyinDetector;
+ use crate::quantizer::{Key, NoteState, Scale, ScaleQuantizer};
+ use crate::vocoder::FormantVocoder;
+ use crate::yaapt::YaaptDetector;
+diff --git a/crates/fts-livetune/livetune-dsp/src/crepe.rs b/crates/fts-livetune/livetune-dsp/src/crepe.rs
+index 8dd16b9..20b0e59 100644
+--- a/crates/fts-livetune/livetune-dsp/src/crepe.rs
++++ b/crates/fts-livetune/livetune-dsp/src/crepe.rs
+@@ -185,9 +185,7 @@ impl CrepeDetector {
+     fn try_load_model(&mut self) {
+         if let Some(ref path) = self.model_path {
+             match ort::session::Session::builder()
+-                .and_then(|mut b: ort::session::builder::SessionBuilder| {
+-                    b.commit_from_file(path)
+-                })
++                .and_then(|mut b: ort::session::builder::SessionBuilder| b.commit_from_file(path))
+             {
+                 Ok(sess) => {
+                     self.session = Some(sess);
+@@ -228,8 +226,7 @@ impl CrepeDetector {
+ 
+         // Normalise the frame (zero-mean, unit-variance).
+         let mut normalised = [0.0f32; FRAME_SIZE];
+-        let mean: f32 =
+-            self.frame_buf.iter().copied().sum::<f32>() / FRAME_SIZE as f32;
++        let mean: f32 = self.frame_buf.iter().copied().sum::<f32>() / FRAME_SIZE as f32;
+         let var: f32 = self
+             .frame_buf
+             .iter()
+diff --git a/crates/fts-livetune/livetune-dsp/src/fcpe.rs b/crates/fts-livetune/livetune-dsp/src/fcpe.rs
+index c8c84ff..b35ce56 100644
+--- a/crates/fts-livetune/livetune-dsp/src/fcpe.rs
++++ b/crates/fts-livetune/livetune-dsp/src/fcpe.rs
+@@ -558,7 +558,10 @@ mod tests {
+         for i in 0..48000 {
+             let sample = (2.0 * PI * freq * i as f64 / SR).sin() * 0.8;
+             let est = d.tick(sample);
+-            assert!(est.freq_hz.is_finite(), "freq_hz is not finite at sample {i}");
++            assert!(
++                est.freq_hz.is_finite(),
++                "freq_hz is not finite at sample {i}"
++            );
+             assert!(
+                 est.semitones.is_finite(),
+                 "semitones is not finite at sample {i}"
+diff --git a/crates/fts-livetune/livetune-dsp/src/mpm.rs b/crates/fts-livetune/livetune-dsp/src/mpm.rs
+index 06f014d..3a62cbe 100644
+--- a/crates/fts-livetune/livetune-dsp/src/mpm.rs
++++ b/crates/fts-livetune/livetune-dsp/src/mpm.rs
+@@ -34,7 +34,14 @@ struct Svf {
+ 
+ impl Svf {
+     fn new() -> Self {
+-        Self { ic1eq: 0.0, ic2eq: 0.0, a1: 0.0, a2: 0.0, a3: 0.0, k: 1.0 }
++        Self {
++            ic1eq: 0.0,
++            ic2eq: 0.0,
++            a1: 0.0,
++            a2: 0.0,
++            a3: 0.0,
++            k: 1.0,
++        }
+     }
+ 
+     fn set_params(&mut self, freq: f64, q: f64, sample_rate: f64) {
+@@ -184,7 +191,11 @@ impl MpmDetector {
+             power += s * s;
+         }
+         let rms = (power / w as f64).sqrt();
+-        let db = if rms > 1e-20 { 20.0 * rms.log10() } else { -120.0 };
++        let db = if rms > 1e-20 {
++            20.0 * rms.log10()
++        } else {
++            -120.0
++        };
+         if db < self.gate_db {
+             return PitchEstimate::unvoiced();
+         }
+@@ -206,10 +217,7 @@ impl MpmDetector {
+         }
+ 
+         // Find highest amplitude among key maxima.
+-        let highest_amp = key_maxima
+-            .iter()
+-            .map(|&(_, a)| a)
+-            .fold(0.0f64, f64::max);
++        let highest_amp = key_maxima.iter().map(|&(_, a)| a).fold(0.0f64, f64::max);
+ 
+         if highest_amp < SMALL_CUTOFF {
+             return PitchEstimate::unvoiced();
+@@ -284,11 +292,7 @@ impl MpmDetector {
+                 r += frame[j] * frame[j + tau];
+             }
+ 
+-            self.nsdf[tau] = if m_tau > 1e-20 {
+-                2.0 * r / m_tau
+-            } else {
+-                0.0
+-            };
++            self.nsdf[tau] = if m_tau > 1e-20 { 2.0 * r / m_tau } else { 0.0 };
+         }
+     }
+ 
+diff --git a/crates/fts-livetune/livetune-dsp/src/pesto.rs b/crates/fts-livetune/livetune-dsp/src/pesto.rs
+index f76ae21..9bb2d24 100644
+--- a/crates/fts-livetune/livetune-dsp/src/pesto.rs
++++ b/crates/fts-livetune/livetune-dsp/src/pesto.rs
+@@ -330,7 +330,11 @@ impl PestoDetector {
+             sum_w += w;
+             sum_wm += w * i as f64;
+         }
+-        let midi = if sum_w > 1e-12 { sum_wm / sum_w } else { peak_idx as f64 };
++        let midi = if sum_w > 1e-12 {
++            sum_wm / sum_w
++        } else {
++            peak_idx as f64
++        };
+ 
+         // Confidence: peak activation normalised against sum.
+         let total: f64 = values.iter().map(|v| v.max(0.0) as f64).sum();
+diff --git a/crates/fts-livetune/livetune-dsp/src/pvsola.rs b/crates/fts-livetune/livetune-dsp/src/pvsola.rs
+index b76b116..3d51e5c 100644
+--- a/crates/fts-livetune/livetune-dsp/src/pvsola.rs
++++ b/crates/fts-livetune/livetune-dsp/src/pvsola.rs
+@@ -324,8 +324,7 @@ impl PvsolaShifter {
+             src_indices[i] = src_idx;
+ 
+             if src_idx < NUM_BINS - 1 {
+-                new_mag[i] =
+-                    self.pv_mag[src_idx] * (1.0 - frac) + self.pv_mag[src_idx + 1] * frac;
++                new_mag[i] = self.pv_mag[src_idx] * (1.0 - frac) + self.pv_mag[src_idx + 1] * frac;
+             }
+         }
+ 
+@@ -469,7 +468,11 @@ impl PvsolaShifter {
+                     e2 += buf[idx_b] * buf[idx_b];
+                 }
+                 let denom = (e1 * e2).sqrt();
+-                if denom > 1e-20 { corr / denom } else { 0.0 }
++                if denom > 1e-20 {
++                    corr / denom
++                } else {
++                    0.0
++                }
+             };
+             let c_prev = compute_corr(best_lag - 1);
+             let c_next = compute_corr(best_lag + 1);
+diff --git a/crates/fts-livetune/livetune-dsp/src/pyin.rs b/crates/fts-livetune/livetune-dsp/src/pyin.rs
+index 129428f..e5f60b5 100644
+--- a/crates/fts-livetune/livetune-dsp/src/pyin.rs
++++ b/crates/fts-livetune/livetune-dsp/src/pyin.rs
+@@ -73,7 +73,14 @@ struct Svf {
+ 
+ impl Svf {
+     fn new() -> Self {
+-        Self { ic1eq: 0.0, ic2eq: 0.0, a1: 0.0, a2: 0.0, a3: 0.0, k: 1.0 }
++        Self {
++            ic1eq: 0.0,
++            ic2eq: 0.0,
++            a1: 0.0,
++            a2: 0.0,
++            a3: 0.0,
++            k: 1.0,
++        }
+     }
+ 
+     fn set_params(&mut self, freq: f64, q: f64, sample_rate: f64) {
+@@ -259,7 +266,11 @@ impl PyinDetector {
+             rms += s * s;
+         }
+         rms = (rms / w as f64).sqrt();
+-        let db = if rms > 1e-20 { 20.0 * rms.log10() } else { -120.0 };
++        let db = if rms > 1e-20 {
++            20.0 * rms.log10()
++        } else {
++            -120.0
++        };
+ 
+         if db < self.gate_db {
+             // Unvoiced observation.
+@@ -412,8 +423,8 @@ impl PyinDetector {
+         // Map candidates to pitch bins.
+         for c in &candidates {
+             if c.freq_hz >= F_MIN && c.freq_hz <= F_MAX {
+-                let bin = (12.0 * BINS_PER_SEMITONE as f64 * (c.freq_hz / F_MIN).log2()).round()
+-                    as usize;
++                let bin =
++                    (12.0 * BINS_PER_SEMITONE as f64 * (c.freq_hz / F_MIN).log2()).round() as usize;
+                 if bin < n {
+                     obs[bin] += c.probability;
+                 }
+@@ -562,7 +573,9 @@ impl PyinDetector {
+             let semitones = 12.0 * (freq / self.a_freq).log2();
+             let midi_note = 69.0 + semitones;
+             // Confidence from the observation probability.
+-            let confidence = self.obs_frames.last()
++            let confidence = self
++                .obs_frames
++                .last()
+                 .and_then(|obs| obs.get(final_state))
+                 .copied()
+                 .unwrap_or(0.0)
+diff --git a/crates/fts-livetune/livetune-dsp/src/rmvpe.rs b/crates/fts-livetune/livetune-dsp/src/rmvpe.rs
+index 1adbc59..7b7ffea 100644
+--- a/crates/fts-livetune/livetune-dsp/src/rmvpe.rs
++++ b/crates/fts-livetune/livetune-dsp/src/rmvpe.rs
+@@ -389,9 +389,7 @@ impl RmvpeDetector {
+             _ => return,
+         };
+ 
+-        match ort::session::Session::builder()
+-            .and_then(|mut b| b.commit_from_file(&path))
+-        {
++        match ort::session::Session::builder().and_then(|mut b| b.commit_from_file(&path)) {
+             Ok(s) => {
+                 self.session = Some(s);
+             }
+@@ -435,15 +433,14 @@ impl RmvpeDetector {
+         self.mel_frames.push(last);
+ 
+         // Build ONNX input tensor using (shape, data) tuple.
+-        let input_tensor = match ort::value::Tensor::<f32>::from_array(
+-            ([1usize, n_frames, N_MELS], mel_f32),
+-        ) {
+-            Ok(t) => t,
+-            Err(_) => {
+-                self.last_estimate = PitchEstimate::unvoiced();
+-                return;
+-            }
+-        };
++        let input_tensor =
++            match ort::value::Tensor::<f32>::from_array(([1usize, n_frames, N_MELS], mel_f32)) {
++                Ok(t) => t,
++                Err(_) => {
++                    self.last_estimate = PitchEstimate::unvoiced();
++                    return;
++                }
++            };
+ 
+         let session = self.session.as_mut().unwrap();
+         let outputs = match session.run(ort::inputs![input_tensor]) {
+diff --git a/crates/fts-livetune/livetune-dsp/src/swiftf0.rs b/crates/fts-livetune/livetune-dsp/src/swiftf0.rs
+index af15f34..b712a65 100644
+--- a/crates/fts-livetune/livetune-dsp/src/swiftf0.rs
++++ b/crates/fts-livetune/livetune-dsp/src/swiftf0.rs
+@@ -181,12 +181,11 @@ impl SwiftF0Detector {
+         }
+ 
+         // Construct the ONNX input tensor [1, 512].
+-        let input_tensor = match ort::value::Tensor::from_array(
+-            (vec![1i64, FRAME_SIZE as i64], ordered),
+-        ) {
+-            Ok(t) => t,
+-            Err(_) => return PitchEstimate::unvoiced(),
+-        };
++        let input_tensor =
++            match ort::value::Tensor::from_array((vec![1i64, FRAME_SIZE as i64], ordered)) {
++                Ok(t) => t,
++                Err(_) => return PitchEstimate::unvoiced(),
++            };
+ 
+         let session = self.session.as_mut().unwrap();
+ 
+diff --git a/crates/fts-livetune/livetune-dsp/src/vocoder.rs b/crates/fts-livetune/livetune-dsp/src/vocoder.rs
+index c9ab267..2e3f786 100644
+--- a/crates/fts-livetune/livetune-dsp/src/vocoder.rs
++++ b/crates/fts-livetune/livetune-dsp/src/vocoder.rs
+@@ -312,7 +312,9 @@ impl FormantVocoder {
+             }
+             if let Some(rp) = last_peak {
+                 let lp = self.nearest_peak[i];
+-                if (rp as isize - i as isize).unsigned_abs() < (lp as isize - i as isize).unsigned_abs() {
++                if (rp as isize - i as isize).unsigned_abs()
++                    < (lp as isize - i as isize).unsigned_abs()
++                {
+                     self.nearest_peak[i] = rp;
+                 }
+             }
+@@ -328,7 +330,8 @@ impl FormantVocoder {
+             let src_i = (i as f64 / ratio).floor() as usize;
+             let src_np = (np as f64 / ratio).floor() as usize;
+             if src_i < NUM_BINS && src_np < NUM_BINS {
+-                new_phase[i] = new_phase[np] + (self.phase[src_i.min(NUM_BINS - 1)] - self.phase[src_np.min(NUM_BINS - 1)]);
++                new_phase[i] = new_phase[np]
++                    + (self.phase[src_i.min(NUM_BINS - 1)] - self.phase[src_np.min(NUM_BINS - 1)]);
+             }
+         }
+ 
+diff --git a/crates/fts-livetune/livetune-dsp/src/yaapt.rs b/crates/fts-livetune/livetune-dsp/src/yaapt.rs
+index 8ba8e07..6ef58c0 100644
+--- a/crates/fts-livetune/livetune-dsp/src/yaapt.rs
++++ b/crates/fts-livetune/livetune-dsp/src/yaapt.rs
+@@ -291,7 +291,8 @@ impl YaaptDetector {
+ 
+         // Design FIR bandpass filters.
+         self.bp_filter = FirBandpass::new(self.params.bp_forder);
+-        self.bp_filter.design(self.params.bp_low, self.params.bp_high, sample_rate);
++        self.bp_filter
++            .design(self.params.bp_low, self.params.bp_high, sample_rate);
+         self.bp_filter_nl = FirBandpass::new(self.params.bp_forder);
+         self.bp_filter_nl
+             .design(self.params.bp_low, self.params.bp_high, sample_rate);
+@@ -453,10 +454,9 @@ impl YaaptDetector {
+         }
+ 
+         // Sum energy in F0 band.
+-        let bin_f0_min = ((2.0 * self.params.f0_min / self.sample_rate) * nfft as f64).round()
+-            as usize;
+-        let bin_f0_max =
+-            ((self.params.f0_max / self.sample_rate) * nfft as f64).round() as usize;
++        let bin_f0_min =
++            ((2.0 * self.params.f0_min / self.sample_rate) * nfft as f64).round() as usize;
++        let bin_f0_max = ((self.params.f0_max / self.sample_rate) * nfft as f64).round() as usize;
+         let bin_f0_min = bin_f0_min.min(half - 1);
+         let bin_f0_max = bin_f0_max.min(half - 1);
+ 
+@@ -564,7 +564,11 @@ impl YaaptDetector {
+         }
+ 
+         // Sort by merit descending, keep top 4.
+-        candidates.sort_by(|a, b| b.merit.partial_cmp(&a.merit).unwrap_or(std::cmp::Ordering::Equal));
++        candidates.sort_by(|a, b| {
++            b.merit
++                .partial_cmp(&a.merit)
++                .unwrap_or(std::cmp::Ordering::Equal)
++        });
+         candidates.truncate(4);
+ 
+         // Normalize merit to 0–1 range.
+@@ -653,7 +657,11 @@ impl YaaptDetector {
+         }
+ 
+         // Sort by merit descending, keep top N.
+-        candidates.sort_by(|a, b| b.merit.partial_cmp(&a.merit).unwrap_or(std::cmp::Ordering::Equal));
++        candidates.sort_by(|a, b| {
++            b.merit
++                .partial_cmp(&a.merit)
++                .unwrap_or(std::cmp::Ordering::Equal)
++        });
+         candidates.truncate(self.params.nccf_maxcands);
+         candidates
+     }
+@@ -666,12 +674,14 @@ impl YaaptDetector {
+         temporal2: &[PitchCandidate],
+         is_voiced_energy: bool,
+     ) -> PitchCandidate {
+-        let unvoiced = PitchCandidate { freq_hz: 0.0, merit: 0.0 };
++        let unvoiced = PitchCandidate {
++            freq_hz: 0.0,
++            merit: 0.0,
++        };
+ 
+         // Collect all temporal candidates.
+-        let mut all: Vec<PitchCandidate> = Vec::with_capacity(
+-            temporal1.len() + temporal2.len() + spectral.len(),
+-        );
++        let mut all: Vec<PitchCandidate> =
++            Vec::with_capacity(temporal1.len() + temporal2.len() + spectral.len());
+         all.extend_from_slice(temporal1);
+         all.extend_from_slice(temporal2);
+ 
+@@ -698,7 +708,8 @@ impl YaaptDetector {
+                 let diff = (cand.freq_hz - spec_f0).abs();
+                 if diff < tol {
+                     let agreement = 1.0 - diff / tol;
+-                    cand.merit = (cand.merit * (1.0 + self.params.merit_boost * 1.5 * agreement)).clamp(0.0, 1.0);
++                    cand.merit = (cand.merit * (1.0 + self.params.merit_boost * 1.5 * agreement))
++                        .clamp(0.0, 1.0);
+                 }
+                 // Penalize candidates at sub-harmonics of the spectral F0.
+                 for divisor in [2.0, 3.0] {
+@@ -729,7 +740,11 @@ impl YaaptDetector {
+         }
+ 
+         // Pick the best candidate.
+-        all.sort_by(|a, b| b.merit.partial_cmp(&a.merit).unwrap_or(std::cmp::Ordering::Equal));
++        all.sort_by(|a, b| {
++            b.merit
++                .partial_cmp(&a.merit)
++                .unwrap_or(std::cmp::Ordering::Equal)
++        });
+         all[0]
+     }
+ 
+@@ -747,7 +762,12 @@ impl YaaptDetector {
+         }
+ 
+         // Median of the voiced values.
+-        let mut sorted: Vec<f64> = self.median_buf.iter().copied().filter(|&f| f > 0.0).collect();
++        let mut sorted: Vec<f64> = self
++            .median_buf
++            .iter()
++            .copied()
++            .filter(|&f| f > 0.0)
++            .collect();
+         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+         sorted[sorted.len() / 2]
+     }
+diff --git a/crates/fts-livetune/livetune-plugin/src/editor.rs b/crates/fts-livetune/livetune-plugin/src/editor.rs
+index e6eb41d..9933db1 100644
+--- a/crates/fts-livetune/livetune-plugin/src/editor.rs
++++ b/crates/fts-livetune/livetune-plugin/src/editor.rs
+@@ -322,4 +322,3 @@ pub fn App() -> Element {
+         } // DragProvider
+     }
+ }
+-
+diff --git a/crates/fts-livetune/livetune-plugin/src/lib.rs b/crates/fts-livetune/livetune-plugin/src/lib.rs
+index bbef16d..5dba8b2 100644
+--- a/crates/fts-livetune/livetune-plugin/src/lib.rs
++++ b/crates/fts-livetune/livetune-plugin/src/lib.rs
+@@ -152,29 +152,25 @@ impl Default for FtsLiveTuneParams {
+                 })),
+ 
+             scale: IntParam::new("Scale", 0, IntRange::Linear { min: 0, max: 6 })
+-                .with_value_to_string(Arc::new(|v| {
+-                    match v {
+-                        0 => "Chromatic".to_string(),
+-                        1 => "Major".to_string(),
+-                        2 => "Minor".to_string(),
+-                        3 => "Maj Penta".to_string(),
+-                        4 => "Min Penta".to_string(),
+-                        5 => "Blues".to_string(),
+-                        6 => "Custom".to_string(),
+-                        _ => format!("{v}"),
+-                    }
++                .with_value_to_string(Arc::new(|v| match v {
++                    0 => "Chromatic".to_string(),
++                    1 => "Major".to_string(),
++                    2 => "Minor".to_string(),
++                    3 => "Maj Penta".to_string(),
++                    4 => "Min Penta".to_string(),
++                    5 => "Blues".to_string(),
++                    6 => "Custom".to_string(),
++                    _ => format!("{v}"),
+                 }))
+-                .with_string_to_value(Arc::new(|s| {
+-                    match s.trim().to_lowercase().as_str() {
+-                        "chromatic" | "0" => Some(0),
+-                        "major" | "1" => Some(1),
+-                        "minor" | "2" => Some(2),
+-                        "maj penta" | "major pentatonic" | "3" => Some(3),
+-                        "min penta" | "minor pentatonic" | "4" => Some(4),
+-                        "blues" | "5" => Some(5),
+-                        "custom" | "6" => Some(6),
+-                        _ => s.parse().ok(),
+-                    }
++                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                    "chromatic" | "0" => Some(0),
++                    "major" | "1" => Some(1),
++                    "minor" | "2" => Some(2),
++                    "maj penta" | "major pentatonic" | "3" => Some(3),
++                    "min penta" | "minor pentatonic" | "4" => Some(4),
++                    "blues" | "5" => Some(5),
++                    "custom" | "6" => Some(6),
++                    _ => s.parse().ok(),
+                 })),
+ 
+             retune_speed: FloatParam::new(
+@@ -184,58 +180,46 @@ impl Default for FtsLiveTuneParams {
+             )
+             .with_value_to_string(formatters::v2s_f32_percentage(0)),
+ 
+-            amount: FloatParam::new(
+-                "Amount",
+-                1.0,
+-                FloatRange::Linear { min: 0.0, max: 1.0 },
+-            )
+-            .with_unit("%")
+-            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++            amount: FloatParam::new("Amount", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_unit("%")
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+ 
+             mix: FloatParam::new("Mix", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                 .with_unit("%")
+                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
+ 
+             detector_mode: IntParam::new("Detector", 0, IntRange::Linear { min: 0, max: 4 })
+-                .with_value_to_string(Arc::new(|v| {
+-                    match v {
+-                        0 => "YIN".to_string(),
+-                        1 => "YAAPT".to_string(),
+-                        2 => "pYIN".to_string(),
+-                        3 => "MPM".to_string(),
+-                        4 => "Bitstream".to_string(),
+-                        _ => format!("{v}"),
+-                    }
++                .with_value_to_string(Arc::new(|v| match v {
++                    0 => "YIN".to_string(),
++                    1 => "YAAPT".to_string(),
++                    2 => "pYIN".to_string(),
++                    3 => "MPM".to_string(),
++                    4 => "Bitstream".to_string(),
++                    _ => format!("{v}"),
+                 }))
+-                .with_string_to_value(Arc::new(|s| {
+-                    match s.trim().to_lowercase().as_str() {
+-                        "yin" | "0" => Some(0),
+-                        "yaapt" | "1" => Some(1),
+-                        "pyin" | "2" => Some(2),
+-                        "mpm" | "3" => Some(3),
+-                        "bitstream" | "4" => Some(4),
+-                        _ => s.parse().ok(),
+-                    }
++                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                    "yin" | "0" => Some(0),
++                    "yaapt" | "1" => Some(1),
++                    "pyin" | "2" => Some(2),
++                    "mpm" | "3" => Some(3),
++                    "bitstream" | "4" => Some(4),
++                    _ => s.parse().ok(),
+                 })),
+ 
+             shifter_mode: IntParam::new("Shifter", 0, IntRange::Linear { min: 0, max: 3 })
+-                .with_value_to_string(Arc::new(|v| {
+-                    match v {
+-                        0 => "Auto".to_string(),
+-                        1 => "PSOLA".to_string(),
+-                        2 => "Vocoder".to_string(),
+-                        3 => "PVSOLA".to_string(),
+-                        _ => format!("{v}"),
+-                    }
++                .with_value_to_string(Arc::new(|v| match v {
++                    0 => "Auto".to_string(),
++                    1 => "PSOLA".to_string(),
++                    2 => "Vocoder".to_string(),
++                    3 => "PVSOLA".to_string(),
++                    _ => format!("{v}"),
+                 }))
+-                .with_string_to_value(Arc::new(|s| {
+-                    match s.trim().to_lowercase().as_str() {
+-                        "auto" | "0" => Some(0),
+-                        "psola" | "1" => Some(1),
+-                        "vocoder" | "2" => Some(2),
+-                        "pvsola" | "hybrid" | "3" => Some(3),
+-                        _ => s.parse().ok(),
+-                    }
++                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                    "auto" | "0" => Some(0),
++                    "psola" | "1" => Some(1),
++                    "vocoder" | "2" => Some(2),
++                    "pvsola" | "hybrid" | "3" => Some(3),
++                    _ => s.parse().ok(),
+                 })),
+ 
+             confidence_threshold: FloatParam::new(
+@@ -257,10 +241,12 @@ impl Default for FtsLiveTuneParams {
+                     "Off".to_string()
+                 }
+             }))
+-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+-                "on" | "1" | "true" => Some(1.0),
+-                "off" | "0" | "false" => Some(0.0),
+-                _ => s.parse().ok(),
++            .with_string_to_value(Arc::new(|s| {
++                match s.trim().to_lowercase().as_str() {
++                    "on" | "1" | "true" => Some(1.0),
++                    "off" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                }
+             })),
+ 
+             note_c: make_note_param("C"),
+@@ -319,18 +305,8 @@ impl FtsLiveTune {
+     fn read_note_states(&self) -> [NoteState; 12] {
+         let p = &self.params;
+         let note_params = [
+-            &p.note_c,
+-            &p.note_cs,
+-            &p.note_d,
+-            &p.note_eb,
+-            &p.note_e,
+-            &p.note_f,
+-            &p.note_fs,
+-            &p.note_g,
+-            &p.note_ab,
+-            &p.note_a,
+-            &p.note_bb,
+-            &p.note_b,
++            &p.note_c, &p.note_cs, &p.note_d, &p.note_eb, &p.note_e, &p.note_f, &p.note_fs,
++            &p.note_g, &p.note_ab, &p.note_a, &p.note_bb, &p.note_b,
+         ];
+         let mut states = [NoteState::Enabled; 12];
+         for (i, param) in note_params.iter().enumerate() {
+@@ -465,7 +441,11 @@ impl Plugin for FtsLiveTune {
+             } else {
+                 -100.0
+             };
+-            let new_in = if in_db > prev_in { in_db } else { prev_in - 0.3 };
++            let new_in = if in_db > prev_in {
++                in_db
++            } else {
++                prev_in - 0.3
++            };
+             self.ui_state.input_peak_db.store(new_in, Ordering::Relaxed);
+ 
+             let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);
+diff --git a/crates/fts-rider/rider-plugin/src/editor.rs b/crates/fts-rider/rider-plugin/src/editor.rs
+index 4148f87..fb035e4 100644
+--- a/crates/fts-rider/rider-plugin/src/editor.rs
++++ b/crates/fts-rider/rider-plugin/src/editor.rs
+@@ -8,7 +8,7 @@ use std::sync::atomic::Ordering;
+ use audio_gui::controls::knob::Knob;
+ use audio_gui::controls::toggle::Toggle;
+ use audio_gui::prelude::{
+-    theme, ControlGroup, DragProvider, Divider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform,
++    theme, ControlGroup, Divider, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform,
+     SectionLabel,
+ };
+ use fts_plugin_core::prelude::*;
+@@ -186,4 +186,3 @@ pub fn App() -> Element {
+         } // DragProvider
+     }
+ }
+-
+diff --git a/crates/fts-rider/rider-plugin/src/lib.rs b/crates/fts-rider/rider-plugin/src/lib.rs
+index 481033b..df232ee 100644
+--- a/crates/fts-rider/rider-plugin/src/lib.rs
++++ b/crates/fts-rider/rider-plugin/src/lib.rs
+@@ -148,43 +148,35 @@ impl Default for FtsRiderParams {
+             .with_unit(" Hz")
+             .with_value_to_string(formatters::v2s_f32_rounded(0)),
+ 
+-            detect_mode: FloatParam::new(
+-                "Mode",
+-                1.0,
+-                FloatRange::Linear { min: 0.0, max: 1.0 },
+-            )
+-            .with_step_size(1.0)
+-            .with_value_to_string(Arc::new(|v| {
+-                if v > 0.5 {
+-                    "LUFS".to_string()
+-                } else {
+-                    "RMS".to_string()
+-                }
+-            }))
+-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+-                "lufs" | "k" | "1" => Some(1.0),
+-                "rms" | "0" => Some(0.0),
+-                _ => s.parse().ok(),
+-            })),
+-
+-            sc_listen: FloatParam::new(
+-                "SC Listen",
+-                0.0,
+-                FloatRange::Linear { min: 0.0, max: 1.0 },
+-            )
+-            .with_step_size(1.0)
+-            .with_value_to_string(Arc::new(|v| {
+-                if v > 0.5 {
+-                    "On".to_string()
+-                } else {
+-                    "Off".to_string()
+-                }
+-            }))
+-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+-                "on" | "1" | "true" => Some(1.0),
+-                "off" | "0" | "false" => Some(0.0),
+-                _ => s.parse().ok(),
+-            })),
++            detect_mode: FloatParam::new("Mode", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_step_size(1.0)
++                .with_value_to_string(Arc::new(|v| {
++                    if v > 0.5 {
++                        "LUFS".to_string()
++                    } else {
++                        "RMS".to_string()
++                    }
++                }))
++                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                    "lufs" | "k" | "1" => Some(1.0),
++                    "rms" | "0" => Some(0.0),
++                    _ => s.parse().ok(),
++                })),
++
++            sc_listen: FloatParam::new("SC Listen", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_step_size(1.0)
++                .with_value_to_string(Arc::new(|v| {
++                    if v > 0.5 {
++                        "On".to_string()
++                    } else {
++                        "Off".to_string()
++                    }
++                }))
++                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                    "on" | "1" | "true" => Some(1.0),
++                    "off" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                })),
+ 
+             output_gain_db: FloatParam::new(
+                 "Output",
+@@ -244,11 +236,10 @@ impl FtsRider {
+         self.chain.rider.release_ms = speed * 1.6;
+         self.chain.rider.detector.window_ms = speed;
+ 
+-        self.chain.set_target_db(self.params.target_db.value() as f64);
+-        self.chain.set_range_db(self.params.range_db.value() as f64);
+         self.chain
+-            .rider
+-            .activity_threshold_db = self.params.gate_db.value() as f64;
++            .set_target_db(self.params.target_db.value() as f64);
++        self.chain.set_range_db(self.params.range_db.value() as f64);
++        self.chain.rider.activity_threshold_db = self.params.gate_db.value() as f64;
+ 
+         let sc_freq = self.params.sc_freq.value() as f64;
+         self.chain.set_sidechain_freq(sc_freq);
+@@ -324,8 +315,7 @@ impl Plugin for FtsRider {
+     ) -> ProcessStatus {
+         self.sync_params();
+ 
+-        let output_gain_lin =
+-            fts_dsp::db::db_to_linear(self.params.output_gain_db.value() as f64);
++        let output_gain_lin = fts_dsp::db::db_to_linear(self.params.output_gain_db.value() as f64);
+         let range = self.params.range_db.value().max(0.01);
+ 
+         for mut frame in buffer.iter_samples() {
+@@ -392,11 +382,12 @@ impl Plugin for FtsRider {
+             self.waveform_peak = self.waveform_peak.max(input_peak);
+             // Map gain_db to 0.0–1.0: 0.5 = unity, 0.0 = max cut, 1.0 = max boost
+             let gain_norm = (gain / range + 0.5).clamp(0.0, 1.0);
+-            self.waveform_gain_peak = if (gain_norm - 0.5).abs() > (self.waveform_gain_peak - 0.5).abs() {
+-                gain_norm
+-            } else {
+-                self.waveform_gain_peak
+-            };
++            self.waveform_gain_peak =
++                if (gain_norm - 0.5).abs() > (self.waveform_gain_peak - 0.5).abs() {
++                    gain_norm
++                } else {
++                    self.waveform_gain_peak
++                };
+ 
+             self.waveform_counter += 1;
+             if self.waveform_counter >= self.waveform_interval {
+@@ -404,8 +395,7 @@ impl Plugin for FtsRider {
+                     self.ui_state.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
+                 self.ui_state.waveform_input[pos]
+                     .store(self.waveform_peak.min(1.0), Ordering::Relaxed);
+-                self.ui_state.waveform_gain[pos]
+-                    .store(self.waveform_gain_peak, Ordering::Relaxed);
++                self.ui_state.waveform_gain[pos].store(self.waveform_gain_peak, Ordering::Relaxed);
+                 self.ui_state
+                     .waveform_pos
+                     .store((pos + 1) as f32, Ordering::Relaxed);
+@@ -422,8 +412,7 @@ impl Plugin for FtsRider {
+ 
+ impl ClapPlugin for FtsRider {
+     const CLAP_ID: &'static str = "com.fasttrackstudio.rider";
+-    const CLAP_DESCRIPTION: Option<&'static str> =
+-        Some("Vocal rider with automatic level control");
++    const CLAP_DESCRIPTION: Option<&'static str> = Some("Vocal rider with automatic level control");
+     const CLAP_MANUAL_URL: Option<&'static str> = None;
+     const CLAP_SUPPORT_URL: Option<&'static str> = None;
+     const CLAP_FEATURES: &'static [ClapFeature] = &[
+diff --git a/crates/fts-sample/src/dialog.rs b/crates/fts-sample/src/dialog.rs
+index 3859efe..7e38e4a 100644
+--- a/crates/fts-sample/src/dialog.rs
++++ b/crates/fts-sample/src/dialog.rs
+@@ -46,7 +46,11 @@ pub fn pick_file(title: &str, extensions: &[&str]) -> Option<PathBuf> {
+ #[cfg(target_os = "linux")]
+ fn pick_file_zenity(title: &str, extensions: &[&str]) -> Option<PathBuf> {
+     // Build filter string for zenity: "*.wav *.flac *.mp3 ..."
+-    let filter_pattern: String = extensions.iter().map(|e| format!("*.{e}")).collect::<Vec<_>>().join(" ");
++    let filter_pattern: String = extensions
++        .iter()
++        .map(|e| format!("*.{e}"))
++        .collect::<Vec<_>>()
++        .join(" ");
+     let filter = format!("Audio Files | {filter_pattern}");
+ 
+     let output = Command::new("zenity")
+diff --git a/crates/fts-trigger/trigger-dsp/src/detector.rs b/crates/fts-trigger/trigger-dsp/src/detector.rs
+index 9945134..63903a2 100644
+--- a/crates/fts-trigger/trigger-dsp/src/detector.rs
++++ b/crates/fts-trigger/trigger-dsp/src/detector.rs
+@@ -189,9 +189,7 @@ impl TriggerDetector {
+ 
+         match flux_mode {
+             Some(mode) => {
+-                if self.spectral.is_none()
+-                    || self.spectral.as_ref().unwrap().mode != mode
+-                {
++                if self.spectral.is_none() || self.spectral.as_ref().unwrap().mode != mode {
+                     self.spectral = Some(SpectralFluxDetector::new(
+                         mode,
+                         DEFAULT_FFT_SIZE,
+diff --git a/crates/fts-trigger/trigger-dsp/src/fingerprint.rs b/crates/fts-trigger/trigger-dsp/src/fingerprint.rs
+index 428f0f2..23d4e5d 100644
+--- a/crates/fts-trigger/trigger-dsp/src/fingerprint.rs
++++ b/crates/fts-trigger/trigger-dsp/src/fingerprint.rs
+@@ -29,7 +29,6 @@ pub struct SpectralFingerprint {
+     pub fft_size: usize,
+ }
+ 
+-
+ /// Spectral fingerprint matcher for bleed rejection.
+ pub struct FingerprintMatcher {
+     /// Learned template fingerprint.
+@@ -58,10 +57,7 @@ pub struct FingerprintMatcher {
+ impl FingerprintMatcher {
+     pub fn new(fft_size: usize, sample_rate: f64) -> Self {
+         let window: Vec<f64> = (0..fft_size)
+-            .map(|i| {
+-                0.5 * (1.0
+-                    - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos())
+-            })
++            .map(|i| 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos()))
+             .collect();
+ 
+         let num_bins = fft_size / 2 + 1;
+@@ -111,7 +107,11 @@ impl FingerprintMatcher {
+             return 0;
+         }
+ 
+-        let mut avg: Vec<f64> = self.learn_accum.iter().map(|&v| v / self.learn_count as f64).collect();
++        let mut avg: Vec<f64> = self
++            .learn_accum
++            .iter()
++            .map(|&v| v / self.learn_count as f64)
++            .collect();
+ 
+         // Re-normalize the average
+         let norm = Self::l2_norm(&avg);
+diff --git a/crates/fts-trigger/trigger-dsp/src/hpss.rs b/crates/fts-trigger/trigger-dsp/src/hpss.rs
+index 4d1005a..ec2268c 100644
+--- a/crates/fts-trigger/trigger-dsp/src/hpss.rs
++++ b/crates/fts-trigger/trigger-dsp/src/hpss.rs
+@@ -71,15 +71,13 @@ impl HpssProcessor {
+         let fmw = freq_median_width | 1;
+ 
+         let window: Vec<f64> = (0..fft_size)
+-            .map(|i| {
+-                0.5 * (1.0
+-                    - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos())
+-            })
++            .map(|i| 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos()))
+             .collect();
+ 
+         let frame_ring: Vec<Vec<f64>> = (0..tmw).map(|_| vec![0.0; num_bins]).collect();
+-        let stft_ring: Vec<Vec<Complex<f64>>> =
+-            (0..tmw).map(|_| vec![Complex::new(0.0, 0.0); num_bins]).collect();
++        let stft_ring: Vec<Vec<Complex<f64>>> = (0..tmw)
++            .map(|_| vec![Complex::new(0.0, 0.0); num_bins])
++            .collect();
+ 
+         // Output ring needs to be large enough for overlap-add
+         let output_ring_size = fft_size * 2;
+diff --git a/crates/fts-trigger/trigger-dsp/src/multiband.rs b/crates/fts-trigger/trigger-dsp/src/multiband.rs
+index f8d5670..977c147 100644
+--- a/crates/fts-trigger/trigger-dsp/src/multiband.rs
++++ b/crates/fts-trigger/trigger-dsp/src/multiband.rs
+@@ -44,8 +44,8 @@ pub struct MultibandDetector {
+     // Band 1: HPF at crossover[0], LPF at crossover[1]
+     // Band 2: HPF at crossover[1], LPF at crossover[2]
+     // Band 3: HPF at crossover[2]
+-    lo_filters: [Band; 3],  // Low-pass at each crossover
+-    hi_filters: [Band; 3],  // High-pass at each crossover
++    lo_filters: [Band; 3], // Low-pass at each crossover
++    hi_filters: [Band; 3], // High-pass at each crossover
+ 
+     // Per-band onset detectors
+     detectors: [SpectralFluxDetector; NUM_BANDS],
+@@ -201,7 +201,11 @@ impl MultibandDetector {
+     pub fn dominant_band(triggers: &[BandTrigger]) -> Option<usize> {
+         triggers
+             .iter()
+-            .max_by(|a, b| a.odf.partial_cmp(&b.odf).unwrap_or(std::cmp::Ordering::Equal))
++            .max_by(|a, b| {
++                a.odf
++                    .partial_cmp(&b.odf)
++                    .unwrap_or(std::cmp::Ordering::Equal)
++            })
+             .map(|t| t.band)
+     }
+ 
+diff --git a/crates/fts-trigger/trigger-dsp/src/spectral_flux.rs b/crates/fts-trigger/trigger-dsp/src/spectral_flux.rs
+index 9b35300..a9f469d 100644
+--- a/crates/fts-trigger/trigger-dsp/src/spectral_flux.rs
++++ b/crates/fts-trigger/trigger-dsp/src/spectral_flux.rs
+@@ -109,9 +109,7 @@ impl SpectralFluxDetector {
+ 
+         // Hanning window
+         let window: Vec<f64> = (0..fft_size)
+-            .map(|i| {
+-                0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos())
+-            })
++            .map(|i| 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / fft_size as f64).cos()))
+             .collect();
+ 
+         // Build filterbank for SuperFlux
+@@ -314,7 +312,11 @@ impl SpectralFluxDetector {
+         self.prev_magnitude[..num_bins].copy_from_slice(&self.magnitude[..num_bins]);
+ 
+         let diff = hfc - prev_hfc;
+-        if diff > 0.0 { diff } else { 0.0 }
++        if diff > 0.0 {
++            diff
++        } else {
++            0.0
++        }
+     }
+ 
+     /// Complex domain: magnitude + phase prediction error.
+@@ -376,7 +378,11 @@ impl SpectralFluxDetector {
+ 
+         self.prev_magnitude[..num_bins].copy_from_slice(&self.magnitude[..num_bins]);
+ 
+-        if result > 0.0 { result } else { 0.0 }
++        if result > 0.0 {
++            result
++        } else {
++            0.0
++        }
+     }
+ 
+     /// Adaptive peak picking on ODF values.
+@@ -478,7 +484,11 @@ mod tests {
+     const FFT: usize = 1024;
+     const HOP: usize = 512;
+ 
+-    fn silence_then_transient(det: &mut SpectralFluxDetector, silence: usize, tone_hz: f64) -> Vec<f64> {
++    fn silence_then_transient(
++        det: &mut SpectralFluxDetector,
++        silence: usize,
++        tone_hz: f64,
++    ) -> Vec<f64> {
+         let mut odfs = Vec::new();
+         for _ in 0..silence {
+             if let Some(odf) = det.tick(0.0) {
+@@ -503,7 +513,12 @@ mod tests {
+             }
+         }
+         assert!(last_odf.is_some());
+-        assert_eq!(last_odf.unwrap(), 0.0, "mode {:?} should be zero on silence", mode);
++        assert_eq!(
++            last_odf.unwrap(),
++            0.0,
++            "mode {:?} should be zero on silence",
++            mode
++        );
+     }
+ 
+     fn assert_detects_transient(mode: FluxMode) {
+@@ -513,21 +528,28 @@ mod tests {
+         assert!(
+             max_odf > 0.01,
+             "mode {:?}: expected ODF spike on transient, got max={}",
+-            mode, max_odf
++            mode,
++            max_odf
+         );
+     }
+ 
+     #[test]
+-    fn spectral_flux_silent() { assert_silent_is_zero(FluxMode::SpectralFlux); }
++    fn spectral_flux_silent() {
++        assert_silent_is_zero(FluxMode::SpectralFlux);
++    }
+     #[test]
+-    fn spectral_flux_transient() { assert_detects_transient(FluxMode::SpectralFlux); }
++    fn spectral_flux_transient() {
++        assert_detects_transient(FluxMode::SpectralFlux);
++    }
+ 
+     #[test]
+     fn superflux_silent() {
+         let mut det = SpectralFluxDetector::new(FluxMode::SuperFlux, 2048, 441, 44100.0);
+         let mut last_odf = None;
+         for _ in 0..4096 {
+-            if let Some(odf) = det.tick(0.0) { last_odf = Some(odf); }
++            if let Some(odf) = det.tick(0.0) {
++                last_odf = Some(odf);
++            }
+         }
+         assert!(last_odf.is_some());
+         assert_eq!(last_odf.unwrap(), 0.0);
+@@ -536,39 +558,64 @@ mod tests {
+     fn superflux_transient() {
+         let mut det = SpectralFluxDetector::new(FluxMode::SuperFlux, 2048, 441, 44100.0);
+         let mut odfs = Vec::new();
+-        for _ in 0..4096 { if let Some(odf) = det.tick(0.0) { odfs.push(odf); } }
++        for _ in 0..4096 {
++            if let Some(odf) = det.tick(0.0) {
++                odfs.push(odf);
++            }
++        }
+         for i in 0..441 {
+             let s = (i as f64 * 200.0 * std::f64::consts::TAU / 44100.0).sin() * 0.9;
+-            if let Some(odf) = det.tick(s) { odfs.push(odf); }
++            if let Some(odf) = det.tick(s) {
++                odfs.push(odf);
++            }
+         }
+         let max_odf = odfs.iter().cloned().fold(0.0_f64, f64::max);
+         assert!(max_odf > 0.01, "SuperFlux: expected spike, got {}", max_odf);
+     }
+ 
+     #[test]
+-    fn hfc_silent() { assert_silent_is_zero(FluxMode::Hfc); }
++    fn hfc_silent() {
++        assert_silent_is_zero(FluxMode::Hfc);
++    }
+     #[test]
+-    fn hfc_transient() { assert_detects_transient(FluxMode::Hfc); }
++    fn hfc_transient() {
++        assert_detects_transient(FluxMode::Hfc);
++    }
+ 
+     #[test]
+-    fn complex_domain_silent() { assert_silent_is_zero(FluxMode::ComplexDomain); }
++    fn complex_domain_silent() {
++        assert_silent_is_zero(FluxMode::ComplexDomain);
++    }
+     #[test]
+-    fn complex_domain_transient() { assert_detects_transient(FluxMode::ComplexDomain); }
++    fn complex_domain_transient() {
++        assert_detects_transient(FluxMode::ComplexDomain);
++    }
+ 
+     #[test]
+-    fn rectified_complex_domain_silent() { assert_silent_is_zero(FluxMode::RectifiedComplexDomain); }
++    fn rectified_complex_domain_silent() {
++        assert_silent_is_zero(FluxMode::RectifiedComplexDomain);
++    }
+     #[test]
+-    fn rectified_complex_domain_transient() { assert_detects_transient(FluxMode::RectifiedComplexDomain); }
++    fn rectified_complex_domain_transient() {
++        assert_detects_transient(FluxMode::RectifiedComplexDomain);
++    }
+ 
+     #[test]
+-    fn modified_kl_silent() { assert_silent_is_zero(FluxMode::ModifiedKl); }
++    fn modified_kl_silent() {
++        assert_silent_is_zero(FluxMode::ModifiedKl);
++    }
+     #[test]
+-    fn modified_kl_transient() { assert_detects_transient(FluxMode::ModifiedKl); }
++    fn modified_kl_transient() {
++        assert_detects_transient(FluxMode::ModifiedKl);
++    }
+ 
+     #[test]
+     fn filterbank_covers_range() {
+         let (fb, num_bands) = build_filterbank(1025, 44100.0, 24, 30.0, 17000.0);
+-        assert!(num_bands > 100, "Expected >100 bands at 24/octave over 30-17kHz");
++        assert!(
++            num_bands > 100,
++            "Expected >100 bands at 24/octave over 30-17kHz"
++        );
+         assert_eq!(fb.len(), num_bands);
+         for (i, band) in fb.iter().enumerate() {
+             assert!(!band.is_empty(), "Band {} is empty", i);
+diff --git a/crates/fts-trigger/trigger-dsp/src/transient_shape.rs b/crates/fts-trigger/trigger-dsp/src/transient_shape.rs
+index 143c438..09644f6 100644
+--- a/crates/fts-trigger/trigger-dsp/src/transient_shape.rs
++++ b/crates/fts-trigger/trigger-dsp/src/transient_shape.rs
+@@ -154,13 +154,16 @@ mod tests {
+         }
+ 
+         let transient_peak = transient_outputs.iter().cloned().fold(0.0_f64, f64::max);
+-        let sustained_avg: f64 =
+-            sustained_outputs[sustained_outputs.len() - 100..].iter().sum::<f64>() / 100.0;
++        let sustained_avg: f64 = sustained_outputs[sustained_outputs.len() - 100..]
++            .iter()
++            .sum::<f64>()
++            / 100.0;
+ 
+         assert!(
+             transient_peak > sustained_avg * 1.2,
+             "Transient should be boosted: peak={:.3}, sustained_avg={:.3}",
+-            transient_peak, sustained_avg
++            transient_peak,
++            sustained_avg
+         );
+     }
+ 
+diff --git a/crates/fts-trigger/trigger-dsp/tests/drum_material.rs b/crates/fts-trigger/trigger-dsp/tests/drum_material.rs
+index 8181551..67fe803 100644
+--- a/crates/fts-trigger/trigger-dsp/tests/drum_material.rs
++++ b/crates/fts-trigger/trigger-dsp/tests/drum_material.rs
+@@ -33,11 +33,7 @@ fn drum_data_dir() -> PathBuf {
+ fn load_wav(filename: &str) -> Option<Audio> {
+     let path = drum_data_dir().join(filename);
+     if !path.exists() {
+-        eprintln!(
+-            "Skipping: {} not found at {}",
+-            filename,
+-            path.display()
+-        );
++        eprintln!("Skipping: {} not found at {}", filename, path.display());
+         return None;
+     }
+ 
+diff --git a/crates/fts-trigger/trigger-dsp/tests/trigger.rs b/crates/fts-trigger/trigger-dsp/tests/trigger.rs
+index 7f6fb72..4b51e2c 100644
+--- a/crates/fts-trigger/trigger-dsp/tests/trigger.rs
++++ b/crates/fts-trigger/trigger-dsp/tests/trigger.rs
+@@ -547,7 +547,10 @@ fn detector_spectral_flux_triggers_on_transient() {
+     det.algorithm = DetectAlgorithm::SpectralFlux;
+     det.update(SAMPLE_RATE);
+ 
+-    assert!(det.latency_samples() > 0, "Spectral mode should report latency");
++    assert!(
++        det.latency_samples() > 0,
++        "Spectral mode should report latency"
++    );
+ 
+     // Feed enough silence to fill the ODF ring buffer (31 hops × 441 samples)
+     let mut triggered = false;
+@@ -606,7 +609,11 @@ fn detector_peak_envelope_has_zero_latency() {
+     let mut det = TriggerDetector::new();
+     det.algorithm = DetectAlgorithm::PeakEnvelope;
+     det.update(SAMPLE_RATE);
+-    assert_eq!(det.latency_samples(), 0, "PeakEnvelope should have zero latency");
++    assert_eq!(
++        det.latency_samples(),
++        0,
++        "PeakEnvelope should have zero latency"
++    );
+ }
+ 
+ // ── Deterministic ───────────────────────────────────────────────────────
+diff --git a/crates/fts-trigger/trigger-plugin/src/editor.rs b/crates/fts-trigger/trigger-plugin/src/editor.rs
+index 6f8062a..1c4a549 100644
+--- a/crates/fts-trigger/trigger-plugin/src/editor.rs
++++ b/crates/fts-trigger/trigger-plugin/src/editor.rs
+@@ -6,7 +6,7 @@ use std::sync::Arc;
+ use audio_gui::controls::knob::Knob;
+ use audio_gui::controls::slider::ParamSlider;
+ use audio_gui::prelude::{
+-    theme, ControlGroup, DragProvider, Divider, KnobSize, LevelMeterDb, PeakWaveform,
++    theme, ControlGroup, Divider, DragProvider, KnobSize, LevelMeterDb, PeakWaveform,
+ };
+ use fts_plugin_core::prelude::*;
+ 
+@@ -19,7 +19,9 @@ use trigger_ui::control_view::MixerStrip;
+ #[component]
+ pub fn App() -> Element {
+     let shared = use_context::<SharedState>();
+-    let ui = shared.get::<TriggerUiState>().expect("TriggerUiState missing");
++    let ui = shared
++        .get::<TriggerUiState>()
++        .expect("TriggerUiState missing");
+     let ui_for_load = ui.clone();
+     let params = &ui.params;
+ 
+@@ -242,4 +244,3 @@ fn open_file_dialog(slot: usize, ui: Arc<TriggerUiState>) {
+         }
+     });
+ }
+-
+diff --git a/crates/fts-trigger/trigger-plugin/src/lib.rs b/crates/fts-trigger/trigger-plugin/src/lib.rs
+index ec287eb..8a79cd4 100644
+--- a/crates/fts-trigger/trigger-plugin/src/lib.rs
++++ b/crates/fts-trigger/trigger-plugin/src/lib.rs
+@@ -149,12 +149,18 @@ impl SlotParams {
+                 FloatRange::Linear { min: 0.0, max: 1.0 },
+             )
+             .with_value_to_string(Arc::new(|v| {
+-                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
++                if v > 0.5 {
++                    "On".to_string()
++                } else {
++                    "Off".to_string()
++                }
+             }))
+-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+-                "on" | "1" | "true" => Some(1.0),
+-                "off" | "0" | "false" => Some(0.0),
+-                _ => s.parse().ok(),
++            .with_string_to_value(Arc::new(|s| {
++                match s.trim().to_lowercase().as_str() {
++                    "on" | "1" | "true" => Some(1.0),
++                    "off" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                }
+             })),
+ 
+             mute: FloatParam::new(
+@@ -163,12 +169,18 @@ impl SlotParams {
+                 FloatRange::Linear { min: 0.0, max: 1.0 },
+             )
+             .with_value_to_string(Arc::new(|v| {
+-                if v > 0.5 { "M".to_string() } else { "-".to_string() }
++                if v > 0.5 {
++                    "M".to_string()
++                } else {
++                    "-".to_string()
++                }
+             }))
+-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+-                "m" | "1" | "true" => Some(1.0),
+-                "-" | "0" | "false" => Some(0.0),
+-                _ => s.parse().ok(),
++            .with_string_to_value(Arc::new(|s| {
++                match s.trim().to_lowercase().as_str() {
++                    "m" | "1" | "true" => Some(1.0),
++                    "-" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                }
+             })),
+ 
+             solo: FloatParam::new(
+@@ -177,12 +189,18 @@ impl SlotParams {
+                 FloatRange::Linear { min: 0.0, max: 1.0 },
+             )
+             .with_value_to_string(Arc::new(|v| {
+-                if v > 0.5 { "S".to_string() } else { "-".to_string() }
++                if v > 0.5 {
++                    "S".to_string()
++                } else {
++                    "-".to_string()
++                }
+             }))
+-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+-                "s" | "1" | "true" => Some(1.0),
+-                "-" | "0" | "false" => Some(0.0),
+-                _ => s.parse().ok(),
++            .with_string_to_value(Arc::new(|s| {
++                match s.trim().to_lowercase().as_str() {
++                    "s" | "1" | "true" => Some(1.0),
++                    "-" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                }
+             })),
+         }
+     }
+@@ -301,10 +319,7 @@ impl Default for FtsTriggerParams {
+             release_ratio: FloatParam::new(
+                 "Hysteresis",
+                 0.5,
+-                FloatRange::Linear {
+-                    min: 0.1,
+-                    max: 0.9,
+-                },
++                FloatRange::Linear { min: 0.1, max: 0.9 },
+             )
+             .with_value_to_string(formatters::v2s_f32_rounded(2)),
+ 
+@@ -338,21 +353,17 @@ impl Default for FtsTriggerParams {
+                     _ => "Peak".to_string(),
+                 })),
+ 
+-            detect_algorithm: IntParam::new(
+-                "Algorithm",
+-                0,
+-                IntRange::Linear { min: 0, max: 6 },
+-            )
+-            .with_value_to_string(Arc::new(|v| match v {
+-                0 => "Live".to_string(),
+-                1 => "Flux".to_string(),
+-                2 => "SuperFlux".to_string(),
+-                3 => "HFC".to_string(),
+-                4 => "Complex".to_string(),
+-                5 => "RectComplex".to_string(),
+-                6 => "Mod KL".to_string(),
+-                _ => "Live".to_string(),
+-            })),
++            detect_algorithm: IntParam::new("Algorithm", 0, IntRange::Linear { min: 0, max: 6 })
++                .with_value_to_string(Arc::new(|v| match v {
++                    0 => "Live".to_string(),
++                    1 => "Flux".to_string(),
++                    2 => "SuperFlux".to_string(),
++                    3 => "HFC".to_string(),
++                    4 => "Complex".to_string(),
++                    5 => "RectComplex".to_string(),
++                    6 => "Mod KL".to_string(),
++                    _ => "Live".to_string(),
++                })),
+ 
+             // Sidechain
+             sc_hpf: FloatParam::new(
+@@ -393,27 +404,23 @@ impl Default for FtsTriggerParams {
+                 }
+             })),
+ 
+-            sc_listen: FloatParam::new(
+-                "SC Listen",
+-                0.0,
+-                FloatRange::Linear { min: 0.0, max: 1.0 },
+-            )
+-            .with_value_to_string(Arc::new(|v| {
+-                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
+-            }))
+-            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
+-                "on" | "1" | "true" => Some(1.0),
+-                "off" | "0" | "false" => Some(0.0),
+-                _ => s.parse().ok(),
+-            })),
++            sc_listen: FloatParam::new("SC Listen", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_value_to_string(Arc::new(|v| {
++                    if v > 0.5 {
++                        "On".to_string()
++                    } else {
++                        "Off".to_string()
++                    }
++                }))
++                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                    "on" | "1" | "true" => Some(1.0),
++                    "off" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                })),
+ 
+             // Velocity
+-            dynamics: FloatParam::new(
+-                "Dynamics",
+-                0.5,
+-                FloatRange::Linear { min: 0.0, max: 1.0 },
+-            )
+-            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++            dynamics: FloatParam::new("Dynamics", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+ 
+             vel_curve: IntParam::new("Curve", 0, IntRange::Linear { min: 0, max: 3 })
+                 .with_value_to_string(Arc::new(|v| match v {
+@@ -433,12 +440,8 @@ impl Default for FtsTriggerParams {
+                     _ => "Replace".to_string(),
+                 })),
+ 
+-            mix_amount: FloatParam::new(
+-                "Blend",
+-                1.0,
+-                FloatRange::Linear { min: 0.0, max: 1.0 },
+-            )
+-            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++            mix_amount: FloatParam::new("Blend", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+ 
+             output_gain: FloatParam::new(
+                 "Output",
+@@ -696,10 +699,12 @@ impl Plugin for FtsTrigger {
+             } else {
+                 -100.0
+             };
+-            let new_in = if in_db > prev_in { in_db } else { prev_in - 0.3 };
+-            self.ui_state
+-                .input_peak_db
+-                .store(new_in, Ordering::Relaxed);
++            let new_in = if in_db > prev_in {
++                in_db
++            } else {
++                prev_in - 0.3
++            };
++            self.ui_state.input_peak_db.store(new_in, Ordering::Relaxed);
+ 
+             // Output peak with decay
+             let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);
+diff --git a/crates/fts-trigger/trigger-plugin/src/loader.rs b/crates/fts-trigger/trigger-plugin/src/loader.rs
+index 595f2bd..a5f02fa 100644
+--- a/crates/fts-trigger/trigger-plugin/src/loader.rs
++++ b/crates/fts-trigger/trigger-plugin/src/loader.rs
+@@ -23,11 +23,6 @@ impl SampleLoadMessage {
+ }
+ 
+ /// Spawn a background thread to load a sample and send it to the audio thread.
+-pub fn load_sample_async(
+-    path: String,
+-    slot: usize,
+-    target_sr: f64,
+-    tx: Sender<SampleLoadMessage>,
+-) {
++pub fn load_sample_async(path: String, slot: usize, target_sr: f64, tx: Sender<SampleLoadMessage>) {
+     fts_sample::load_audio_async(path, target_sr, tx, slot, SampleLoadMessage::from_audio);
+ }

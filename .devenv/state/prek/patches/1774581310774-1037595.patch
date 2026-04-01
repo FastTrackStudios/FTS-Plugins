@@ -1,0 +1,419 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index df1fd84..f52bcbd 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -854,6 +854,12 @@ version = "0.8.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
+ 
++[[package]]
++name = "bit_mask_ring_buf"
++version = "0.6.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ac85b1322307fc253c24060df1e8b4e8ea681e13d2d02d14f59dbdf9f64b0e13"
++
+ [[package]]
+ name = "bitflags"
+ version = "1.3.2"
+@@ -989,7 +995,7 @@ dependencies = [
+  "blitz-traits",
+  "futures-util",
+  "keyboard-types 0.7.0",
+- "rfd 0.15.4",
++ "rfd",
+  "winit",
+ ]
+ 
+@@ -1283,7 +1289,6 @@ name = "chorus-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
+  "chorus-dsp",
+  "fts-dsp",
+  "fts-plugin-core",
+@@ -1984,12 +1989,6 @@ dependencies = [
+  "syn 2.0.117",
+ ]
+ 
+-[[package]]
+-name = "ctor-lite"
+-version = "0.1.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e162d0c2e2068eb736b71e5597eff0b9944e6b973cd9f37b6a288ab9bf20e300"
+-
+ [[package]]
+ name = "cursor-icon"
+ version = "1.2.0"
+@@ -2938,46 +2937,6 @@ version = "0.1.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
+ 
+-[[package]]
+-name = "drm"
+-version = "0.14.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "80bc8c5c6c2941f70a55c15f8d9f00f9710ebda3ffda98075f996a0e6c92756f"
+-dependencies = [
+- "bitflags 2.11.0",
+- "bytemuck",
+- "drm-ffi",
+- "drm-fourcc",
+- "libc",
+- "rustix 0.38.44",
+-]
+-
+-[[package]]
+-name = "drm-ffi"
+-version = "0.9.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "51a91c9b32ac4e8105dec255e849e0d66e27d7c34d184364fb93e469db08f690"
+-dependencies = [
+- "drm-sys",
+- "rustix 1.1.4",
+-]
+-
+-[[package]]
+-name = "drm-fourcc"
+-version = "2.2.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0aafbcdb8afc29c1a7ee5fbe53b5d62f4565b35a042a662ca9fecd0b54dae6f4"
+-
+-[[package]]
+-name = "drm-sys"
+-version = "0.8.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ecc8e1361066d91f5ffccff060a3c3be9c3ecde15be2959c1937595f7a82a9f8"
+-dependencies = [
+- "libc",
+- "linux-raw-sys 0.9.4",
+-]
+-
+ [[package]]
+ name = "dtoa"
+ version = "1.0.11"
+@@ -3136,6 +3095,7 @@ dependencies = [
+  "criterion",
+  "eq-dsp",
+  "fts-dsp",
++ "halfband",
+  "hound",
+  "rustfft",
+ ]
+@@ -3794,7 +3754,6 @@ name = "fts-sample"
+ version = "0.1.0"
+ dependencies = [
+  "crossbeam-channel",
+- "rfd 0.17.2",
+  "symphonium",
+  "tracing",
+ ]
+@@ -4285,6 +4244,7 @@ name = "gui-test"
+ version = "0.1.0"
+ dependencies = [
+  "nih_plug_dioxus",
++ "x11rb",
+ ]
+ 
+ [[package]]
+@@ -4328,6 +4288,17 @@ dependencies = [
+  "zerocopy",
+ ]
+ 
++[[package]]
++name = "halfband"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c21ea2524c2b1a846750d6c68b85f6cbe292d6eb847b5a7bea86e18c999870d5"
++dependencies = [
++ "bit_mask_ring_buf",
++ "paste",
++ "windowfunctions",
++]
++
+ [[package]]
+ name = "harfrust"
+ version = "0.3.2"
+@@ -5369,12 +5340,6 @@ version = "0.4.15"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
+ 
+-[[package]]
+-name = "linux-raw-sys"
+-version = "0.9.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
+-
+ [[package]]
+ name = "linux-raw-sys"
+ version = "0.12.1"
+@@ -6244,7 +6209,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug"
+ version = "0.0.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "anyhow",
+  "anymap3",
+@@ -6274,7 +6238,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug_derive"
+ version = "0.1.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "proc-macro2",
+  "quote",
+@@ -6284,7 +6247,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug_dioxus"
+ version = "0.0.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "anyrender_vello",
+  "baseview",
+@@ -6301,7 +6263,6 @@ dependencies = [
+  "pollster 0.4.0",
+  "raw-window-handle 0.6.2",
+  "serde",
+- "softbuffer",
+  "vello 0.6.0",
+  "wgpu 26.0.1",
+  "wgpu_context",
+@@ -6577,7 +6538,7 @@ dependencies = [
+  "objc2-core-data",
+  "objc2-core-image",
+  "objc2-foundation 0.2.2",
+- "objc2-quartz-core 0.2.2",
++ "objc2-quartz-core",
+ ]
+ 
+ [[package]]
+@@ -6765,18 +6726,6 @@ dependencies = [
+  "objc2-metal",
+ ]
+ 
+-[[package]]
+-name = "objc2-quartz-core"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "96c1358452b371bf9f104e21ec536d37a650eb10f7ee379fff67d2e08d537f1f"
+-dependencies = [
+- "bitflags 2.11.0",
+- "objc2 0.6.4",
+- "objc2-core-foundation",
+- "objc2-foundation 0.3.2",
+-]
+-
+ [[package]]
+ name = "objc2-symbols"
+ version = "0.2.2"
+@@ -6802,7 +6751,7 @@ dependencies = [
+  "objc2-core-location",
+  "objc2-foundation 0.2.2",
+  "objc2-link-presentation",
+- "objc2-quartz-core 0.2.2",
++ "objc2-quartz-core",
+  "objc2-symbols",
+  "objc2-uniform-type-identifiers",
+  "objc2-user-notifications",
+@@ -8145,8 +8094,6 @@ dependencies = [
+ name = "reverb-plugin"
+ version = "0.1.0"
+ dependencies = [
+- "atomic_float 1.1.0",
+- "audio-gui",
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+@@ -8197,33 +8144,6 @@ dependencies = [
+  "windows-sys 0.59.0",
+ ]
+ 
+-[[package]]
+-name = "rfd"
+-version = "0.17.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "20dafead71c16a34e1ff357ddefc8afc11e7d51d6d2b9fbd07eaa48e3e540220"
+-dependencies = [
+- "block2 0.6.2",
+- "dispatch2",
+- "js-sys",
+- "libc",
+- "log",
+- "objc2 0.6.4",
+- "objc2-app-kit 0.3.2",
+- "objc2-core-foundation",
+- "objc2-foundation 0.3.2",
+- "percent-encoding",
+- "pollster 0.4.0",
+- "raw-window-handle 0.6.2",
+- "wasm-bindgen",
+- "wasm-bindgen-futures",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-protocols",
+- "web-sys",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "rgb"
+ version = "0.8.53"
+@@ -9030,38 +8950,6 @@ dependencies = [
+  "winapi",
+ ]
+ 
+-[[package]]
+-name = "softbuffer"
+-version = "0.4.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "aac18da81ebbf05109ab275b157c22a653bb3c12cf884450179942f81bcbf6c3"
+-dependencies = [
+- "as-raw-xcb-connection",
+- "bytemuck",
+- "drm",
+- "fastrand",
+- "js-sys",
+- "memmap2",
+- "ndk",
+- "objc2 0.6.4",
+- "objc2-core-foundation",
+- "objc2-core-graphics",
+- "objc2-foundation 0.3.2",
+- "objc2-quartz-core 0.3.2",
+- "raw-window-handle 0.6.2",
+- "redox_syscall 0.5.18",
+- "rustix 1.1.4",
+- "tiny-xlib",
+- "tracing",
+- "wasm-bindgen",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-sys",
+- "web-sys",
+- "windows-sys 0.61.2",
+- "x11rb",
+-]
+-
+ [[package]]
+ name = "spirv"
+ version = "0.3.0+sdk-1.3.268.0"
+@@ -9851,19 +9739,6 @@ dependencies = [
+  "strict-num",
+ ]
+ 
+-[[package]]
+-name = "tiny-xlib"
+-version = "0.2.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0324504befd01cab6e0c994f34b2ffa257849ee019d3fb3b64fb2c858887d89e"
+-dependencies = [
+- "as-raw-xcb-connection",
+- "ctor-lite",
+- "libloading 0.8.9",
+- "pkg-config",
+- "tracing",
+-]
+-
+ [[package]]
+ name = "tinystr"
+ version = "0.7.6"
+@@ -11752,6 +11627,15 @@ version = "0.4.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+ 
++[[package]]
++name = "windowfunctions"
++version = "0.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "90628d739333b7c5d2ee0b70210b97b8cddc38440c682c96fd9e2c24c2db5f3a"
++dependencies = [
++ "num-traits",
++]
++
+ [[package]]
+ name = "windows"
+ version = "0.44.0"
+diff --git a/crates/fts-eq/eq-dsp/src/band.rs b/crates/fts-eq/eq-dsp/src/band.rs
+index 500537b..6a5ea39 100644
+--- a/crates/fts-eq/eq-dsp/src/band.rs
++++ b/crates/fts-eq/eq-dsp/src/band.rs
+@@ -177,6 +177,14 @@ impl Band {
+             self.gain_db
+         };
+ 
++        // Remap shelf Q to match Pro-Q 4's non-linear Q mapping.
++        // Only for low orders where the Q remap is verified to match.
++        let shelf_q = if order <= 3 {
++            coeff::shelf_q_remap(self.q)
++        } else {
++            self.q
++        };
++
+         if order == 1 {
+             self.num_sections = 1;
+             let c = match self.filter_type {
+@@ -200,7 +208,7 @@ impl Band {
+             let c = coeff::calculate(
+                 self.filter_type,
+                 self.freq_hz,
+-                self.q,
++                shelf_q,
+                 effective_gain_db,
+                 config.sample_rate,
+             );
+@@ -218,7 +226,7 @@ impl Band {
+         };
+         self.num_sections = total.min(MAX_SECTIONS);
+ 
+-        let q_user = self.q * std::f64::consts::SQRT_2;
++        let q_user = shelf_q * std::f64::consts::SQRT_2;
+ 
+         // Distribute gain proportional to pole count: 2nd-order sections get
+         // 2x the gain of 1st-order sections. This allows proper resonance at
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 768b774..5807d47 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -14,6 +14,16 @@ pub type Coeffs = [f64; 6];
+ /// Passthrough (identity) coefficients.
+ pub const PASSTHROUGH: Coeffs = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
+ 
++/// Remap shelf Q to match Pro-Q 4's non-linear Q mapping.
++/// Pro-Q uses Q_eff = Q_display^0.47 / √2 instead of Q_display / √2.
++/// Input `q` is Q_display / √2 (plugin convention), output is the remapped Q.
++pub fn shelf_q_remap(q: f64) -> f64 {
++    const SQRT_2: f64 = std::f64::consts::SQRT_2;
++    const P: f64 = 0.47;
++    let q_display = (q * SQRT_2).max(0.01);
++    q_display.powf(P) / SQRT_2
++}
++
+ // r[impl dsp.biquad.coefficients]
+ /// Calculate filter coefficients for the given parameters.
+ pub fn calculate(
+@@ -349,6 +359,24 @@ fn high_shelf_2_matched_q(w0: f64, q: f64, g: f64) -> Coeffs {
+     // where b = √A/(2Q), c = √A
+     let (a1, a2) = solve_poles(w0, sqrt_a / (2.0 * q), sqrt_a);
+ 
++    // High-frequency regime: use pure II zeros (better than mag matching near Nyquist).
++    // The 3-point magnitude matching becomes ill-conditioned when w0 approaches π.
++    let wn = w0 / PI;
++    if wn > 0.65 {
++        // II zeros at analog zero frequency w0/√A, with damping 1/(2Q), c=1
++        let zero_w0 = (w0 / sqrt_a).min(PI - 1e-6);
++        let (c1, c2) = solve_poles(zero_w0, 1.0 / (2.0 * q), 1.0);
++        // Scale numerator for DC gain = 1
++        let den_dc = 1.0 + a1 + a2;
++        let num_dc = 1.0 + c1 + c2;
++        let scale = if num_dc.abs() > 1e-30 {
++            den_dc / num_dc
++        } else {
++            1.0
++        };
++        return [1.0, a1, a2, scale, scale * c1, scale * c2];
++    }
++
+     // Squared-magnitude parameters for denominator
+     let a0_big = (1.0 + a1 + a2).powi(2);
+     let a1_big = (1.0 - a1 + a2).powi(2);

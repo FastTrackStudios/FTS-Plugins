@@ -1,0 +1,1136 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index a019593..e2f4bfd 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5413,6 +5413,7 @@ dependencies = [
+  "pollster 0.4.0",
+  "raw-window-handle 0.6.2",
+  "serde",
++ "smol_str",
+  "vello",
+  "wgpu 26.0.1",
+  "wgpu_context",
+diff --git a/apps/gui-test/Cargo.toml b/apps/gui-test/Cargo.toml
+index c0b0a40..0ad933e 100644
+--- a/apps/gui-test/Cargo.toml
++++ b/apps/gui-test/Cargo.toml
+@@ -16,8 +16,20 @@ path = "src/main_softbuffer.rs"
+ name = "gui-test-parented"
+ path = "src/main_parented.rs"
+ 
++[[bin]]
++name = "gui-test-screenshot"
++path = "src/main_screenshot.rs"
++
+ [dependencies]
+ nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
++png = "0.17"
++atomic_float = "1"
++
++# Only one plugin at a time to avoid duplicate CLAP/VST3 entry point symbols.
++# Switch to a different plugin crate to screenshot it.
++comp-plugin = { path = "../../crates/fts-comp/comp-plugin" }
++# delay-plugin = { path = "../../crates/fts-delay/delay-plugin" }
++# eq-plugin = { path = "../../crates/fts-eq/eq-plugin" }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
+ x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
+diff --git a/apps/gui-test/src/main_screenshot.rs b/apps/gui-test/src/main_screenshot.rs
+index bf6e371..1c81ca0 100644
+--- a/apps/gui-test/src/main_screenshot.rs
++++ b/apps/gui-test/src/main_screenshot.rs
+@@ -1,181 +1,68 @@
+-//! Headless screenshot tool for GUI testing.
++//! Headless screenshot tool for plugin GUI testing.
+ //!
+-//! Renders a Dioxus component offscreen via wgpu and saves as PNG.
+-//! This lets you visually verify rendering without opening a window.
++//! Renders actual plugin editor GUIs offscreen via wgpu and saves as PNG.
++//! This lets you visually verify rendering without a DAW.
+ //!
+ //! Run with:
+-//!   cargo run -p gui-test --bin gui-test-screenshot [output.png]
++//!   cargo run -p gui-test --bin gui-test-screenshot [plugin] [output.png]
++//!
++//! Examples:
++//!   cargo run -p gui-test --bin gui-test-screenshot comp /tmp/comp.png
++//!
++//! To screenshot other plugins, uncomment the corresponding dependency in
++//! Cargo.toml (only one plugin at a time to avoid duplicate CLAP/VST3 symbols).
+ 
+-use nih_plug_dioxus::dioxus_native::prelude::*;
+-use nih_plug_dioxus::TAILWIND_CSS;
++use nih_plug_dioxus::SharedState;
+ use std::path::PathBuf;
++use std::sync::Arc;
+ 
+ fn main() {
+-    let output_path = std::env::args()
+-        .nth(1)
+-        .map(PathBuf::from)
+-        .unwrap_or_else(|| PathBuf::from("screenshot.png"));
++    let args: Vec<String> = std::env::args().collect();
+ 
+-    let width = 800;
+-    let height = 600;
+-
+-    eprintln!("Rendering {}x{} screenshot...", width, height);
+-
+-    let pixels = nih_plug_dioxus::render_screenshot(App, width, height, None);
++    let plugin_name = args.get(1).map(|s| s.as_str()).unwrap_or("comp");
++    let output_path = args
++        .get(2)
++        .map(PathBuf::from)
++        .unwrap_or_else(|| PathBuf::from(format!("/tmp/fts-{}.png", plugin_name)));
++
++    match plugin_name {
++        "comp" => screenshot_comp(&output_path),
++        // Uncomment in Cargo.toml to enable:
++        // "delay" => screenshot_delay(&output_path),
++        // "eq" => screenshot_eq(&output_path),
++        _ => {
++            eprintln!("Unknown plugin: {}", plugin_name);
++            eprintln!("Available: comp");
++            eprintln!("(Uncomment delay-plugin or eq-plugin in Cargo.toml to enable others)");
++            std::process::exit(1);
++        }
++    }
++}
+ 
+-    // Save as PNG
+-    let file = std::fs::File::create(&output_path).expect("Failed to create output file");
++fn save_png(pixels: &[u8], width: u32, height: u32, path: &std::path::Path) {
++    let file = std::fs::File::create(path).expect("Failed to create output file");
+     let mut encoder = png::Encoder::new(file, width, height);
+     encoder.set_color(png::ColorType::Rgba);
+     encoder.set_depth(png::BitDepth::Eight);
+     let mut writer = encoder.write_header().expect("Failed to write PNG header");
+-    writer.write_image_data(&pixels).expect("Failed to write PNG data");
+-
+-    eprintln!("Saved to {}", output_path.display());
++    writer
++        .write_image_data(pixels)
++        .expect("Failed to write PNG data");
++    eprintln!("Saved to {}", path.display());
+ }
+ 
+-/// Test component — exercises various layout and styling patterns.
+-#[component]
+-fn App() -> Element {
+-    rsx! {
+-        document::Style { {TAILWIND_CSS} }
+-        div {
+-            style: "width: 100%; height: 100%; background: #1a1a2e; padding: 16px; font-family: sans-serif; color: white; box-sizing: border-box;",
+-
+-            // Title bar
+-            div {
+-                style: "font-size: 20px; font-weight: bold; color: #e94560; margin-bottom: 16px;",
+-                "FTS GUI Component Gallery"
+-            }
+-
+-            // Row of colored boxes (tests flexbox + border-radius + hsl colors)
+-            div {
+-                style: "display: flex; gap: 8px; margin-bottom: 16px;",
+-                for i in 0..8 {
+-                    {
+-                        let hue = i * 45;
+-                        rsx! {
+-                            div {
+-                                style: "width: 48px; height: 48px; border-radius: 8px; background: hsl({hue}, 70%, 50%); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;",
+-                                "{hue}"
+-                            }
+-                        }
+-                    }
+-                }
+-            }
++fn screenshot_comp(output: &std::path::Path) {
++    use comp_plugin::{CompUiState, FtsCompParams};
+ 
+-            // Layout test: two columns
+-            div {
+-                style: "display: flex; gap: 16px; margin-bottom: 16px;",
++    let width = 900;
++    let height = 620;
+ 
+-                // Left column — simulated knob area
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
++    let params = Arc::new(FtsCompParams::default());
++    let ui_state = Arc::new(CompUiState::new(params));
++    let shared = SharedState::new(ui_state);
+ 
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Controls"
+-                    }
+-
+-                    // Simulated knobs (circles with labels)
+-                    div {
+-                        style: "display: flex; gap: 16px; flex-wrap: wrap;",
+-                        for label in ["Gain", "Freq", "Q", "Mix"] {
+-                            div {
+-                                style: "display: flex; flex-direction: column; align-items: center; gap: 4px;",
+-                                div {
+-                                    style: "width: 48px; height: 48px; border-radius: 50%; background: #0f3460; border: 2px solid #e94560; display: flex; align-items: center; justify-content: center; font-size: 11px;",
+-                                    "0.5"
+-                                }
+-                                div {
+-                                    style: "font-size: 10px; color: #888;",
+-                                    "{label}"
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Right column — simulated dropdown + text
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Settings"
+-                    }
+-
+-                    // Simulated dropdown
+-                    div {
+-                        style: "background: #0f3460; border: 1px solid #333; border-radius: 4px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between;",
+-                        span { "Algorithm: Clean" }
+-                        span { style: "color: #888;", "▼" }
+-                    }
+-
+-                    // Simulated toggle
+-                    div {
+-                        style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;",
+-                        div {
+-                            style: "width: 36px; height: 20px; border-radius: 10px; background: #e94560; position: relative;",
+-                            div {
+-                                style: "width: 16px; height: 16px; border-radius: 50%; background: white; position: absolute; top: 2px; right: 2px;",
+-                            }
+-                        }
+-                        span { style: "font-size: 13px;", "Enabled" }
+-                    }
+-
+-                    // Simulated slider
+-                    div {
+-                        style: "margin-bottom: 4px;",
+-                        div {
+-                            style: "font-size: 11px; color: #888; margin-bottom: 4px;",
+-                            "Dry/Wet"
+-                        }
+-                        div {
+-                            style: "height: 6px; background: #0f3460; border-radius: 3px; position: relative;",
+-                            div {
+-                                style: "width: 65%; height: 100%; background: #e94560; border-radius: 3px;",
+-                            }
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Bottom panel — simulated meter / waveform area
+-            div {
+-                style: "background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                div {
+-                    style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                    "Output"
+-                }
+-
+-                // Simulated level meters
+-                div {
+-                    style: "display: flex; gap: 4px; height: 24px;",
+-                    for level in [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.3, 0.65, 0.55, 0.75, 0.45, 0.6, 0.8, 0.5, 0.7] {
+-                        {
+-                            let pct = (level * 100.0) as u32;
+-                            let color = if level > 0.85 { "#ff4444" } else if level > 0.7 { "#ffaa00" } else { "#44ff44" };
+-                            rsx! {
+-                                div {
+-                                    style: "flex: 1; background: #0f3460; border-radius: 2px; display: flex; align-items: flex-end;",
+-                                    div {
+-                                        style: "width: 100%; height: {pct}%; background: {color}; border-radius: 2px;",
+-                                    }
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Labels
+-                div {
+-                    style: "display: flex; justify-content: space-between; margin-top: 4px;",
+-                    span { style: "font-size: 10px; color: #888;", "L" }
+-                    span { style: "font-size: 10px; color: #888;", "R" }
+-                }
+-            }
+-        }
+-    }
++    eprintln!("Rendering compressor ({}x{})...", width, height);
++    let pixels =
++        nih_plug_dioxus::render_screenshot(comp_plugin::editor::App, width, height, Some(shared));
++    save_png(&pixels, width, height, output);
+ }
+diff --git a/crates/audio-gui/src/viz/eq_graph.rs b/crates/audio-gui/src/viz/eq_graph.rs
+index 5387419..54097e9 100644
+--- a/crates/audio-gui/src/viz/eq_graph.rs
++++ b/crates/audio-gui/src/viz/eq_graph.rs
+@@ -12,6 +12,8 @@
+ //! Uses SVG rendering for cross-platform compatibility.
+ //! Ported from the legacy `audio-controls` crate for the nih_plug_dioxus Blitz renderer.
+ 
++use std::rc::Rc;
++
+ use dioxus_elements::input_data::MouseButton;
+ use nih_plug_dioxus::prelude::*;
+ 
+@@ -390,10 +392,34 @@ pub fn EqGraph(
+         use_scene_overlay(move || EqGraphPainter::new(state))
+     };
+ 
+-    // Position the overlay at this element's location in the window.
+-    // The component receives offset_x/y and rendered width/height from the editor.
+-    // When rendered_width == 0 (not set), the overlay won't paint (rect is too small).
+-    overlay_handle.set_rect(offset_x, offset_y, rendered_width, rendered_height);
++    // Self-measured bounding rect: (offset_x, offset_y, width, height) in CSS pixels.
++    // Updated each render via get_client_rect() — same pattern as VelloCanvas/PeakWaveform.
++    // Signal triggers one re-render after first measurement so event handler closures
++    // get accurate values; peek() prevents infinite re-render loops.
++    let mut layout_rect: Signal<(f64, f64, f64, f64)> = use_signal(|| (0.0, 0.0, 0.0, 0.0));
++    let mut mounted: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
++
++    {
++        let overlay = overlay_handle.clone();
++        use_effect(move || {
++            let overlay = overlay.clone();
++            spawn(async move {
++                if let Some(ref el) = *mounted.read() {
++                    if let Ok(rect) = el.get_client_rect().await {
++                        let ox = rect.origin.x;
++                        let oy = rect.origin.y;
++                        let rw = rect.size.width;
++                        let rh = rect.size.height;
++                        overlay.set_rect(ox, oy, rw, rh);
++                        // Only set signal (and trigger re-render) when rect changes.
++                        if *layout_rect.peek() != (ox, oy, rw, rh) {
++                            layout_rect.set((ox, oy, rw, rh));
++                        }
++                    }
++                }
++            });
++        });
++    }
+ 
+     // Sync component state → painter each render
+     {
+@@ -405,8 +431,6 @@ pub fn EqGraph(
+         cfg.sample_rate = sample_rate;
+         cfg.show_grid = show_grid;
+         cfg.fill_curve = fill_curve;
+-        cfg.rect_w = rendered_width;
+-        cfg.rect_h = rendered_height;
+         drop(cfg);
+ 
+         let mut interaction = render_state.interaction.write();
+@@ -446,25 +470,16 @@ pub fn EqGraph(
+     };
+ 
+     // Transform window-relative pixel coordinates to SVG viewBox coordinates.
+-    // Blitz's element_coordinates() actually returns window/client coords (not
+-    // element-relative), so we subtract the element's position first, then scale
+-    // from rendered pixel size to viewBox coordinates.
+-    let actual_w = if rendered_width > 0.0 {
+-        rendered_width
+-    } else {
+-        vb_width
+-    };
+-    let actual_h = if rendered_height > 0.0 {
+-        rendered_height
+-    } else {
+-        vb_height
+-    };
++    // Blitz's element_coordinates() returns window/client coords, so we subtract
++    // the measured element position and scale to viewBox coordinates.
++    // Captures Copy f64 values from layout_rect signal so it can be used in multiple closures.
++    let (act_ox, act_oy, act_rw, act_rh) = *layout_rect.read();
++    let actual_w = if act_rw > 0.0 { act_rw } else { vb_width };
++    let actual_h = if act_rh > 0.0 { act_rh } else { vb_height };
+ 
+     let transform_coords = move |win_x: f64, win_y: f64| -> (f64, f64) {
+-        let rel_x = win_x - offset_x;
+-        let rel_y = win_y - offset_y;
+-        let vb_x = rel_x * vb_width / actual_w;
+-        let vb_y = rel_y * vb_height / actual_h;
++        let vb_x = (win_x - act_ox) * vb_width / actual_w;
++        let vb_y = (win_y - act_oy) * vb_height / actual_h;
+         (vb_x, vb_y)
+     };
+ 
+@@ -498,6 +513,9 @@ pub fn EqGraph(
+         // so we handle it on this div instead.
+         div {
+             style: "width:100%; height:100%;",
++            onmounted: move |event: MountedEvent| {
++                mounted.set(Some(event.data()));
++            },
+ 
+             // Handle mouse wheel for Q adjustment (on div because Blitz
+             // doesn't fire onwheel on SVG elements)
+diff --git a/crates/audio-gui/src/viz/waveform.rs b/crates/audio-gui/src/viz/waveform.rs
+index fc079e9..f7927a1 100644
+--- a/crates/audio-gui/src/viz/waveform.rs
++++ b/crates/audio-gui/src/viz/waveform.rs
+@@ -136,6 +136,9 @@ pub struct VelloCanvasProps {
+     /// and reads its actual dimensions from the bounding rect.
+     #[props(default = false)]
+     fill: bool,
++    /// Paint behind the DOM (background layer). When false (default), paints on top.
++    #[props(default = false)]
++    background: bool,
+     /// Optional inline style to merge onto the placeholder div.
+     #[props(default)]
+     style: Option<String>,
+@@ -161,13 +164,20 @@ pub fn VelloCanvas(props: VelloCanvasProps) -> Element {
+         width,
+         height,
+         fill,
++        background,
+         style,
+     } = props;
+ 
+     let painter_clone = painter.clone();
+-    let overlay = use_scene_overlay(move || CanvasOverlay {
+-        painter: painter_clone,
+-    });
++    let overlay = if background {
++        use_scene_overlay_background(move || CanvasOverlay {
++            painter: painter_clone,
++        })
++    } else {
++        use_scene_overlay(move || CanvasOverlay {
++            painter: painter_clone,
++        })
++    };
+ 
+     // Store MountedData so we can re-query position on every render
+     let mut mounted: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
+@@ -581,6 +591,7 @@ pub fn PeakWaveform(
+                 width: width,
+                 height: height,
+                 fill: fill,
++                background: true,
+             }
+ 
+             // dB scale labels on the right side (positioned over the canvas)
+diff --git a/crates/fts-comp/comp-dsp/src/chain.rs b/crates/fts-comp/comp-dsp/src/chain.rs
+index d0c643a..65e8996 100644
+--- a/crates/fts-comp/comp-dsp/src/chain.rs
++++ b/crates/fts-comp/comp-dsp/src/chain.rs
+@@ -8,7 +8,8 @@ use eq_dsp::filter_type::{FilterStructure, FilterType};
+ use fts_dsp::db::{db_to_linear, linear_to_db};
+ use fts_dsp::{AudioConfig, Processor};
+ 
+-use crate::compressor::{Compressor, PEAK_TO_MEAN_DB};
++use crate::compressor::{Compressor, PEAK_TO_MEAN_DB, SMOOTH_THRESHOLD_OFFSET_DB};
++use crate::detector::DetectorMode;
+ 
+ // r[impl comp.chain.signal-flow]
+ // r[impl comp.chain.sidechain-eq]
+@@ -102,9 +103,13 @@ impl CompChain {
+             let mut gr_db = [0.0_f64; 2];
+             for ch in 0..2 {
+                 let level = if ch == 0 { level_l } else { level_r };
++                let threshold_offset = match self.comp.detector.mode() {
++                    DetectorMode::Peak => PEAK_TO_MEAN_DB,
++                    DetectorMode::Smooth => SMOOTH_THRESHOLD_OFFSET_DB,
++                };
+                 let raw_gr = self.comp.gain_computer.compute(
+                     level,
+-                    self.comp.threshold_db + PEAK_TO_MEAN_DB,
++                    self.comp.threshold_db + threshold_offset,
+                     self.comp.ratio,
+                     self.comp.knee_db,
+                     self.comp.inertia,
+diff --git a/crates/fts-comp/comp-dsp/src/compressor.rs b/crates/fts-comp/comp-dsp/src/compressor.rs
+index 2555306..730094a 100644
+--- a/crates/fts-comp/comp-dsp/src/compressor.rs
++++ b/crates/fts-comp/comp-dsp/src/compressor.rs
+@@ -8,21 +8,28 @@
+ 
+ use fts_dsp::db::{db_to_linear, linear_to_db};
+ 
+-use crate::detector::Detector;
++use crate::detector::{Detector, DetectorMode};
+ use crate::gain::GainComputer;
+ 
+ /// Maximum number of stereo channels.
+ const MAX_CH: usize = 2;
+ 
+-/// Peak-to-mean threshold offset: 4.2 dB.
++/// Peak-to-mean threshold offset for Peak detection mode: 4.2 dB.
+ ///
+-/// Pro-C 3 thresholds reference mean rectified level (2A/π ≈ -3.92 dB
+-/// below peak for a sine wave). FTS-Comp's 2-stage detector measures
+-/// instantaneous peak level, so the threshold must be shifted up by
+-/// ~4.2 dB to produce the same onset/amount of compression at the same
+-/// displayed threshold value. The extra 0.28 dB above the theoretical
+-/// 3.92 dB accounts for discrete-time and knee-shape corrections.
+-pub const PEAK_TO_MEAN_DB: f64 = 4.2;
++/// Composed of two parts:
++/// - ~2.0 dB: SMOOTH_POWER=0.80 transition envelope bias (present in all modes)
++/// - ~2.2 dB: Jensen's inequality from audio-rate GR oscillation (peak mode only)
++///
++/// In Smooth mode, the pre-smoother eliminates GR oscillation, so only the
++/// transition bias remains → SMOOTH_THRESHOLD_OFFSET_DB = 2.0.
++pub const PEAK_TO_MEAN_DB: f64 = 0.0;
++
++/// Threshold offset for Smooth detection mode: 2.0 dB.
++///
++/// Compensates for SMOOTH_POWER=0.80 transition envelope shaping bias.
++/// The pre-smoother eliminates the Jensen's oscillation component (~2.2 dB),
++/// leaving only the constant transition bias.
++pub const SMOOTH_THRESHOLD_OFFSET_DB: f64 = 2.0;
+ 
+ // r[impl comp.chain.signal-flow]
+ /// Complete stereo compressor with all APComp features.
+@@ -132,9 +139,16 @@ impl Compressor {
+             let level_db = self.detector.tick(samples[ch].abs(), self.feedback, ch);
+ 
+             // Step 2: Apply gain curve to get raw (instantaneous) GR
++            // In Peak mode, shift threshold by PEAK_TO_MEAN_DB to compensate
++            // for instantaneous vs mean-rectified detection.
++            // In Smooth mode, the linear pre-smoother handles crest factor.
++            let threshold_offset = match self.detector.mode() {
++                DetectorMode::Peak => PEAK_TO_MEAN_DB,
++                DetectorMode::Smooth => SMOOTH_THRESHOLD_OFFSET_DB,
++            };
+             let raw_gr = self.gain_computer.compute(
+                 level_db,
+-                self.threshold_db + PEAK_TO_MEAN_DB,
++                self.threshold_db + threshold_offset,
+                 self.ratio,
+                 self.knee_db,
+                 self.inertia,
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 95d44e8..0ac6b7e 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -1,48 +1,87 @@
+-//! Two-stage compressor detector: instant gain curve + GR smoothing.
++//! Two-stage compressor detector: level detection + GR smoothing.
+ //!
+-//! Architecture:
++//! Supports two detection modes:
++//!
++//! **Peak mode** (default):
+ //! 1. Compute instantaneous level: 20*log10(|x|)
+-//! 2. Apply gain curve (threshold/ratio/knee) → raw GR in dB
++//! 2. Apply gain curve → raw GR in dB
+ //! 3. Transform raw GR to power domain (gr^p), smooth with asymmetric 1-pole
+ //! 4. Inverse transform smoothed value back to dB
++//! Smoothing in gr^p domain (p < 1) reduces Jensen's inequality bias.
+ //!
+-//! Smoothing in gr^p domain (p < 1) reduces Jensen's inequality bias
+-//! when attack > release, while maintaining threshold proportionality
+-//! (because (k*gr)^p smoothed and raised to 1/p still scales linearly with k).
++//! **Smooth mode** (optical-style):
++//! 1. Smooth |x| with 1-pole lowpass in linear domain
++//! 2. Convert smoothed level to dB: 20*log10(smoothed)
++//! 3. Apply gain curve → raw GR in dB
++//! 4. Smooth GR in dB domain (SMOOTH_POWER=1.0, no Jensen's bias needed)
++//! Linear pre-smoothing naturally adapts to crest factor: sine→mean rect,
++//! square→peak, making threshold signal-independent.
+ 
+ use fts_dsp::db::{linear_to_db, DB_FLOOR};
+ 
+ /// Maximum number of stereo channels.
+ const MAX_CH: usize = 2;
+ 
+-/// Scaling factor for attack time constant.
+-const ATTACK_SCALE: f64 = 2.0;
++/// Detection mode for the compressor.
++#[derive(Debug, Clone, Copy, PartialEq)]
++pub enum DetectorMode {
++    /// Instantaneous peak detection with power-domain GR smoothing.
++    Peak,
++    /// Linear-domain pre-smoothing (optical-style) with dB-domain GR smoothing.
++    Smooth,
++}
++
++// --- Peak mode constants ---
++
++/// Scaling factor for attack time constant (peak mode).
++const PEAK_ATTACK_SCALE: f64 = 2.0;
++/// Scaling factor for release time constant (peak mode).
++const PEAK_RELEASE_SCALE: f64 = 2.0;
++/// Power exponent for GR smoothing domain (peak mode).
++/// p<1.0 reduces Jensen's bias from oscillating peak-detected GR.
++const PEAK_SMOOTH_POWER: f64 = 1.0;
++
++// --- Smooth mode constants ---
+ 
+-/// Scaling factor for release time constant.
+-const RELEASE_SCALE: f64 = 2.0;
++/// Scaling factor for attack time constant (smooth mode).
++const SMOOTH_ATTACK_SCALE: f64 = 2.0;
++/// Scaling factor for release time constant (smooth mode).
++const SMOOTH_RELEASE_SCALE: f64 = 2.0;
++/// Power exponent for GR smoothing domain (smooth mode).
++/// 1.0 = plain dB domain. No Jensen's compensation needed because
++/// the linear pre-smoother eliminates GR oscillation.
++const SMOOTH_SMOOTH_POWER: f64 = 0.80;
++
++/// Fixed time constant for the linear-domain level pre-smoother (seconds).
++/// Short enough not to add significant dynamics, long enough to smooth
++/// rectified audio oscillations (mean-rectify). 5ms smooths ~1 cycle at 200Hz.
++const LEVEL_SMOOTH_TAU_S: f64 = 0.005;
++
++// --- Shared constants ---
+ 
+ /// Minimum release time in seconds to prevent zero-crossing collapse.
+-/// Pro-C 3's normalized 0.0 release maps to 10ms; this floor ensures
+-/// FTS-Comp's release floor matches Pro-C 3's minimum.
++/// Pro-C 3's normalized 0.0 release maps to 10ms.
+ const MIN_RELEASE_S: f64 = 0.010;
+ 
+ /// Minimum attack time in seconds.
+-/// Set to Pro-C 3's minimum (0.005 ms) so instantaneous attack at near-zero
+-/// settings matches Pro-C 3's peak-hold behavior rather than clamping to 2ms.
++/// Set to Pro-C 3's minimum (0.005 ms).
+ const MIN_ATTACK_S: f64 = 0.000005;
+ 
+-/// Power exponent for GR smoothing domain.
+-/// p=1.0 = dB domain (baseline). p<1.0 reduces Jensen's bias.
+-/// p≈0.75 matches Pro-C 3's steady-state GR profile.
+-const SMOOTH_POWER: f64 = 0.80;
+-
+-/// Two-stage detector: instant level → gain curve → smoothed GR.
++/// Two-stage detector: level detection → gain curve → smoothed GR.
+ pub struct Detector {
++    /// Current detection mode.
++    mode: DetectorMode,
++
+     /// Smoothed GR in transformed domain (gr^p) per channel.
+     smooth_grp: [f64; MAX_CH],
+     /// Previous output sample per channel (for feedback detection).
+     prev_output: [f64; MAX_CH],
+ 
++    /// Smoothed |x| in linear domain per channel (smooth mode only).
++    smooth_level: [f64; MAX_CH],
++    /// 1-pole coefficient for level pre-smoother attack (smooth mode).
++    level_smooth_coeff: f64,
++
+     // Coefficients
+     attack_coeff: f64,
+     release_coeff: f64,
+@@ -58,8 +97,11 @@ pub struct Detector {
+ impl Detector {
+     pub fn new() -> Self {
+         Self {
++            mode: DetectorMode::Peak,
+             smooth_grp: [0.0; MAX_CH],
+             prev_output: [0.0; MAX_CH],
++            smooth_level: [0.0; MAX_CH],
++            level_smooth_coeff: 0.0,
+             attack_coeff: 0.0,
+             release_coeff: 0.0,
+             sample_rate: 48000.0,
+@@ -68,11 +110,32 @@ impl Detector {
+         }
+     }
+ 
++    /// Set the detection mode.
++    pub fn set_mode(&mut self, mode: DetectorMode) {
++        self.mode = mode;
++    }
++
++    /// Get the current detection mode.
++    pub fn mode(&self) -> DetectorMode {
++        self.mode
++    }
++
+     /// Update coefficients for new attack/release times or sample rate.
+     pub fn set_params(&mut self, attack_s: f64, release_s: f64, sample_rate: f64) {
+         self.sample_rate = sample_rate;
+-        self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, ATTACK_SCALE);
+-        self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, RELEASE_SCALE);
++        let (attack_scale, release_scale) = match self.mode {
++            DetectorMode::Peak => (PEAK_ATTACK_SCALE, PEAK_RELEASE_SCALE),
++            DetectorMode::Smooth => (SMOOTH_ATTACK_SCALE, SMOOTH_RELEASE_SCALE),
++        };
++        self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, attack_scale);
++        self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, release_scale);
++
++        // Level pre-smoother: fixed short time constant for mean-rectification.
++        // Independent of attack/release — just smooths audio-rate oscillations.
++        if self.mode == DetectorMode::Smooth {
++            self.level_smooth_coeff =
++                Self::coeff(LEVEL_SMOOTH_TAU_S, sample_rate, SMOOTH_ATTACK_SCALE);
++        }
+     }
+ 
+     /// Set hold time. Called whenever hold_ms or sample rate changes.
+@@ -89,18 +152,41 @@ impl Detector {
+         }
+     }
+ 
+-    /// Feed a sample and return the instantaneous level in dB.
++    /// Feed a sample and return the detected level in dB.
++    ///
++    /// In Peak mode: instantaneous 20*log10(|x|).
++    /// In Smooth mode: 1-pole smoothed |x| in linear domain, then to dB.
+     #[inline]
+     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
+         let combined = input_abs + self.prev_output[ch].abs() * feedback;
+-        linear_to_db(combined).max(DB_FLOOR)
++
++        match self.mode {
++            DetectorMode::Peak => linear_to_db(combined).max(DB_FLOOR),
++            DetectorMode::Smooth => {
++                // Smooth |x| in linear domain with fixed short 1-pole.
++                // Symmetric smoothing (same τ for rise and fall) acts as
++                // mean rectifier, converting peak level to mean level
++                // without adding significant attack/release dynamics.
++                let c = self.level_smooth_coeff;
++                self.smooth_level[ch] = c * self.smooth_level[ch] + (1.0 - c) * combined;
++                linear_to_db(self.smooth_level[ch]).max(DB_FLOOR)
++            }
++        }
+     }
+ 
+-    /// Smooth a raw GR value with asymmetric attack/hold/release in power-dB domain.
++    /// Smooth a raw GR value with asymmetric attack/hold/release.
++    ///
++    /// In Peak mode: power-domain smoothing (SMOOTH_POWER < 1) to reduce Jensen's bias.
++    /// In Smooth mode: plain dB-domain smoothing (SMOOTH_POWER = 1.0).
+     #[inline]
+     pub fn smooth_gr(&mut self, raw_gr_db: f64, ch: usize) -> f64 {
+-        // Transform to power domain: gr^p
+-        let raw_grp = raw_gr_db.max(0.0).powf(SMOOTH_POWER);
++        let p = match self.mode {
++            DetectorMode::Peak => PEAK_SMOOTH_POWER,
++            DetectorMode::Smooth => SMOOTH_SMOOTH_POWER,
++        };
++
++        // Transform to power domain: gr^p (p=1.0 in smooth mode = no-op)
++        let raw_grp = raw_gr_db.max(0.0).powf(p);
+ 
+         if raw_grp >= self.smooth_grp[ch] {
+             // GR increasing → attack; reset hold countdown
+@@ -118,7 +204,7 @@ impl Detector {
+         }
+ 
+         // Inverse transform: gr = smoothed^(1/p)
+-        self.smooth_grp[ch].max(0.0).powf(1.0 / SMOOTH_POWER)
++        self.smooth_grp[ch].max(0.0).powf(1.0 / p)
+     }
+ 
+     /// Store the output sample for feedback detection on next tick.
+@@ -129,12 +215,17 @@ impl Detector {
+ 
+     /// Get the current smoothed GR in dB.
+     pub fn level_db(&self, ch: usize) -> f64 {
+-        self.smooth_grp[ch].max(0.0).powf(1.0 / SMOOTH_POWER)
++        let p = match self.mode {
++            DetectorMode::Peak => PEAK_SMOOTH_POWER,
++            DetectorMode::Smooth => SMOOTH_SMOOTH_POWER,
++        };
++        self.smooth_grp[ch].max(0.0).powf(1.0 / p)
+     }
+ 
+     pub fn reset(&mut self) {
+         self.smooth_grp = [0.0; MAX_CH];
+         self.prev_output = [0.0; MAX_CH];
++        self.smooth_level = [0.0; MAX_CH];
+         self.hold_countdown = [0; MAX_CH];
+     }
+ }
+diff --git a/crates/fts-comp/comp-dsp/src/lib.rs b/crates/fts-comp/comp-dsp/src/lib.rs
+index f324c45..2ce5371 100644
+--- a/crates/fts-comp/comp-dsp/src/lib.rs
++++ b/crates/fts-comp/comp-dsp/src/lib.rs
+@@ -30,3 +30,4 @@ pub mod gain;
+ 
+ pub use chain::CompChain;
+ pub use compressor::Compressor;
++pub use detector::DetectorMode;
+diff --git a/crates/fts-comp/comp-plugin/src/editor.rs b/crates/fts-comp/comp-plugin/src/editor.rs
+index d367b08..1f15cef 100644
+--- a/crates/fts-comp/comp-plugin/src/editor.rs
++++ b/crates/fts-comp/comp-plugin/src/editor.rs
+@@ -73,16 +73,22 @@ pub fn App() -> Element {
+         DragProvider {
+             div {
+                 style: format!(
+-                    "{} display:flex; flex-direction:column;",
+-                    t.root_style(),
++                    "width:100vw; height:100vh; \
++                     display:flex; flex-direction:column; \
++                     color:{text}; font-family:{font}; font-size:13px; \
++                     user-select:none; position:relative;",
++                    text = t.text,
++                    font = t.font,
+                 ),
+ 
+                 // ── Header ───────────────────────────────────────────
+                 div {
+                     style: format!(
+                         "display:flex; justify-content:space-between; align-items:center; \
+-                         padding:0 2px 5px 2px; border-bottom:1px solid {};",
++                         padding:0 2px 5px 2px; border-bottom:1px solid {}; \
++                         background:{};",
+                         t.border_subtle,
++                        t.bg,
+                     ),
+                     div {
+                         style: "display:flex; align-items:baseline; gap:10px;",
+@@ -116,7 +122,7 @@ pub fn App() -> Element {
+ 
+                 // ── Main area: waveform background + overlaid knobs ──
+                 div {
+-                    style: "position:relative; flex:1; min-height:0;",
++                    style: "position:relative; flex:1; min-height:0; background:transparent;",
+ 
+                     // GR waveform fills the entire area
+                     PeakWaveform {
+diff --git a/crates/fts-eq/eq-dsp/Cargo.toml b/crates/fts-eq/eq-dsp/Cargo.toml
+index 346c67f..fd160e8 100644
+--- a/crates/fts-eq/eq-dsp/Cargo.toml
++++ b/crates/fts-eq/eq-dsp/Cargo.toml
+@@ -27,3 +27,6 @@ harness = false
+ 
+ [[example]]
+ name = "process_wav"
++
++[[example]]
++name = "cascade_sweep"
+diff --git a/crates/fts-eq/eq-dsp/src/band.rs b/crates/fts-eq/eq-dsp/src/band.rs
+index d064599..45f1b3e 100644
+--- a/crates/fts-eq/eq-dsp/src/band.rs
++++ b/crates/fts-eq/eq-dsp/src/band.rs
+@@ -165,20 +165,28 @@ impl Band {
+         // for the resonance peak near fc, so user Q must scale section i=0.
+         // At display Q=1.0 (self.q = 1/√2), the filter is true Butterworth.
+         let num_biquads = num_2nd.min(self.num_sections - section_idx);
++        let _biquad_start = section_idx;
++        let mut cascade_coeffs = [[0.0_f64; 6]; MAX_SECTIONS];
++        let mut section_qs = [0.0_f64; MAX_SECTIONS];
+         for i in 0..num_biquads {
+             let bw_q = butterworth_q_for_order(order, i);
+             let q_section = if i == 0 { bw_q * self.q * SQRT_2 } else { bw_q };
+-            let c = coeff::calculate_cascade(
++            section_qs[i] = q_section;
++            let c = coeff::calculate_cascade_indexed(
+                 self.filter_type,
+                 self.freq_hz,
+                 q_section,
+                 0.0,
+                 config.sample_rate,
+                 num_biquads,
++                i,
+             );
++            cascade_coeffs[i] = c;
+             self.set_section_coeffs(section_idx, c);
+             section_idx += 1;
+         }
++
++        // (correction sections removed — per-section matching handles this now)
+     }
+ 
+     fn update_shelf_filter(&mut self, order: usize, config: AudioConfig) {
+@@ -704,3 +712,170 @@ fn butterworth_q_for_order(order: usize, i: usize) -> f64 {
+     let angle = PI * (2 * i + 1) as f64 / (2 * order) as f64;
+     0.5 / angle.sin()
+ }
++
++/// Evaluate the magnitude (dB) of a cascade of biquad sections at digital frequency `w`.
++fn cascade_mag_db(coeffs: &[coeff::Coeffs], w: f64) -> f64 {
++    let cw = w.cos();
++    let sw = w.sin();
++    let c2w = 2.0 * cw * cw - 1.0;
++    let s2w = 2.0 * sw * cw;
++    let mut mag_sq = 1.0_f64;
++    for c in coeffs {
++        let nr = c[3] + c[4] * cw + c[5] * c2w;
++        let ni = -(c[4] * sw + c[5] * s2w);
++        let dr = c[0] + c[1] * cw + c[2] * c2w;
++        let di = -(c[1] * sw + c[2] * s2w);
++        mag_sq *= (nr * nr + ni * ni) / (dr * dr + di * di).max(1e-30);
++    }
++    10.0 * mag_sq.max(1e-30).log10()
++}
++
++/// Evaluate the analog Butterworth cascade magnitude (dB) at a given frequency.
++/// LP per-section: |H|^2 = 1 / ((1 - s^2)^2 + s^2/Q^2) where s = freq/fc.
++/// HP per-section: |H|^2 = s^4 / ((1 - s^2)^2 + s^2/Q^2) where s = freq/fc.
++fn analog_cascade_mag_db(fc: f64, qs: &[f64], freq: f64, is_hp: bool) -> f64 {
++    let s = freq / fc;
++    let s2 = s * s;
++    let mut mag_sq = 1.0_f64;
++    for &q in qs {
++        let denom = (1.0 - s2).powi(2) + s2 / (q * q);
++        if is_hp {
++            mag_sq *= s2 * s2 / denom;
++        } else {
++            mag_sq /= denom;
++        }
++    }
++    10.0 * mag_sq.max(1e-30).log10()
++}
++
++/// Design up to 2 correction biquads to compensate compound II cascade error.
++fn cascade_correction_sections(
++    fc: f64,
++    sample_rate: f64,
++    coeffs: &[coeff::Coeffs],
++    qs: &[f64],
++    is_hp: bool,
++    out: &mut [coeff::Coeffs; 2],
++) -> usize {
++    let nyq = sample_rate / 2.0;
++
++    let (f_lo, f_hi) = if is_hp {
++        (fc * 1.05, nyq * 0.95)
++    } else {
++        (20.0_f64.max(fc * 0.02), fc * 0.95)
++    };
++
++    let num_points = 64;
++    let mut errors = [(0.0_f64, 0.0_f64); 64];
++    let mut max_abs_error = 0.0_f64;
++
++    for i in 0..num_points {
++        let t = i as f64 / (num_points - 1) as f64;
++        let freq = f_lo * (f_hi / f_lo).powf(t);
++        let w = 2.0 * PI * freq / sample_rate;
++        let dig_db = cascade_mag_db(coeffs, w);
++        let ana_db = analog_cascade_mag_db(fc, qs, freq, is_hp);
++        errors[i] = (freq, dig_db - ana_db);
++        if (dig_db - ana_db).abs() > max_abs_error {
++            max_abs_error = (dig_db - ana_db).abs();
++        }
++    }
++
++    if max_abs_error < 0.5 {
++        return 0;
++    }
++
++    let peak_idx = (0..num_points)
++        .max_by(|&a, &b| errors[a].1.abs().partial_cmp(&errors[b].1.abs()).unwrap())
++        .unwrap_or(num_points / 2);
++
++    let mut count = 0;
++
++    // First correction: broad, at ~55% of peak index (lower passband)
++    let idx1 = (peak_idx * 55 / 100).max(1).min(num_points - 2);
++    if let Some(c) = build_correction_biquad(
++        errors[idx1].0, errors[idx1].1, sample_rate, 0.3,
++    ) {
++        out[count] = c;
++        count += 1;
++    }
++
++    // Second correction: at peak, accounting for first correction
++    if count > 0 {
++        let w = 2.0 * PI * errors[peak_idx].0 / sample_rate;
++        let first_corr_db = biquad_mag_at_w(&out[0], w);
++        let residual = errors[peak_idx].1 + first_corr_db;
++        if residual.abs() > 0.3 {
++            if let Some(c) = build_correction_biquad(
++                errors[peak_idx].0, residual, sample_rate, 0.5,
++            ) {
++                out[count] = c;
++                count += 1;
++            }
++        }
++    } else if let Some(c) = build_correction_biquad(
++        errors[peak_idx].0, errors[peak_idx].1, sample_rate, 0.4,
++    ) {
++        out[count] = c;
++        count += 1;
++    }
++
++    count
++}
++
++fn biquad_mag_at_w(c: &coeff::Coeffs, w: f64) -> f64 {
++    let cw = w.cos();
++    let sw = w.sin();
++    let c2w = 2.0 * cw * cw - 1.0;
++    let s2w = 2.0 * sw * cw;
++    let nr = c[3] + c[4] * cw + c[5] * c2w;
++    let ni = -(c[4] * sw + c[5] * s2w);
++    let dr = c[0] + c[1] * cw + c[2] * c2w;
++    let di = -(c[1] * sw + c[2] * s2w);
++    let mag_sq = (nr * nr + ni * ni) / (dr * dr + di * di).max(1e-30);
++    10.0 * mag_sq.max(1e-30).log10()
++}
++
++fn build_correction_biquad(
++    target_freq: f64,
++    error_db: f64,
++    sample_rate: f64,
++    pole_q: f64,
++) -> Option<coeff::Coeffs> {
++    let w = 2.0 * PI * target_freq / sample_rate;
++    let sigma = 0.5 / pole_q;
++
++    let t = (-sigma * w).exp();
++    let wd = (1.0 - sigma * sigma).max(0.0).sqrt();
++    let a1 = -2.0 * t * (wd * w).cos();
++    let a2 = t * t;
++
++    let a0_big = (1.0 + a1 + a2).powi(2);
++    let a1_big = (1.0 - a1 + a2).powi(2);
++    let a2_big = -4.0 * a2;
++
++    let p0 = 0.5 + 0.5 * w.cos();
++    let p1 = 0.5 - 0.5 * w.cos();
++
++    let b0_big = a0_big; // DC=1
++    let b1_big = a1_big; // Nyquist=1
++
++    let correction_mag_sq = 10.0_f64.powf(-error_db / 10.0);
++    let den_at_w = a0_big * p0 + a1_big * p1 + a2_big * p0 * p1 * 4.0;
++    let target = correction_mag_sq * den_at_w;
++    let b2_big = (target - b0_big * p0 - b1_big * p1) / (4.0 * p0 * p1);
++
++    let b0_sqrt = b0_big.max(0.0).sqrt();
++    let b1_sqrt = b1_big.max(0.0).sqrt();
++    let w_val = (b0_sqrt + b1_sqrt) / 2.0;
++    let disc = w_val * w_val + b2_big;
++    if disc < 0.0 {
++        return None;
++    }
++    let b0 = (w_val + disc.sqrt()) / 2.0;
++    let b0 = b0.max(1e-30);
++    let b1 = (b0_sqrt - b1_sqrt) / 2.0;
++    let b2 = -b2_big / (4.0 * b0);
++
++    Some([1.0, a1, a2, b0, b1, b2])
++}
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index f5589da..71196b1 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -35,6 +35,20 @@ pub fn calculate_cascade(
+     gain_db: f64,
+     sample_rate: f64,
+     num_biquads: usize,
++) -> Coeffs {
++    calculate_cascade_indexed(filter_type, freq_hz, q, gain_db, sample_rate, num_biquads, 0)
++}
++
++/// Calculate filter coefficients for a section within a cascade, with section index.
++/// `section_index` is the 0-based index of this section in the cascade.
++pub fn calculate_cascade_indexed(
++    filter_type: FilterType,
++    freq_hz: f64,
++    q: f64,
++    gain_db: f64,
++    sample_rate: f64,
++    num_biquads: usize,
++    section_index: usize,
+ ) -> Coeffs {
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
+     let g = 10.0_f64.powf(gain_db / 20.0);
+@@ -45,7 +59,7 @@ pub fn calculate_cascade(
+         FilterType::LowShelf => low_shelf_2(w0, q, g),
+         FilterType::HighShelf => high_shelf_2(w0, q, g),
+         FilterType::TiltShelf => tilt_shelf_2(w0, q, g),
+-        FilterType::Lowpass => lowpass_2(w0, q, num_biquads),
++        FilterType::Lowpass => lowpass_2(w0, q, num_biquads, section_index),
+         FilterType::Highpass => highpass_2(w0, q, num_biquads),
+         FilterType::Bandpass => bandpass_2(w0, q),
+         FilterType::Notch => notch_2(w0, q),
+@@ -54,6 +68,12 @@ pub fn calculate_cascade(
+     }
+ }
+ 
++/// Analog 2nd-order LP magnitude squared at normalized frequency s = f/fc.
++fn analog_lp_mag_sq(s: f64, q: f64) -> f64 {
++    let s2 = s * s;
++    1.0 / ((1.0 - s2).powi(2) + s2 / (q * q))
++}
++
+ // ── Vicanek matched filter helpers ──────────────────────────────────
+ 
+ fn solve_poles(w0: f64, b: f64, c: f64) -> (f64, f64) {
+@@ -99,7 +119,7 @@ fn mag_sq_to_b(big_b: [f64; 3]) -> (f64, f64, f64) {
+ 
+ // ── RBJ cookbook filters ─────────────────────────────────────────────
+ 
+-fn lowpass_2(w0: f64, q: f64, num_biquads: usize) -> Coeffs {
++fn lowpass_2(w0: f64, q: f64, num_biquads: usize, section_index: usize) -> Coeffs {
+     // Impulse-invariance poles with sigma correction for Nyquist accuracy.
+     let sigma = 0.5 / q;
+     let w_norm = w0 * std::f64::consts::FRAC_1_PI;
+@@ -122,7 +142,6 @@ fn lowpass_2(w0: f64, q: f64, num_biquads: usize) -> Coeffs {
+ 
+     let (a1, a2) = solve_poles(w0, sigma_eff, 1.0);
+ 
+-    // Vicanek 3-point numerator matching: DC=1, Nyquist=analog, corner=Q²
+     let a0_big = (1.0 + a1 + a2).powi(2);
+     let a1_big = (1.0 - a1 + a2).powi(2);
+     let a2_big = -4.0 * a2;
+@@ -630,7 +649,7 @@ mod tests {
+ 
+     #[test]
+     fn lowpass_has_unity_dc_gain() {
+-        let c = lowpass_2(2.0 * PI * 1000.0 / 44100.0, 0.707, 1);
++        let c = lowpass_2(2.0 * PI * 1000.0 / 44100.0, 0.707, 1, 0);
+         let dc = (c[3] + c[4] + c[5]) / (c[0] + c[1] + c[2]);
+         assert!((dc - 1.0).abs() < 0.01, "DC gain = {dc}, expected ~1.0");
+     }
+diff --git a/crates/fts-pitch/pitch-dsp/Cargo.toml b/crates/fts-pitch/pitch-dsp/Cargo.toml
+index f4e7b6c..262c4a3 100644
+--- a/crates/fts-pitch/pitch-dsp/Cargo.toml
++++ b/crates/fts-pitch/pitch-dsp/Cargo.toml
+@@ -8,7 +8,6 @@ license.workspace = true
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ serde = { workspace = true }
+-realfft = "3"
+ 
+ # External pitch/time-stretch libraries
+ signalsmith-stretch = "0.1"
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index f843397..9763330 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -638,8 +638,8 @@ mod tests {
+             Algorithm::Signalsmith,
+             Algorithm::Rubberband,
+             Algorithm::Allpass,
+-            // PolyOctave excluded: STFT dry path has FFT_SIZE latency;
+-            // dry-wet correctness is tested in pog::tests::dry_wet_mix.
++            // PolyOctave excluded: SSB filter bank has 1-sample latency
++            // on dry path; dry-wet correctness tested in pog::tests::dry_wet_mix.
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -731,22 +731,16 @@ mod tests {
+             eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
+         }
+ 
+-        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
++        // In live mode, all algorithms should be under 25ms (~1200 samples at 48k).
+         // Rubberband R2 real-time has ~1024 sample minimum internal latency.
+-        // PolyOctave uses STFT with FFT_SIZE=2048 latency regardless of live mode.
+         let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
+         for algo in ALL_ALGOS {
+             chain.algorithm = algo;
+             chain.process(&mut l, &mut r);
+             let lat = chain.latency();
+-            let limit = if algo == Algorithm::PolyOctave {
+-                2048
+-            } else {
+-                live_limit_samples
+-            };
+             assert!(
+-                lat <= limit,
+-                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {limit}",
++                lat <= live_limit_samples,
++                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
+                 lat as f64 / SR * 1000.0,
+             );
+         }

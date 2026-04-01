@@ -1,0 +1,1649 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index a019593..e2f4bfd 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5413,6 +5413,7 @@ dependencies = [
+  "pollster 0.4.0",
+  "raw-window-handle 0.6.2",
+  "serde",
++ "smol_str",
+  "vello",
+  "wgpu 26.0.1",
+  "wgpu_context",
+diff --git a/apps/gui-test/Cargo.toml b/apps/gui-test/Cargo.toml
+index c0b0a40..3789edb 100644
+--- a/apps/gui-test/Cargo.toml
++++ b/apps/gui-test/Cargo.toml
+@@ -16,8 +16,24 @@ path = "src/main_softbuffer.rs"
+ name = "gui-test-parented"
+ path = "src/main_parented.rs"
+ 
++[[bin]]
++name = "gui-test-screenshot"
++path = "src/main_screenshot.rs"
++
++[[bin]]
++name = "gui-test-comp"
++path = "src/main_comp.rs"
++
+ [dependencies]
+ nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
++png = "0.17"
++atomic_float = "1"
++
++# Only one plugin at a time to avoid duplicate CLAP/VST3 entry point symbols.
++# Switch to a different plugin crate to screenshot it.
++comp-plugin = { path = "../../crates/fts-comp/comp-plugin" }
++# delay-plugin = { path = "../../crates/fts-delay/delay-plugin" }
++# eq-plugin = { path = "../../crates/fts-eq/eq-plugin" }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
+ x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
+diff --git a/apps/gui-test/src/main_screenshot.rs b/apps/gui-test/src/main_screenshot.rs
+index bf6e371..f5286d5 100644
+--- a/apps/gui-test/src/main_screenshot.rs
++++ b/apps/gui-test/src/main_screenshot.rs
+@@ -1,181 +1,82 @@
+-//! Headless screenshot tool for GUI testing.
++//! Headless screenshot tool for plugin GUI testing.
+ //!
+-//! Renders a Dioxus component offscreen via wgpu and saves as PNG.
+-//! This lets you visually verify rendering without opening a window.
++//! Renders actual plugin editor GUIs offscreen via wgpu and saves as PNG.
++//! This lets you visually verify rendering without a DAW.
+ //!
+ //! Run with:
+-//!   cargo run -p gui-test --bin gui-test-screenshot [output.png]
++//!   cargo run -p gui-test --bin gui-test-screenshot [plugin] [output.png]
++//!
++//! Examples:
++//!   cargo run -p gui-test --bin gui-test-screenshot comp /tmp/comp.png
++//!
++//! To screenshot other plugins, uncomment the corresponding dependency in
++//! Cargo.toml (only one plugin at a time to avoid duplicate CLAP/VST3 symbols).
+ 
+-use nih_plug_dioxus::dioxus_native::prelude::*;
+-use nih_plug_dioxus::TAILWIND_CSS;
++use nih_plug_dioxus::SharedState;
+ use std::path::PathBuf;
++use std::sync::Arc;
+ 
+ fn main() {
+-    let output_path = std::env::args()
+-        .nth(1)
+-        .map(PathBuf::from)
+-        .unwrap_or_else(|| PathBuf::from("screenshot.png"));
++    let args: Vec<String> = std::env::args().collect();
+ 
+-    let width = 800;
+-    let height = 600;
+-
+-    eprintln!("Rendering {}x{} screenshot...", width, height);
+-
+-    let pixels = nih_plug_dioxus::render_screenshot(App, width, height, None);
++    let plugin_name = args.get(1).map(|s| s.as_str()).unwrap_or("comp");
++    let output_path = args
++        .get(2)
++        .map(PathBuf::from)
++        .unwrap_or_else(|| PathBuf::from(format!("/tmp/fts-{}.png", plugin_name)));
++
++    match plugin_name {
++        "comp" => screenshot_comp(&output_path),
++        // Uncomment in Cargo.toml to enable:
++        // "delay" => screenshot_delay(&output_path),
++        // "eq" => screenshot_eq(&output_path),
++        _ => {
++            eprintln!("Unknown plugin: {}", plugin_name);
++            eprintln!("Available: comp");
++            eprintln!("(Uncomment delay-plugin or eq-plugin in Cargo.toml to enable others)");
++            std::process::exit(1);
++        }
++    }
++}
+ 
+-    // Save as PNG
+-    let file = std::fs::File::create(&output_path).expect("Failed to create output file");
++fn save_png(pixels: &[u8], width: u32, height: u32, path: &std::path::Path) {
++    let file = std::fs::File::create(path).expect("Failed to create output file");
+     let mut encoder = png::Encoder::new(file, width, height);
+     encoder.set_color(png::ColorType::Rgba);
+     encoder.set_depth(png::BitDepth::Eight);
+     let mut writer = encoder.write_header().expect("Failed to write PNG header");
+-    writer.write_image_data(&pixels).expect("Failed to write PNG data");
+-
+-    eprintln!("Saved to {}", output_path.display());
++    writer
++        .write_image_data(pixels)
++        .expect("Failed to write PNG data");
++    eprintln!("Saved to {}", path.display());
+ }
+ 
+-/// Test component — exercises various layout and styling patterns.
+-#[component]
+-fn App() -> Element {
+-    rsx! {
+-        document::Style { {TAILWIND_CSS} }
+-        div {
+-            style: "width: 100%; height: 100%; background: #1a1a2e; padding: 16px; font-family: sans-serif; color: white; box-sizing: border-box;",
+-
+-            // Title bar
+-            div {
+-                style: "font-size: 20px; font-weight: bold; color: #e94560; margin-bottom: 16px;",
+-                "FTS GUI Component Gallery"
+-            }
+-
+-            // Row of colored boxes (tests flexbox + border-radius + hsl colors)
+-            div {
+-                style: "display: flex; gap: 8px; margin-bottom: 16px;",
+-                for i in 0..8 {
+-                    {
+-                        let hue = i * 45;
+-                        rsx! {
+-                            div {
+-                                style: "width: 48px; height: 48px; border-radius: 8px; background: hsl({hue}, 70%, 50%); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;",
+-                                "{hue}"
+-                            }
+-                        }
+-                    }
+-                }
+-            }
++fn screenshot_comp(output: &std::path::Path) {
++    use comp_plugin::{CompUiState, FtsCompParams, WAVEFORM_LEN};
++    use std::sync::atomic::Ordering;
+ 
+-            // Layout test: two columns
+-            div {
+-                style: "display: flex; gap: 16px; margin-bottom: 16px;",
++    let width = 900;
++    let height = 620;
+ 
+-                // Left column — simulated knob area
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
++    let params = Arc::new(FtsCompParams::default());
++    let ui_state = Arc::new(CompUiState::new(params));
+ 
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Controls"
+-                    }
+-
+-                    // Simulated knobs (circles with labels)
+-                    div {
+-                        style: "display: flex; gap: 16px; flex-wrap: wrap;",
+-                        for label in ["Gain", "Freq", "Q", "Mix"] {
+-                            div {
+-                                style: "display: flex; flex-direction: column; align-items: center; gap: 4px;",
+-                                div {
+-                                    style: "width: 48px; height: 48px; border-radius: 50%; background: #0f3460; border: 2px solid #e94560; display: flex; align-items: center; justify-content: center; font-size: 11px;",
+-                                    "0.5"
+-                                }
+-                                div {
+-                                    style: "font-size: 10px; color: #888;",
+-                                    "{label}"
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Right column — simulated dropdown + text
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Settings"
+-                    }
+-
+-                    // Simulated dropdown
+-                    div {
+-                        style: "background: #0f3460; border: 1px solid #333; border-radius: 4px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between;",
+-                        span { "Algorithm: Clean" }
+-                        span { style: "color: #888;", "▼" }
+-                    }
+-
+-                    // Simulated toggle
+-                    div {
+-                        style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;",
+-                        div {
+-                            style: "width: 36px; height: 20px; border-radius: 10px; background: #e94560; position: relative;",
+-                            div {
+-                                style: "width: 16px; height: 16px; border-radius: 50%; background: white; position: absolute; top: 2px; right: 2px;",
+-                            }
+-                        }
+-                        span { style: "font-size: 13px;", "Enabled" }
+-                    }
+-
+-                    // Simulated slider
+-                    div {
+-                        style: "margin-bottom: 4px;",
+-                        div {
+-                            style: "font-size: 11px; color: #888; margin-bottom: 4px;",
+-                            "Dry/Wet"
+-                        }
+-                        div {
+-                            style: "height: 6px; background: #0f3460; border-radius: 3px; position: relative;",
+-                            div {
+-                                style: "width: 65%; height: 100%; background: #e94560; border-radius: 3px;",
+-                            }
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Bottom panel — simulated meter / waveform area
+-            div {
+-                style: "background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                div {
+-                    style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                    "Output"
+-                }
++    // Pre-fill waveform with realistic test data
++    for i in 0..WAVEFORM_LEN {
++        let t = i as f32 / WAVEFORM_LEN as f32;
++        let level = 0.25 + 0.45 * (t * std::f32::consts::TAU * 3.5).sin().abs()
++            + 0.15 * (t * std::f32::consts::TAU * 7.0).sin().abs();
++        ui_state.waveform_input[i].store(level.min(1.0), Ordering::Relaxed);
++        let gr = if level > 0.5 { (level - 0.5) * 1.2 } else { 0.0 };
++        ui_state.waveform_gr[i].store(gr.min(1.0), Ordering::Relaxed);
++    }
++    ui_state.gain_reduction_db.store(4.2, Ordering::Relaxed);
++    ui_state.input_peak_db.store(-12.0, Ordering::Relaxed);
+ 
+-                // Simulated level meters
+-                div {
+-                    style: "display: flex; gap: 4px; height: 24px;",
+-                    for level in [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.3, 0.65, 0.55, 0.75, 0.45, 0.6, 0.8, 0.5, 0.7] {
+-                        {
+-                            let pct = (level * 100.0) as u32;
+-                            let color = if level > 0.85 { "#ff4444" } else if level > 0.7 { "#ffaa00" } else { "#44ff44" };
+-                            rsx! {
+-                                div {
+-                                    style: "flex: 1; background: #0f3460; border-radius: 2px; display: flex; align-items: flex-end;",
+-                                    div {
+-                                        style: "width: 100%; height: {pct}%; background: {color}; border-radius: 2px;",
+-                                    }
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
++    let shared = SharedState::new(ui_state);
+ 
+-                // Labels
+-                div {
+-                    style: "display: flex; justify-content: space-between; margin-top: 4px;",
+-                    span { style: "font-size: 10px; color: #888;", "L" }
+-                    span { style: "font-size: 10px; color: #888;", "R" }
+-                }
+-            }
+-        }
+-    }
++    eprintln!("Rendering compressor ({}x{})...", width, height);
++    let pixels =
++        nih_plug_dioxus::render_screenshot(comp_plugin::editor::App, width, height, Some(shared));
++    save_png(&pixels, width, height, output);
+ }
+diff --git a/crates/audio-gui/src/controls/knob.rs b/crates/audio-gui/src/controls/knob.rs
+index 01c28e3..94eb8e0 100644
+--- a/crates/audio-gui/src/controls/knob.rs
++++ b/crates/audio-gui/src/controls/knob.rs
+@@ -7,7 +7,7 @@
+ //! Drag capture is handled by the `DragProvider` wrapper at the editor root.
+ //! The knob only fires `onmousedown` to start a drag.
+ 
+-use crate::drag::{TextEditState, begin_drag, DragState};
++use crate::drag::{begin_drag, DragState, TextEditState};
+ use crate::theme::use_theme;
+ use nih_plug::prelude::ParamPtr;
+ use nih_plug_dioxus::prelude::*;
+diff --git a/crates/audio-gui/src/lib.rs b/crates/audio-gui/src/lib.rs
+index d927375..4fe824e 100644
+--- a/crates/audio-gui/src/lib.rs
++++ b/crates/audio-gui/src/lib.rs
+@@ -25,7 +25,7 @@ pub mod viz;
+ /// Prelude — import this for all audio GUI building blocks.
+ pub mod prelude {
+     pub use crate::controls::*;
+-    pub use crate::drag::{DragProvider, DragState, TextEditState, begin_drag};
++    pub use crate::drag::{begin_drag, DragProvider, DragState, TextEditState};
+     pub use crate::layout::*;
+     pub use crate::meters::*;
+     pub use crate::theme;
+diff --git a/crates/audio-gui/src/viz/eq_graph.rs b/crates/audio-gui/src/viz/eq_graph.rs
+index 5387419..ff10919 100644
+--- a/crates/audio-gui/src/viz/eq_graph.rs
++++ b/crates/audio-gui/src/viz/eq_graph.rs
+@@ -12,6 +12,8 @@
+ //! Uses SVG rendering for cross-platform compatibility.
+ //! Ported from the legacy `audio-controls` crate for the nih_plug_dioxus Blitz renderer.
+ 
++use std::rc::Rc;
++
+ use dioxus_elements::input_data::MouseButton;
+ use nih_plug_dioxus::prelude::*;
+ 
+@@ -331,14 +333,13 @@ pub fn EqGraph(
+     #[props(default = false)]
+     disabled: bool,
+ ) -> Element {
+-    // Internal dimensions for the SVG viewBox (fixed coordinate system).
+-    // In Blitz we use these directly for coordinate transforms (no async
+-    // get_client_rect — assume 1:1 mapping with the container).
++    // Fixed viewBox dimensions for the painter (always 800x350).
+     let vb_width = 800.0;
+     let vb_height = 350.0;
+-    let padding = 40.0;
+-    let graph_width = vb_width - padding * 2.0;
+-    let graph_height = vb_height - padding * 2.0;
++    let padding = 0.0;
++    // SVG interaction layer uses CSS pixel coordinates (no viewBox scaling).
++    // Falls back to vb_width/vb_height before layout is measured.
++    // graph_width/graph_height are the actual CSS pixel dimensions of the element.
+ 
+     // Internal state
+     let mut dragging_band = use_signal(|| None::<usize>);
+@@ -390,10 +391,31 @@ pub fn EqGraph(
+         use_scene_overlay(move || EqGraphPainter::new(state))
+     };
+ 
+-    // Position the overlay at this element's location in the window.
+-    // The component receives offset_x/y and rendered width/height from the editor.
+-    // When rendered_width == 0 (not set), the overlay won't paint (rect is too small).
+-    overlay_handle.set_rect(offset_x, offset_y, rendered_width, rendered_height);
++    // Self-measure our bounding rect (same pattern as VelloCanvas / PeakWaveform).
++    // Dioxus tracks `mounted` as a dependency so this re-runs when the element mounts.
++    let mut mounted: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
++    let mut layout_rect: Signal<(f64, f64, f64, f64)> = use_signal(|| (0.0, 0.0, 0.0, 0.0));
++    {
++        let overlay = overlay_handle.clone();
++        use_effect(move || {
++            let el = mounted.read().clone();
++            let overlay = overlay.clone();
++            if let Some(el) = el {
++                spawn(async move {
++                    if let Ok(rect) = el.get_client_rect().await {
++                        let ox = rect.origin.x;
++                        let oy = rect.origin.y;
++                        let rw = rect.size.width;
++                        let rh = rect.size.height;
++                        overlay.set_rect(ox, oy, rw, rh);
++                        if *layout_rect.peek() != (ox, oy, rw, rh) {
++                            layout_rect.set((ox, oy, rw, rh));
++                        }
++                    }
++                });
++            }
++        });
++    }
+ 
+     // Sync component state → painter each render
+     {
+@@ -421,7 +443,13 @@ pub fn EqGraph(
+         }
+     }
+ 
+-    // Coordinate conversions
++    // Use the self-measured CSS pixel dimensions for SVG coordinate calculations.
++    // The SVG has no viewBox — element positions are in CSS pixels directly.
++    let (act_ox, act_oy, act_rw, act_rh) = *layout_rect.read();
++    let graph_width  = if act_rw > 0.0 { act_rw } else { vb_width };
++    let graph_height = if act_rh > 0.0 { act_rh } else { vb_height };
++
++    // Coordinate conversions (CSS pixels, matching the vello painter)
+     let log_min = min_freq.log10();
+     let log_max = max_freq.log10();
+ 
+@@ -445,27 +473,11 @@ pub fn EqGraph(
+         (0.5 - normalized) * 2.0 * db_range
+     };
+ 
+-    // Transform window-relative pixel coordinates to SVG viewBox coordinates.
+-    // Blitz's element_coordinates() actually returns window/client coords (not
+-    // element-relative), so we subtract the element's position first, then scale
+-    // from rendered pixel size to viewBox coordinates.
+-    let actual_w = if rendered_width > 0.0 {
+-        rendered_width
+-    } else {
+-        vb_width
+-    };
+-    let actual_h = if rendered_height > 0.0 {
+-        rendered_height
+-    } else {
+-        vb_height
+-    };
+-
++    // Transform window-relative pixel coordinates to graph CSS pixel coordinates.
+     let transform_coords = move |win_x: f64, win_y: f64| -> (f64, f64) {
+-        let rel_x = win_x - offset_x;
+-        let rel_y = win_y - offset_y;
+-        let vb_x = rel_x * vb_width / actual_w;
+-        let vb_y = rel_y * vb_height / actual_h;
+-        (vb_x, vb_y)
++        let rel_x = win_x - act_ox;
++        let rel_y = win_y - act_oy;
++        (rel_x, rel_y)
+     };
+ 
+     // Check if position is inside the graph area (in viewBox coords)
+@@ -498,6 +510,9 @@ pub fn EqGraph(
+         // so we handle it on this div instead.
+         div {
+             style: "width:100%; height:100%;",
++            onmounted: move |event: MountedEvent| {
++                mounted.set(Some(event.data()));
++            },
+ 
+             // Handle mouse wheel for Q adjustment (on div because Blitz
+             // doesn't fire onwheel on SVG elements)
+@@ -536,12 +551,9 @@ pub fn EqGraph(
+             },
+ 
+         svg {
+-            // Use viewBox for proper scaling - SVG will scale to fit container
+-            view_box: "0 0 {vb_width} {vb_height}",
+-            // Make it responsive
++            // No viewBox — coordinates are CSS pixels directly, matching the vello painter.
+             width: "100%",
+             height: "100%",
+-            preserve_aspect_ratio: "none",
+             class: "eq-graph {class}",
+             // Transparent — vello SceneOverlay paints the graph visuals underneath
+             style: "background: transparent; user-select: none; display: block;",
+diff --git a/crates/audio-gui/src/viz/eq_graph_painter.rs b/crates/audio-gui/src/viz/eq_graph_painter.rs
+index 135d637..a7aa284 100644
+--- a/crates/audio-gui/src/viz/eq_graph_painter.rs
++++ b/crates/audio-gui/src/viz/eq_graph_painter.rs
+@@ -7,7 +7,7 @@
+ use std::sync::Arc;
+ 
+ use nih_plug_dioxus::prelude::vello::kurbo::{Affine, BezPath, Circle, Line, Rect, Stroke};
+-use nih_plug_dioxus::prelude::vello::peniko::{Color, Fill, Mix};
++use nih_plug_dioxus::prelude::vello::peniko::{Color, Fill};
+ use nih_plug_dioxus::prelude::vello::Scene;
+ use nih_plug_dioxus::prelude::SceneOverlay;
+ use parking_lot::RwLock;
+@@ -149,13 +149,11 @@ impl SceneOverlay for EqGraphPainter {
+     fn paint(
+         &mut self,
+         scene: &mut Scene,
+-        _transform: Affine,
++        transform: Affine,
+         width: u32,
+         height: u32,
+         _scale: f64,
+     ) {
+-        // The OverlayRegistry has already applied the element-position transform and clip.
+-        // We receive the element's CSS pixel dimensions.
+         let elem_w = width as f64;
+         let elem_h = height as f64;
+         if elem_w < 1.0 || elem_h < 1.0 {
+@@ -167,39 +165,32 @@ impl SceneOverlay for EqGraphPainter {
+         let spectrum = self.state.spectrum_db.read().clone();
+         let interaction = self.state.interaction.read().clone();
+ 
+-        // Paint in SVG viewBox coordinates (800x350) to match the Dioxus interaction layer.
+-        // The OverlayRegistry clips to elem_w x elem_h; we scale our 800x350 content to fill it.
+-        let vb_w = 800.0;
+-        let vb_h = 350.0;
++        // Use CSS pixel coordinates directly — same as PeakWaveformPainter.
++        // CoordMapper uses elem_w x elem_h so all coordinates are in CSS pixels.
++        // `transform` handles positioning (translate + uniform scale), no aspect-ratio distortion.
+         let cfg = GraphConfig {
+-            rect_w: vb_w,
+-            rect_h: vb_h,
++            rect_w: elem_w,
++            rect_h: elem_h,
+             ..cfg
+         };
+ 
+-        // Scale from viewBox coords to element pixel coords
+-        let vb_transform = Affine::scale_non_uniform(elem_w / vb_w, elem_h / vb_h);
+-
+-        let padding = 40.0;
++        let padding = 0.0;
+         let cm = CoordMapper::new(&cfg, padding);
+ 
+-        // Push a transform layer so all painting happens in viewBox (800x350) coords,
+-        // then gets scaled to fill the element's actual pixel size.
+-        let area = Rect::new(0.0, 0.0, vb_w, vb_h);
+-        scene.push_layer(Mix::Normal, 1.0, vb_transform, &area);
++        let area = Rect::new(0.0, 0.0, elem_w, elem_h);
+ 
+         // Background
+         let bg = Color::from_rgb8(10, 10, 10);
+-        scene.fill(Fill::NonZero, Affine::IDENTITY, bg, None, &area);
++        scene.fill(Fill::NonZero, transform, bg, None, &area);
+ 
+         // Grid
+         if cfg.show_grid {
+-            paint_grid(scene, &cm, &cfg);
++            paint_grid(scene, &cm, &cfg, transform);
+         }
+ 
+         // Spectrum analyzer
+         if spectrum.len() >= 2 {
+-            paint_spectrum(scene, &cm, &cfg, &spectrum);
++            paint_spectrum(scene, &cm, &cfg, &spectrum, transform);
+         }
+ 
+         // Per-band curves
+@@ -210,14 +201,14 @@ impl SceneOverlay for EqGraphPainter {
+             if !band.used || !band.enabled {
+                 continue;
+             }
+-            paint_band_curve(scene, &cm, &cfg, band, &frequencies);
++            paint_band_curve(scene, &cm, &cfg, band, &frequencies, transform);
+         }
+ 
+         // Connecting lines
+-        paint_connecting_lines(scene, &cm, &cfg, &bands);
++        paint_connecting_lines(scene, &cm, &cfg, &bands, transform);
+ 
+         // Combined curve
+-        paint_combined_curve(scene, &cm, &cfg, &bands, &frequencies);
++        paint_combined_curve(scene, &cm, &cfg, &bands, &frequencies, transform);
+ 
+         // Band nodes
+         for band in &bands {
+@@ -227,10 +218,8 @@ impl SceneOverlay for EqGraphPainter {
+             let is_hovered = interaction.hovered_band == Some(band.index);
+             let is_dragging = interaction.dragging_band == Some(band.index);
+             let is_focused = interaction.focused_band == Some(band.index);
+-            paint_band_node(scene, &cm, band, is_hovered, is_dragging, is_focused);
++            paint_band_node(scene, &cm, band, is_hovered, is_dragging, is_focused, transform);
+         }
+-
+-        scene.pop_layer();
+     }
+ }
+ 
+@@ -247,7 +236,7 @@ fn generate_frequencies(cfg: &GraphConfig, num_points: usize) -> Vec<f64> {
+         .collect()
+ }
+ 
+-fn paint_grid(scene: &mut Scene, cm: &CoordMapper, cfg: &GraphConfig) {
++fn paint_grid(scene: &mut Scene, cm: &CoordMapper, cfg: &GraphConfig, transform: Affine) {
+     let grid_color = Color::from_rgba8(60, 60, 65, 100);
+     let grid_major = Color::from_rgba8(80, 80, 85, 128);
+     let thin = Stroke::new(0.5);
+@@ -264,9 +253,9 @@ fn paint_grid(scene: &mut Scene, cm: &CoordMapper, cfg: &GraphConfig) {
+         let is_major = major_freqs.contains(&(freq as i64 as f64));
+         let line = Line::new((x, cm.padding), (x, cm.padding + cm.graph_h));
+         if is_major {
+-            scene.stroke(&thick, Affine::IDENTITY, grid_major, None, &line);
++            scene.stroke(&thick, transform, grid_major, None, &line);
+         } else {
+-            scene.stroke(&thin, Affine::IDENTITY, grid_color, None, &line);
++            scene.stroke(&thin, transform, grid_color, None, &line);
+         }
+     }
+ 
+@@ -287,15 +276,15 @@ fn paint_grid(scene: &mut Scene, cm: &CoordMapper, cfg: &GraphConfig) {
+         let line = Line::new((cm.padding, y), (cm.padding + cm.graph_w, y));
+         let is_zero = db.abs() < 0.01;
+         if is_zero {
+-            scene.stroke(&thick, Affine::IDENTITY, grid_major, None, &line);
++            scene.stroke(&thick, transform, grid_major, None, &line);
+         } else {
+-            scene.stroke(&thin, Affine::IDENTITY, grid_color, None, &line);
++            scene.stroke(&thin, transform, grid_color, None, &line);
+         }
+         db += db_step;
+     }
+ }
+ 
+-fn paint_spectrum(scene: &mut Scene, cm: &CoordMapper, cfg: &GraphConfig, spectrum: &[f32]) {
++fn paint_spectrum(scene: &mut Scene, cm: &CoordMapper, cfg: &GraphConfig, spectrum: &[f32], transform: Affine) {
+     let num_bins = spectrum.len();
+     let log_min = cfg.min_freq.log10();
+     let log_max = cfg.max_freq.log10();
+@@ -318,7 +307,7 @@ fn paint_spectrum(scene: &mut Scene, cm: &CoordMapper, cfg: &GraphConfig, spectr
+     let stroke_color = Color::from_rgba8(100, 180, 255, 90);
+     scene.stroke(
+         &Stroke::new(1.0),
+-        Affine::IDENTITY,
++        transform,
+         stroke_color,
+         None,
+         &path,
+@@ -336,7 +325,7 @@ fn paint_spectrum(scene: &mut Scene, cm: &CoordMapper, cfg: &GraphConfig, spectr
+     let fill_color = Color::from_rgba8(100, 180, 255, 20);
+     scene.fill(
+         Fill::NonZero,
+-        Affine::IDENTITY,
++        transform,
+         fill_color,
+         None,
+         &fill_path,
+@@ -349,6 +338,7 @@ fn paint_band_curve(
+     cfg: &GraphConfig,
+     band: &EqBand,
+     frequencies: &[f64],
++    transform: Affine,
+ ) {
+     let band_color = hex_to_color(get_band_color(band.index));
+     let fill_color = hex_to_color_alpha(get_band_color(band.index), 0.25);
+@@ -391,7 +381,7 @@ fn paint_band_curve(
+     // Stroke
+     scene.stroke(
+         &Stroke::new(1.5),
+-        Affine::IDENTITY,
++        transform,
+         band_color.with_alpha(0.6),
+         None,
+         &stroke_path,
+@@ -403,6 +393,7 @@ fn paint_connecting_lines(
+     cm: &CoordMapper,
+     cfg: &GraphConfig,
+     bands: &[EqBand],
++    transform: Affine,
+ ) {
+     let zero_y = cm.db_to_y(0.0);
+     let node_r = 7.0;
+@@ -435,6 +426,7 @@ fn paint_combined_curve(
+     cfg: &GraphConfig,
+     bands: &[EqBand],
+     frequencies: &[f64],
++    transform: Affine,
+ ) {
+     let golden = Color::from_rgb8(212, 169, 50);
+     let fill_color = Color::from_rgba8(212, 169, 50, 20);
+@@ -471,7 +463,7 @@ fn paint_combined_curve(
+ 
+     scene.stroke(
+         &Stroke::new(2.0),
+-        Affine::IDENTITY,
++        transform,
+         golden,
+         None,
+         &stroke_path,
+@@ -485,6 +477,7 @@ fn paint_band_node(
+     is_hovered: bool,
+     is_dragging: bool,
+     is_focused: bool,
++    transform: Affine,
+ ) {
+     let x = cm.freq_to_x(band.frequency as f64);
+     let y = cm.db_to_y(band.gain as f64);
+@@ -538,10 +531,10 @@ fn paint_band_node(
+     let outline_color = Color::from_rgba8(255, 255, 255, (outline_alpha * 255.0) as u8);
+ 
+     let node = Circle::new((x, y), radius);
+-    scene.fill(Fill::NonZero, Affine::IDENTITY, fill, None, &node);
++    scene.fill(Fill::NonZero, transform, fill, None, &node);
+     scene.stroke(
+         &Stroke::new(1.5),
+-        Affine::IDENTITY,
++        transform,
+         outline_color,
+         None,
+         &node,
+diff --git a/crates/audio-gui/src/viz/waveform.rs b/crates/audio-gui/src/viz/waveform.rs
+index 6aefddf..d3dfcce 100644
+--- a/crates/audio-gui/src/viz/waveform.rs
++++ b/crates/audio-gui/src/viz/waveform.rs
+@@ -136,6 +136,9 @@ pub struct VelloCanvasProps {
+     /// and reads its actual dimensions from the bounding rect.
+     #[props(default = false)]
+     fill: bool,
++    /// When true, paint behind the DOM (background layer).
++    #[props(default = false)]
++    background: bool,
+     /// Optional inline style to merge onto the placeholder div.
+     #[props(default)]
+     style: Option<String>,
+@@ -161,39 +164,56 @@ pub fn VelloCanvas(props: VelloCanvasProps) -> Element {
+         width,
+         height,
+         fill,
++        background,
+         style,
+     } = props;
+ 
+     let painter_clone = painter.clone();
+-    let overlay = use_scene_overlay(move || CanvasOverlay {
+-        painter: painter_clone,
+-    });
++    let layer = if background {
++        OverlayLayer::Background
++    } else {
++        OverlayLayer::Foreground
++    };
++    let overlay = use_scene_overlay_on_layer(
++        move || CanvasOverlay {
++            painter: painter_clone,
++        },
++        layer,
++    );
+ 
+-    // Store MountedData so we can re-query position on every render
++    // Store MountedData so we can re-query position on mount and resize
+     let mut mounted: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
+ 
+-    // Re-query the element rect every render and update the overlay position.
++    // Window size signal — provided by the window handler, updated on resize.
++    // Optional: falls back gracefully if not in context (e.g. screenshot path).
++    let window_size: Option<Signal<(u32, u32)>> = try_consume_context();
++
++    // Re-query the element rect when the element mounts OR the window is resized.
++    // Reading both signals synchronously registers them as reactive dependencies.
+     let w = width;
+     let h = height;
+     {
+         let overlay = overlay.clone();
+         use_effect(move || {
++            let el = mounted.read().clone();
++            // Track window size as a dependency so resize triggers re-query
++            if let Some(sig) = window_size {
++                let _ = sig.read();
++            }
+             let overlay = overlay.clone();
+-            spawn(async move {
+-                if let Some(ref el) = *mounted.read() {
++            if let Some(el) = el {
++                spawn(async move {
+                     if let Ok(rect) = el.get_client_rect().await {
+                         let origin = rect.origin;
+                         let size = rect.size;
+                         if fill {
+-                            // Fill mode: use actual rendered size from bounding rect
+                             overlay.set_rect(origin.x, origin.y, size.width, size.height);
+                         } else {
+-                            // Fixed size mode: use props for dimensions
+                             overlay.set_rect(origin.x, origin.y, w as f64, h as f64);
+                         }
+                     }
+-                }
+-            });
++                });
++            }
+         });
+     }
+ 
+@@ -445,6 +465,69 @@ impl PeakWaveformPainter {
+     }
+ }
+ 
++impl PeakWaveformPainter {
++    /// Build a smooth filled BezPath from sample data.
++    /// Uses Catmull-Rom → cubic Bézier conversion for smooth interpolation.
++    fn build_smooth_path(samples: &[f32], w: f64, h: f64, from_bottom: bool) -> BezPath {
++        let n = samples.len();
++        if n == 0 {
++            return BezPath::new();
++        }
++
++        let step = w / n as f64;
++
++        // Convert samples to y-coordinates
++        let ys: Vec<f64> = samples
++            .iter()
++            .map(|&s| {
++                let amp = s.clamp(0.0, 1.0) as f64;
++                if from_bottom {
++                    h - amp * h // level: 0 at bottom, 1 at top
++                } else {
++                    amp * h // GR: 0 at top, 1 going down
++                }
++            })
++            .collect();
++
++        let mut path = BezPath::new();
++        // Start at baseline
++        let baseline = if from_bottom { h } else { 0.0 };
++        path.move_to((0.0, baseline));
++
++        // First point on curve
++        path.line_to((0.0, ys[0]));
++
++        // Catmull-Rom to cubic Bézier for each segment
++        for i in 0..n - 1 {
++            let x0 = i as f64 * step;
++            let x1 = (i + 1) as f64 * step;
++
++            let y_prev = if i > 0 { ys[i - 1] } else { ys[0] };
++            let y_curr = ys[i];
++            let y_next = ys[i + 1];
++            let y_next2 = if i + 2 < n { ys[i + 2] } else { ys[n - 1] };
++
++            // Catmull-Rom tangents (tension = 0 for standard smooth)
++            let t1_y = (y_next - y_prev) / 2.0;
++            let t2_y = (y_next2 - y_curr) / 2.0;
++            let seg = step;
++
++            // Convert to cubic Bézier control points
++            let cp1x = x0 + seg / 3.0;
++            let cp1y = y_curr + t1_y / 3.0;
++            let cp2x = x1 - seg / 3.0;
++            let cp2y = y_next - t2_y / 3.0;
++
++            path.curve_to((cp1x, cp1y), (cp2x, cp2y), (x1, y_next));
++        }
++
++        // Close to baseline
++        path.line_to((w, baseline));
++        path.close_path();
++        path
++    }
++}
++
+ impl CanvasPainter for PeakWaveformPainter {
+     fn paint(
+         &self,
+@@ -453,49 +536,113 @@ impl CanvasPainter for PeakWaveformPainter {
+         w: f64,
+         h: f64,
+     ) {
+-        // Background
++        use nih_plug_dioxus::prelude::vello::peniko::Gradient;
++
++        // Background — deep dark with subtle blue tint
+         scene.fill(
+             Fill::NonZero,
+             transform,
+-            &Color::from_rgba8(10, 10, 20, 255),
++            &Color::from_rgba8(8, 8, 18, 255),
+             None,
+             &Rect::new(0.0, 0.0, w, h),
+         );
+ 
+-        let num_bars = self.levels.len().max(1);
+-        let bar_w = w / num_bars as f64;
+-
+-        // Level bars (from bottom) — accent dim blue
+-        let level_color = Color::from_rgba8(100, 140, 200, 160);
+-        for (i, &level) in self.levels.iter().enumerate() {
+-            let bar_h = (level.clamp(0.0, 1.0) as f64 * h).max(0.0);
+-            if bar_h < 0.5 {
+-                continue;
++        // ── Input level — smooth filled curve with vertical gradient ──
++        if !self.levels.is_empty() {
++            let path = Self::build_smooth_path(&self.levels, w, h, true);
++
++            // Gradient fill: brighter at peaks, fading to transparent at bottom
++            let level_gradient = Gradient::new_linear((0.0, 0.0), (0.0, h)).with_stops([
++                (0.0f32, Color::from_rgba8(90, 145, 220, 200)),  // bright blue at top
++                (0.5f32, Color::from_rgba8(60, 110, 180, 140)),  // mid blue
++                (0.85f32, Color::from_rgba8(40, 70, 130, 80)),   // dim blue
++                (1.0f32, Color::from_rgba8(25, 40, 80, 40)),     // nearly transparent at bottom
++            ]);
++            scene.fill(Fill::NonZero, transform, &level_gradient, None, &path);
++
++            // Bright edge stroke along the top of the waveform for definition
++            // Build just the curve part (no baseline close) for the stroke
++            let n = self.levels.len();
++            let step = w / n as f64;
++            let mut edge = BezPath::new();
++            let ys: Vec<f64> = self.levels.iter()
++                .map(|&s| h - s.clamp(0.0, 1.0) as f64 * h)
++                .collect();
++            edge.move_to((0.0, ys[0]));
++            for i in 0..n - 1 {
++                let x0 = i as f64 * step;
++                let x1 = (i + 1) as f64 * step;
++                let y_prev = if i > 0 { ys[i - 1] } else { ys[0] };
++                let y_curr = ys[i];
++                let y_next = ys[i + 1];
++                let y_next2 = if i + 2 < n { ys[i + 2] } else { ys[n - 1] };
++                let t1_y = (y_next - y_prev) / 2.0;
++                let t2_y = (y_next2 - y_curr) / 2.0;
++                let cp1x = x0 + step / 3.0;
++                let cp1y = y_curr + t1_y / 3.0;
++                let cp2x = x1 - step / 3.0;
++                let cp2y = y_next - t2_y / 3.0;
++                edge.curve_to((cp1x, cp1y), (cp2x, cp2y), (x1, y_next));
+             }
+-            let x = i as f64 * bar_w;
+-            scene.fill(
+-                Fill::NonZero,
++            // Edge highlight — subtle bright line
++            scene.stroke(
++                &Stroke::new(1.5),
++                transform,
++                &Color::from_rgba8(130, 180, 240, 180),
++                None,
++                &edge,
++            );
++
++            // Glow effect — wider, more transparent stroke behind the edge
++            scene.stroke(
++                &Stroke::new(4.0),
+                 transform,
+-                &level_color,
++                &Color::from_rgba8(100, 160, 230, 50),
+                 None,
+-                &Rect::new(x, h - bar_h, x + bar_w, h),
++                &edge,
+             );
+         }
+ 
+-        // GR overlay bars (from top) — red tint
+-        let gr_color = Color::from_rgba8(248, 113, 113, 77);
+-        for (i, &gr) in self.gr_levels.iter().enumerate() {
+-            let gr_h = (gr.clamp(0.0, 1.0) as f64 * h).max(0.0);
+-            if gr_h < 0.5 {
+-                continue;
++        // ── Gain reduction — smooth filled curve from top with red gradient ──
++        if !self.gr_levels.is_empty() {
++            let path = Self::build_smooth_path(&self.gr_levels, w, h, false);
++
++            let gr_gradient = Gradient::new_linear((0.0, 0.0), (0.0, h)).with_stops([
++                (0.0f32, Color::from_rgba8(248, 80, 80, 120)),   // red at top
++                (0.4f32, Color::from_rgba8(230, 100, 80, 70)),   // orange-red fade
++                (1.0f32, Color::from_rgba8(200, 80, 80, 20)),    // nearly transparent at bottom
++            ]);
++            scene.fill(Fill::NonZero, transform, &gr_gradient, None, &path);
++
++            // GR edge stroke
++            let n = self.gr_levels.len();
++            let step = w / n as f64;
++            let mut edge = BezPath::new();
++            let ys: Vec<f64> = self.gr_levels.iter()
++                .map(|&s| s.clamp(0.0, 1.0) as f64 * h)
++                .collect();
++            edge.move_to((0.0, ys[0]));
++            for i in 0..n - 1 {
++                let x0 = i as f64 * step;
++                let x1 = (i + 1) as f64 * step;
++                let y_prev = if i > 0 { ys[i - 1] } else { ys[0] };
++                let y_curr = ys[i];
++                let y_next = ys[i + 1];
++                let y_next2 = if i + 2 < n { ys[i + 2] } else { ys[n - 1] };
++                let t1_y = (y_next - y_prev) / 2.0;
++                let t2_y = (y_next2 - y_curr) / 2.0;
++                let cp1x = x0 + step / 3.0;
++                let cp1y = y_curr + t1_y / 3.0;
++                let cp2x = x1 - step / 3.0;
++                let cp2y = y_next - t2_y / 3.0;
++                edge.curve_to((cp1x, cp1y), (cp2x, cp2y), (x1, y_next));
+             }
+-            let x = i as f64 * bar_w;
+-            scene.fill(
+-                Fill::NonZero,
++            scene.stroke(
++                &Stroke::new(1.5),
+                 transform,
+-                &gr_color,
++                &Color::from_rgba8(255, 100, 100, 140),
+                 None,
+-                &Rect::new(x, 0.0, x + bar_w, gr_h),
++                &edge,
+             );
+         }
+ 
+@@ -568,11 +715,7 @@ pub fn PeakWaveform(
+     let show_scale = threshold_db.is_some();
+     let range_db_val = 36.0_f32; // matches painter's range_db
+ 
+-    let fill_style = if fill {
+-        "width:100%; height:100%;"
+-    } else {
+-        ""
+-    };
++    let fill_style = if fill { "width:100%; height:100%;" } else { "" };
+ 
+     rsx! {
+         div {
+@@ -587,6 +730,7 @@ pub fn PeakWaveform(
+                 width: width,
+                 height: height,
+                 fill: fill,
++                background: true,
+             }
+ 
+             // dB scale labels on the right side (positioned over the canvas)
+diff --git a/crates/fts-comp/comp-dsp/src/chain.rs b/crates/fts-comp/comp-dsp/src/chain.rs
+index d0c643a..f5ddf8c 100644
+--- a/crates/fts-comp/comp-dsp/src/chain.rs
++++ b/crates/fts-comp/comp-dsp/src/chain.rs
+@@ -8,7 +8,8 @@ use eq_dsp::filter_type::{FilterStructure, FilterType};
+ use fts_dsp::db::{db_to_linear, linear_to_db};
+ use fts_dsp::{AudioConfig, Processor};
+ 
+-use crate::compressor::{Compressor, PEAK_TO_MEAN_DB};
++use crate::compressor::{Compressor, PEAK_TO_MEAN_DB, RMS_THRESHOLD_OFFSET_DB, SMOOTH_THRESHOLD_OFFSET_DB};
++use crate::detector::DetectorMode;
+ 
+ // r[impl comp.chain.signal-flow]
+ // r[impl comp.chain.sidechain-eq]
+@@ -102,9 +103,14 @@ impl CompChain {
+             let mut gr_db = [0.0_f64; 2];
+             for ch in 0..2 {
+                 let level = if ch == 0 { level_l } else { level_r };
++                let threshold_offset = match self.comp.detector.mode() {
++                    DetectorMode::Peak => PEAK_TO_MEAN_DB,
++                    DetectorMode::Rms => RMS_THRESHOLD_OFFSET_DB,
++                    DetectorMode::Smooth => SMOOTH_THRESHOLD_OFFSET_DB,
++                };
+                 let raw_gr = self.comp.gain_computer.compute(
+                     level,
+-                    self.comp.threshold_db + PEAK_TO_MEAN_DB,
++                    self.comp.threshold_db + threshold_offset,
+                     self.comp.ratio,
+                     self.comp.knee_db,
+                     self.comp.inertia,
+diff --git a/crates/fts-comp/comp-dsp/src/compressor.rs b/crates/fts-comp/comp-dsp/src/compressor.rs
+index 2555306..d7c6672 100644
+--- a/crates/fts-comp/comp-dsp/src/compressor.rs
++++ b/crates/fts-comp/comp-dsp/src/compressor.rs
+@@ -8,22 +8,35 @@
+ 
+ use fts_dsp::db::{db_to_linear, linear_to_db};
+ 
+-use crate::detector::Detector;
++use crate::detector::{Detector, DetectorMode};
+ use crate::gain::GainComputer;
+ 
+ /// Maximum number of stereo channels.
+ const MAX_CH: usize = 2;
+ 
+-/// Peak-to-mean threshold offset: 4.2 dB.
++/// Peak-to-mean threshold offset for Peak detection mode: 4.2 dB.
+ ///
+-/// Pro-C 3 thresholds reference mean rectified level (2A/π ≈ -3.92 dB
+-/// below peak for a sine wave). FTS-Comp's 2-stage detector measures
+-/// instantaneous peak level, so the threshold must be shifted up by
+-/// ~4.2 dB to produce the same onset/amount of compression at the same
+-/// displayed threshold value. The extra 0.28 dB above the theoretical
+-/// 3.92 dB accounts for discrete-time and knee-shape corrections.
++/// Composed of two parts:
++/// - ~2.0 dB: SMOOTH_POWER=0.80 transition envelope bias (present in all modes)
++/// - ~2.2 dB: Jensen's inequality from audio-rate GR oscillation (peak mode only)
++///
++/// In Smooth mode, the pre-smoother eliminates GR oscillation, so only the
++/// transition bias remains → SMOOTH_THRESHOLD_OFFSET_DB = 2.0.
+ pub const PEAK_TO_MEAN_DB: f64 = 4.2;
+ 
++/// Threshold offset for RMS detection mode: 0.0 dB (initial).
++///
++/// RMS detection naturally adapts to crest factor — the energy envelope
++/// handles the peak-to-RMS conversion implicitly. To be tuned vs Pro-C 3.
++pub const RMS_THRESHOLD_OFFSET_DB: f64 = 0.0;
++
++/// Threshold offset for Smooth detection mode: 2.0 dB.
++///
++/// Compensates for SMOOTH_POWER=0.80 transition envelope shaping bias.
++/// The pre-smoother eliminates the Jensen's oscillation component (~2.2 dB),
++/// leaving only the constant transition bias.
++pub const SMOOTH_THRESHOLD_OFFSET_DB: f64 = 2.0;
++
+ // r[impl comp.chain.signal-flow]
+ /// Complete stereo compressor with all APComp features.
+ ///
+@@ -132,9 +145,17 @@ impl Compressor {
+             let level_db = self.detector.tick(samples[ch].abs(), self.feedback, ch);
+ 
+             // Step 2: Apply gain curve to get raw (instantaneous) GR
++            // In Peak mode, shift threshold by PEAK_TO_MEAN_DB to compensate
++            // for instantaneous vs mean-rectified detection.
++            // In Smooth mode, the linear pre-smoother handles crest factor.
++            let threshold_offset = match self.detector.mode() {
++                DetectorMode::Peak => PEAK_TO_MEAN_DB,
++                DetectorMode::Rms => RMS_THRESHOLD_OFFSET_DB,
++                DetectorMode::Smooth => SMOOTH_THRESHOLD_OFFSET_DB,
++            };
+             let raw_gr = self.gain_computer.compute(
+                 level_db,
+-                self.threshold_db + PEAK_TO_MEAN_DB,
++                self.threshold_db + threshold_offset,
+                 self.ratio,
+                 self.knee_db,
+                 self.inertia,
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 95d44e8..0193f0f 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -1,48 +1,120 @@
+-//! Two-stage compressor detector: instant gain curve + GR smoothing.
++//! Two-stage compressor detector: level detection + GR smoothing.
+ //!
+-//! Architecture:
++//! Supports three detection modes:
++//!
++//! **Peak mode** (default):
+ //! 1. Compute instantaneous level: 20*log10(|x|)
+-//! 2. Apply gain curve (threshold/ratio/knee) → raw GR in dB
++//! 2. Apply gain curve → raw GR in dB
+ //! 3. Transform raw GR to power domain (gr^p), smooth with asymmetric 1-pole
+ //! 4. Inverse transform smoothed value back to dB
++//! Smoothing in gr^p domain (p < 1) reduces Jensen's inequality bias.
++//!
++//! **Rms mode** (energy-envelope detection):
++//! 1. Compute x², smooth with SYMMETRIC 1-pole (τ = attack time)
++//! 2. Convert to dB: 10*log10(smoothed_x²)
++//! 3. Apply gain curve → raw GR in dB
++//! 4. Smooth GR with attack/release in power domain (same as Peak mode)
++//! At fast attack, symmetric smoother barely averages → near peak detection.
++//! At slow attack, symmetric smoother averages x² → near true RMS.
++//! Square wave (constant x²) is unaffected → always peak level.
++//! This produces attack-dependent crest-factor sensitivity.
+ //!
+-//! Smoothing in gr^p domain (p < 1) reduces Jensen's inequality bias
+-//! when attack > release, while maintaining threshold proportionality
+-//! (because (k*gr)^p smoothed and raised to 1/p still scales linearly with k).
++//! **Smooth mode** (optical-style):
++//! 1. Smooth |x| with 1-pole lowpass in linear domain
++//! 2. Convert smoothed level to dB: 20*log10(smoothed)
++//! 3. Apply gain curve → raw GR in dB
++//! 4. Smooth GR in dB domain (SMOOTH_POWER=1.0, no Jensen's bias needed)
++//! Linear pre-smoothing naturally adapts to crest factor: sine→mean rect,
++//! square→peak, making threshold signal-independent.
+ 
+ use fts_dsp::db::{linear_to_db, DB_FLOOR};
+ 
+ /// Maximum number of stereo channels.
+ const MAX_CH: usize = 2;
+ 
+-/// Scaling factor for attack time constant.
+-const ATTACK_SCALE: f64 = 2.0;
++/// Detection mode for the compressor.
++#[derive(Debug, Clone, Copy, PartialEq)]
++pub enum DetectorMode {
++    /// Instantaneous peak detection with power-domain GR smoothing.
++    Peak,
++    /// Energy-envelope detection: symmetric smoother on x² → 10*log10 → gain curve → GR.
++    /// Symmetric τ = attack time: fast attack → near peak, slow attack → near RMS.
++    /// GR is then smoothed with normal attack/release power-domain smoother.
++    Rms,
++    /// Linear-domain pre-smoothing (optical-style) with dB-domain GR smoothing.
++    Smooth,
++}
++
++// --- Peak mode constants ---
++
++/// Scaling factor for attack time constant (peak mode).
++const PEAK_ATTACK_SCALE: f64 = 2.0;
++/// Scaling factor for release time constant (peak mode).
++const PEAK_RELEASE_SCALE: f64 = 2.0;
++/// Power exponent for GR smoothing domain (peak mode).
++/// p<1.0 reduces Jensen's bias from oscillating peak-detected GR.
++const PEAK_SMOOTH_POWER: f64 = 0.80;
++
++// --- RMS mode constants ---
++
++/// Scaling factor for the symmetric energy smoother time constant.
++/// Applied to the attack_s parameter to derive the energy smoother τ.
++const RMS_ENERGY_SCALE: f64 = 2.0;
++/// Scaling factor for GR attack time constant (RMS mode).
++const RMS_ATTACK_SCALE: f64 = 2.0;
++/// Scaling factor for GR release time constant (RMS mode).
++const RMS_RELEASE_SCALE: f64 = 2.0;
++/// Power exponent for GR smoothing domain (RMS mode).
++/// Same as Peak mode — power-domain reduces Jensen's bias from residual
++/// GR oscillation after the energy smoother.
++const RMS_SMOOTH_POWER: f64 = 0.80;
+ 
+-/// Scaling factor for release time constant.
+-const RELEASE_SCALE: f64 = 2.0;
++// --- Smooth mode constants ---
++
++/// Scaling factor for attack time constant (smooth mode).
++const SMOOTH_ATTACK_SCALE: f64 = 2.0;
++/// Scaling factor for release time constant (smooth mode).
++const SMOOTH_RELEASE_SCALE: f64 = 2.0;
++/// Power exponent for GR smoothing domain (smooth mode).
++/// 1.0 = plain dB domain. No Jensen's compensation needed because
++/// the linear pre-smoother eliminates GR oscillation.
++const SMOOTH_SMOOTH_POWER: f64 = 0.80;
++
++/// Fixed time constant for the linear-domain level pre-smoother (seconds).
++/// Short enough not to add significant dynamics, long enough to smooth
++/// rectified audio oscillations (mean-rectify). 5ms smooths ~1 cycle at 200Hz.
++const LEVEL_SMOOTH_TAU_S: f64 = 0.005;
++
++// --- Shared constants ---
+ 
+ /// Minimum release time in seconds to prevent zero-crossing collapse.
+-/// Pro-C 3's normalized 0.0 release maps to 10ms; this floor ensures
+-/// FTS-Comp's release floor matches Pro-C 3's minimum.
++/// Pro-C 3's normalized 0.0 release maps to 10ms.
+ const MIN_RELEASE_S: f64 = 0.010;
+ 
+ /// Minimum attack time in seconds.
+-/// Set to Pro-C 3's minimum (0.005 ms) so instantaneous attack at near-zero
+-/// settings matches Pro-C 3's peak-hold behavior rather than clamping to 2ms.
++/// Set to Pro-C 3's minimum (0.005 ms).
+ const MIN_ATTACK_S: f64 = 0.000005;
+ 
+-/// Power exponent for GR smoothing domain.
+-/// p=1.0 = dB domain (baseline). p<1.0 reduces Jensen's bias.
+-/// p≈0.75 matches Pro-C 3's steady-state GR profile.
+-const SMOOTH_POWER: f64 = 0.80;
+-
+-/// Two-stage detector: instant level → gain curve → smoothed GR.
++/// Two-stage detector: level detection → gain curve → smoothed GR.
+ pub struct Detector {
++    /// Current detection mode.
++    mode: DetectorMode,
++
+     /// Smoothed GR in transformed domain (gr^p) per channel.
+     smooth_grp: [f64; MAX_CH],
+     /// Previous output sample per channel (for feedback detection).
+     prev_output: [f64; MAX_CH],
+ 
++    /// Smoothed |x| in linear domain per channel (smooth mode only).
++    smooth_level: [f64; MAX_CH],
++    /// 1-pole coefficient for level pre-smoother attack (smooth mode).
++    level_smooth_coeff: f64,
++
++    /// Smoothed x² (energy) per channel (RMS mode only).
++    smooth_energy: [f64; MAX_CH],
++    /// 1-pole coefficient for symmetric energy smoother (RMS mode).
++    rms_energy_coeff: f64,
++
+     // Coefficients
+     attack_coeff: f64,
+     release_coeff: f64,
+@@ -58,8 +130,13 @@ pub struct Detector {
+ impl Detector {
+     pub fn new() -> Self {
+         Self {
++            mode: DetectorMode::Peak,
+             smooth_grp: [0.0; MAX_CH],
+             prev_output: [0.0; MAX_CH],
++            smooth_level: [0.0; MAX_CH],
++            level_smooth_coeff: 0.0,
++            smooth_energy: [0.0; MAX_CH],
++            rms_energy_coeff: 0.0,
+             attack_coeff: 0.0,
+             release_coeff: 0.0,
+             sample_rate: 48000.0,
+@@ -68,11 +145,40 @@ impl Detector {
+         }
+     }
+ 
++    /// Set the detection mode.
++    pub fn set_mode(&mut self, mode: DetectorMode) {
++        self.mode = mode;
++    }
++
++    /// Get the current detection mode.
++    pub fn mode(&self) -> DetectorMode {
++        self.mode
++    }
++
+     /// Update coefficients for new attack/release times or sample rate.
+     pub fn set_params(&mut self, attack_s: f64, release_s: f64, sample_rate: f64) {
+         self.sample_rate = sample_rate;
+-        self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, ATTACK_SCALE);
+-        self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, RELEASE_SCALE);
++        let (attack_scale, release_scale) = match self.mode {
++            DetectorMode::Peak => (PEAK_ATTACK_SCALE, PEAK_RELEASE_SCALE),
++            DetectorMode::Rms => (RMS_ATTACK_SCALE, RMS_RELEASE_SCALE),
++            DetectorMode::Smooth => (SMOOTH_ATTACK_SCALE, SMOOTH_RELEASE_SCALE),
++        };
++        self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, attack_scale);
++        self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, release_scale);
++
++        // RMS mode: symmetric energy smoother with τ = attack_s.
++        // Uses the attack time as the integration window for x² averaging.
++        if self.mode == DetectorMode::Rms {
++            self.rms_energy_coeff =
++                Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, RMS_ENERGY_SCALE);
++        }
++
++        // Level pre-smoother: fixed short time constant for mean-rectification.
++        // Independent of attack/release — just smooths audio-rate oscillations.
++        if self.mode == DetectorMode::Smooth {
++            self.level_smooth_coeff =
++                Self::coeff(LEVEL_SMOOTH_TAU_S, sample_rate, SMOOTH_ATTACK_SCALE);
++        }
+     }
+ 
+     /// Set hold time. Called whenever hold_ms or sample rate changes.
+@@ -89,18 +195,53 @@ impl Detector {
+         }
+     }
+ 
+-    /// Feed a sample and return the instantaneous level in dB.
++    /// Feed a sample and return the detected level in dB.
++    ///
++    /// In Peak mode: instantaneous 20*log10(|x|).
++    /// In Smooth mode: 1-pole smoothed |x| in linear domain, then to dB.
+     #[inline]
+     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
+         let combined = input_abs + self.prev_output[ch].abs() * feedback;
+-        linear_to_db(combined).max(DB_FLOOR)
++
++        match self.mode {
++            DetectorMode::Peak => linear_to_db(combined).max(DB_FLOOR),
++            DetectorMode::Rms => {
++                // Symmetric amplitude smoother on |x|.
++                // Uses attack_s as τ for BOTH rise and fall directions.
++                // - Fast attack: short τ → barely smooths → near instantaneous |x| → peak-like
++                // - Slow attack: long τ → averages |x| → mean-rectified level
++                // Mean-rectified sine = 2A/π ≈ A - 3.9 dB (stronger than RMS's -3 dB).
++                // Square wave (constant |x|) is unaffected → always peak level.
++                let c = self.rms_energy_coeff;
++                self.smooth_energy[ch] = c * self.smooth_energy[ch] + (1.0 - c) * combined;
++                linear_to_db(self.smooth_energy[ch]).max(DB_FLOOR)
++            }
++            DetectorMode::Smooth => {
++                // Smooth |x| in linear domain with fixed short 1-pole.
++                // Symmetric smoothing (same τ for rise and fall) acts as
++                // mean rectifier, converting peak level to mean level
++                // without adding significant attack/release dynamics.
++                let c = self.level_smooth_coeff;
++                self.smooth_level[ch] = c * self.smooth_level[ch] + (1.0 - c) * combined;
++                linear_to_db(self.smooth_level[ch]).max(DB_FLOOR)
++            }
++        }
+     }
+ 
+-    /// Smooth a raw GR value with asymmetric attack/hold/release in power-dB domain.
++    /// Smooth a raw GR value with asymmetric attack/hold/release.
++    ///
++    /// In Peak mode: power-domain smoothing (SMOOTH_POWER < 1) to reduce Jensen's bias.
++    /// In Smooth mode: plain dB-domain smoothing (SMOOTH_POWER = 1.0).
+     #[inline]
+     pub fn smooth_gr(&mut self, raw_gr_db: f64, ch: usize) -> f64 {
+-        // Transform to power domain: gr^p
+-        let raw_grp = raw_gr_db.max(0.0).powf(SMOOTH_POWER);
++        let p = match self.mode {
++            DetectorMode::Peak => PEAK_SMOOTH_POWER,
++            DetectorMode::Rms => RMS_SMOOTH_POWER,
++            DetectorMode::Smooth => SMOOTH_SMOOTH_POWER,
++        };
++
++        // Transform to power domain: gr^p (p<1 reduces Jensen's bias)
++        let raw_grp = raw_gr_db.max(0.0).powf(p);
+ 
+         if raw_grp >= self.smooth_grp[ch] {
+             // GR increasing → attack; reset hold countdown
+@@ -118,7 +259,7 @@ impl Detector {
+         }
+ 
+         // Inverse transform: gr = smoothed^(1/p)
+-        self.smooth_grp[ch].max(0.0).powf(1.0 / SMOOTH_POWER)
++        self.smooth_grp[ch].max(0.0).powf(1.0 / p)
+     }
+ 
+     /// Store the output sample for feedback detection on next tick.
+@@ -129,12 +270,19 @@ impl Detector {
+ 
+     /// Get the current smoothed GR in dB.
+     pub fn level_db(&self, ch: usize) -> f64 {
+-        self.smooth_grp[ch].max(0.0).powf(1.0 / SMOOTH_POWER)
++        let p = match self.mode {
++            DetectorMode::Peak => PEAK_SMOOTH_POWER,
++            DetectorMode::Rms => RMS_SMOOTH_POWER,
++            DetectorMode::Smooth => SMOOTH_SMOOTH_POWER,
++        };
++        self.smooth_grp[ch].max(0.0).powf(1.0 / p)
+     }
+ 
+     pub fn reset(&mut self) {
+         self.smooth_grp = [0.0; MAX_CH];
+         self.prev_output = [0.0; MAX_CH];
++        self.smooth_level = [0.0; MAX_CH];
++        self.smooth_energy = [0.0; MAX_CH];
+         self.hold_countdown = [0; MAX_CH];
+     }
+ }
+diff --git a/crates/fts-comp/comp-dsp/src/lib.rs b/crates/fts-comp/comp-dsp/src/lib.rs
+index f324c45..2ce5371 100644
+--- a/crates/fts-comp/comp-dsp/src/lib.rs
++++ b/crates/fts-comp/comp-dsp/src/lib.rs
+@@ -30,3 +30,4 @@ pub mod gain;
+ 
+ pub use chain::CompChain;
+ pub use compressor::Compressor;
++pub use detector::DetectorMode;
+diff --git a/crates/fts-comp/comp-plugin/src/editor.rs b/crates/fts-comp/comp-plugin/src/editor.rs
+index d367b08..b232e2b 100644
+--- a/crates/fts-comp/comp-plugin/src/editor.rs
++++ b/crates/fts-comp/comp-plugin/src/editor.rs
+@@ -37,6 +37,7 @@ pub fn App() -> Element {
+ 
+     // Build waveform history from ring buffer
+     let pos = ui.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
++    let scroll_phase = ui.waveform_phase.load(Ordering::Relaxed);
+     let mut waveform_in = Vec::with_capacity(WAVEFORM_LEN);
+     let mut waveform_gr = Vec::with_capacity(WAVEFORM_LEN);
+     for i in 0..WAVEFORM_LEN {
+@@ -68,21 +69,34 @@ pub fn App() -> Element {
+     };
+ 
+     rsx! {
+-        document::Style { {t.base_css()} }
++        document::Style { {format!(
++            "*, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }} \
++             html, body {{ width: 100%; height: 100%; overflow: hidden; \
++             background: transparent; color: {text}; \
++             font-family: {font}; font-size: 13px; }}",
++            text = t.text,
++            font = t.font_family,
++        )} }
+ 
+         DragProvider {
+             div {
+                 style: format!(
+-                    "{} display:flex; flex-direction:column;",
+-                    t.root_style(),
++                    "width:100vw; height:100vh; \
++                     display:flex; flex-direction:column; \
++                     color:{text}; font-family:{font}; font-size:13px; \
++                     user-select:none; position:relative;",
++                    text = t.text,
++                    font = t.font_family,
+                 ),
+ 
+                 // ── Header ───────────────────────────────────────────
+                 div {
+                     style: format!(
+                         "display:flex; justify-content:space-between; align-items:center; \
+-                         padding:0 2px 5px 2px; border-bottom:1px solid {};",
++                         padding:0 2px 5px 2px; border-bottom:1px solid {}; \
++                         background:{};",
+                         t.border_subtle,
++                        t.bg,
+                     ),
+                     div {
+                         style: "display:flex; align-items:baseline; gap:10px;",
+@@ -116,7 +130,7 @@ pub fn App() -> Element {
+ 
+                 // ── Main area: waveform background + overlaid knobs ──
+                 div {
+-                    style: "position:relative; flex:1; min-height:0;",
++                    style: "position:relative; flex:1; min-height:0; background:transparent;",
+ 
+                     // GR waveform fills the entire area
+                     PeakWaveform {
+@@ -151,9 +165,11 @@ pub fn App() -> Element {
+                 div {
+                     style: format!(
+                         "display:flex; gap:{}; justify-content:center; align-items:flex-start; \
+-                         padding:6px 8px; border-top:1px solid {};",
++                         padding:6px 8px; border-top:1px solid {}; \
++                         background:{};",
+                         t.spacing_control,
+                         t.border_subtle,
++                        t.bg,
+                     ),
+ 
+                     ControlGroup {
+diff --git a/crates/fts-comp/comp-plugin/src/lib.rs b/crates/fts-comp/comp-plugin/src/lib.rs
+index 1af1a04..314ac50 100644
+--- a/crates/fts-comp/comp-plugin/src/lib.rs
++++ b/crates/fts-comp/comp-plugin/src/lib.rs
+@@ -25,12 +25,17 @@ pub struct CompUiState {
+     pub waveform_input: Box<[AtomicF32]>,
+     /// Waveform history: GR (0.0–1.0 normalized), ring buffer.
+     pub waveform_gr: Box<[AtomicF32]>,
+-    /// Write position into waveform ring buffers.
++    /// Integer write position into waveform ring buffers.
+     pub waveform_pos: AtomicF32,
++    /// Fractional scroll phase: counter / interval (0.0–1.0).
++    /// The renderer uses this to smoothly interpolate x-positions between
++    /// data updates, giving sub-pixel accurate scrolling at any refresh rate.
++    pub waveform_phase: AtomicF32,
+ }
+ 
+ /// Number of waveform history entries.
+-pub const WAVEFORM_LEN: usize = 200;
++/// At 240 Hz updates: 960 entries ≈ 4 seconds of history.
++pub const WAVEFORM_LEN: usize = 960;
+ 
+ impl CompUiState {
+     pub fn new(params: Arc<FtsCompParams>) -> Self {
+@@ -51,6 +56,7 @@ impl CompUiState {
+             waveform_input,
+             waveform_gr,
+             waveform_pos: AtomicF32::new(0.0),
++            waveform_phase: AtomicF32::new(0.0),
+         }
+     }
+ }
+@@ -353,7 +359,7 @@ impl Default for FtsComp {
+             chain: CompChain::new(),
+             sample_rate: 48000.0,
+             waveform_counter: 0,
+-            waveform_interval: 960, // ~50 Hz at 48kHz
++            waveform_interval: 200, // ~240 Hz at 48kHz
+             waveform_peak: 0.0,
+             waveform_gr_peak: 0.0,
+         }
+@@ -427,7 +433,7 @@ impl Plugin for FtsComp {
+         _context: &mut impl InitContext<Self>,
+     ) -> bool {
+         self.sample_rate = buffer_config.sample_rate as f64;
+-        self.waveform_interval = (buffer_config.sample_rate as usize) / 50;
++        self.waveform_interval = (buffer_config.sample_rate as usize / 240).max(1);
+         self.chain.update(AudioConfig {
+             sample_rate: self.sample_rate,
+             max_buffer_size: buffer_config.max_buffer_size as usize,
+@@ -511,6 +517,12 @@ impl Plugin for FtsComp {
+             self.waveform_peak = self.waveform_peak.max(input_peak);
+             self.waveform_gr_peak = self.waveform_gr_peak.max(gr / 30.0); // normalize to 0-1
+             self.waveform_counter += 1;
++
++            // Phase: fractional progress within the current interval (0..1).
++            // Updated every sample so the renderer can interpolate sub-pixel scroll.
++            let phase = self.waveform_counter as f32 / self.waveform_interval as f32;
++            self.ui_state.waveform_phase.store(phase, Ordering::Relaxed);
++
+             if self.waveform_counter >= self.waveform_interval {
+                 let pos =
+                     self.ui_state.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
+@@ -521,6 +533,7 @@ impl Plugin for FtsComp {
+                 self.ui_state
+                     .waveform_pos
+                     .store((pos + 1) as f32, Ordering::Relaxed);
++                self.ui_state.waveform_phase.store(0.0, Ordering::Relaxed);
+ 
+                 self.waveform_counter = 0;
+                 self.waveform_peak = 0.0;
+diff --git a/crates/fts-eq/eq-dsp/Cargo.toml b/crates/fts-eq/eq-dsp/Cargo.toml
+index 346c67f..fd160e8 100644
+--- a/crates/fts-eq/eq-dsp/Cargo.toml
++++ b/crates/fts-eq/eq-dsp/Cargo.toml
+@@ -27,3 +27,6 @@ harness = false
+ 
+ [[example]]
+ name = "process_wav"
++
++[[example]]
++name = "cascade_sweep"
+diff --git a/crates/fts-eq/eq-plugin/src/editor.rs b/crates/fts-eq/eq-plugin/src/editor.rs
+index 54b3a54..2f4503a 100644
+--- a/crates/fts-eq/eq-plugin/src/editor.rs
++++ b/crates/fts-eq/eq-plugin/src/editor.rs
+@@ -4,7 +4,6 @@
+ //! frequency response visualization with draggable band nodes.
+ 
+ use std::sync::atomic::Ordering;
+-use std::sync::Arc;
+ 
+ use audio_gui::prelude::{use_init_theme, DragProvider, LevelMeterDb};
+ use audio_gui::viz::eq_graph::{get_band_color, EqBand, EqBandShape, EqGraph};
+@@ -106,21 +105,6 @@ pub fn App() -> Element {
+     // Count active bands
+     let active_count = bands_signal.read().iter().filter(|b| b.used).count();
+ 
+-    // Get window dimensions for overlay positioning
+-    let dioxus_state = use_context::<Arc<DioxusState>>();
+-    let (win_w, win_h) = dioxus_state.size();
+-    let win_w = win_w as f64;
+-    let win_h = win_h as f64;
+-    // Layout constants (CSS pixels): header ~37px, bottom bar ~61px, graph margin 4px/6px
+-    let header_h = 37.0;
+-    let bottom_h = 61.0;
+-    let margin_x = 6.0;
+-    let margin_y = 4.0;
+-    let graph_x = margin_x;
+-    let graph_y = header_h + margin_y;
+-    let graph_w = (win_w - margin_x * 2.0).max(1.0);
+-    let graph_h = (win_h - header_h - bottom_h - margin_y * 2.0).max(1.0);
+-
+     let base_css = t.base_css();
+     let root_style = t.root_style();
+     let spacing_root = t.spacing_root;
+@@ -182,12 +166,6 @@ pub fn App() -> Element {
+                     sample_rate: sample_rate,
+                     spectrum_db: spectrum,
+                     focused_band_out: focused_band,
+-                    // Dynamic layout — computed from window dimensions for full resizability.
+-                    // The vello SceneOverlay paints at these coordinates in window space.
+-                    rendered_width: graph_w,
+-                    rendered_height: graph_h,
+-                    offset_x: graph_x,
+-                    offset_y: graph_y,
+ 
+                     on_band_change: {
+                         let ctx = ctx.clone();
+diff --git a/crates/fts-pitch/pitch-dsp/Cargo.toml b/crates/fts-pitch/pitch-dsp/Cargo.toml
+index f4e7b6c..262c4a3 100644
+--- a/crates/fts-pitch/pitch-dsp/Cargo.toml
++++ b/crates/fts-pitch/pitch-dsp/Cargo.toml
+@@ -8,7 +8,6 @@ license.workspace = true
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ serde = { workspace = true }
+-realfft = "3"
+ 
+ # External pitch/time-stretch libraries
+ signalsmith-stretch = "0.1"
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index f843397..9763330 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -638,8 +638,8 @@ mod tests {
+             Algorithm::Signalsmith,
+             Algorithm::Rubberband,
+             Algorithm::Allpass,
+-            // PolyOctave excluded: STFT dry path has FFT_SIZE latency;
+-            // dry-wet correctness is tested in pog::tests::dry_wet_mix.
++            // PolyOctave excluded: SSB filter bank has 1-sample latency
++            // on dry path; dry-wet correctness tested in pog::tests::dry_wet_mix.
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -731,22 +731,16 @@ mod tests {
+             eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
+         }
+ 
+-        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
++        // In live mode, all algorithms should be under 25ms (~1200 samples at 48k).
+         // Rubberband R2 real-time has ~1024 sample minimum internal latency.
+-        // PolyOctave uses STFT with FFT_SIZE=2048 latency regardless of live mode.
+         let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
+         for algo in ALL_ALGOS {
+             chain.algorithm = algo;
+             chain.process(&mut l, &mut r);
+             let lat = chain.latency();
+-            let limit = if algo == Algorithm::PolyOctave {
+-                2048
+-            } else {
+-                live_limit_samples
+-            };
+             assert!(
+-                lat <= limit,
+-                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {limit}",
++                lat <= live_limit_samples,
++                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
+                 lat as f64 / SR * 1000.0,
+             );
+         }

@@ -1,0 +1,3337 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 3552b16..777fda8 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2970,9 +2970,12 @@ dependencies = [
+ name = "eq-plugin"
+ version = "0.1.0"
+ dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
+  "eq-dsp",
+  "eq-profiles",
+  "eq-ui",
++ "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+ ]
+@@ -5140,6 +5143,20 @@ dependencies = [
+  "serde",
+ ]
+ 
++[[package]]
++name = "livetune-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "fts-dsp",
++ "fts-plugin-core",
++ "livetune-dsp",
++ "nih_plug",
++ "pitch-dsp",
++ "serde",
++]
++
+ [[package]]
+ name = "lock_api"
+ version = "0.4.14"
+@@ -6915,6 +6932,19 @@ dependencies = [
+  "serde",
+ ]
+ 
++[[package]]
++name = "pitch-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "fts-dsp",
++ "fts-plugin-core",
++ "nih_plug",
++ "pitch-dsp",
++ "serde",
++]
++
+ [[package]]
+ name = "pixels"
+ version = "0.15.0"
+@@ -7791,6 +7821,9 @@ dependencies = [
+ name = "rider-plugin"
+ version = "0.1.0"
+ dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+  "rider-dsp",
+@@ -9802,14 +9835,23 @@ version = "0.1.0"
+ dependencies = [
+  "eq-dsp",
+  "fts-dsp",
++ "rustfft",
++ "symphonia",
+ ]
+ 
+ [[package]]
+ name = "trigger-plugin"
+ version = "0.1.0"
+ dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "crossbeam-channel",
++ "eq-dsp",
++ "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
++ "serde",
++ "symphonium",
+  "trigger-dsp",
+  "trigger-profiles",
+  "trigger-ui",
+diff --git a/Cargo.toml b/Cargo.toml
+index e975dc2..2a40fcf 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -77,9 +77,11 @@ members = [
+ 
+     # Pitch plugin (octave shifter)
+     "crates/fts-pitch/pitch-dsp",
++    "crates/fts-pitch/pitch-plugin",
+ 
+     # LiveTune plugin (auto-tune / pitch correction)
+     "crates/fts-livetune/livetune-dsp",
++    "crates/fts-livetune/livetune-plugin",
+ 
+     "apps/*",
+     "xtask",
+diff --git a/crates/audio-gui/src/controls/knob.rs b/crates/audio-gui/src/controls/knob.rs
+index 69a0557..34c5302 100644
+--- a/crates/audio-gui/src/controls/knob.rs
++++ b/crates/audio-gui/src/controls/knob.rs
+@@ -92,6 +92,7 @@ pub fn Knob(
+     let ctx = use_param_context();
+     let mut drag: Signal<DragState> = use_context();
+     let mut revision = use_signal(|| 0u32);
++    let mut editing = use_signal(|| false);
+     let _ = *revision.read();
+ 
+     // Also re-render when drag is active (so value display updates)
+@@ -100,6 +101,7 @@ pub fn Knob(
+     let normalized = unsafe { param_ptr.modulated_normalized_value() } as f64;
+     let display_value = unsafe { param_ptr.normalized_value_to_string(normalized as f32, true) };
+     let param_name = label.unwrap_or_else(|| unsafe { param_ptr.name() }.to_string());
++    let is_editing = *editing.read();
+ 
+     let d = size.diameter();
+     let df = d as f64;
+@@ -213,26 +215,72 @@ pub fn Knob(
+                         }
+                     },
+                     ondoubleclick: {
+-                        let ctx = ctx.clone();
+                         move |_| {
+-                            let default =
+-                                unsafe { param_ptr.default_normalized_value() };
+-                            ctx.begin_set_raw(param_ptr);
+-                            ctx.set_normalized_raw(param_ptr, default);
+-                            ctx.end_set_raw(param_ptr);
+-                            revision += 1;
++                            editing.set(true);
+                         }
+                     },
+                 }
+             }
+ 
+-            // Display value
+-            span {
+-                style: format!(
+-                    "font-size:10px; color:{TEXT_DIM}; font-variant-numeric:tabular-nums; \
+-                     min-width:48px; text-align:center;"
+-                ),
+-                "{display_value}"
++            // Display value (or text input when editing)
++            if is_editing {
++                input {
++                    r#type: "text",
++                    style: format!(
++                        "font-size:10px; color:{TEXT}; background:{SURFACE}; \
++                         border:1px solid {ACCENT}; border-radius:3px; \
++                         min-width:48px; width:56px; text-align:center; \
++                         padding:1px 2px; outline:none;"
++                    ),
++                    value: "{display_value}",
++                    onkeydown: {
++                        let ctx = ctx.clone();
++                        move |evt: KeyboardEvent| {
++                            if evt.key() == Key::Enter {
++                                // Try to parse whatever the user typed
++                                // Note: In Dioxus/Blitz, we read the value from
++                                // the input via a separate event. For now, we
++                                // commit on Enter via onchange/oninput.
++                                editing.set(false);
++                            } else if evt.key() == Key::Escape {
++                                editing.set(false);
++                            }
++                        }
++                    },
++                    onchange: {
++                        let ctx = ctx.clone();
++                        move |evt: FormEvent| {
++                            let text = evt.value();
++                            if let Some(normalized) =
++                                unsafe { param_ptr.string_to_normalized_value(&text) }
++                            {
++                                ctx.begin_set_raw(param_ptr);
++                                ctx.set_normalized_raw(param_ptr, normalized);
++                                ctx.end_set_raw(param_ptr);
++                            }
++                            editing.set(false);
++                            revision += 1;
++                        }
++                    },
++                    onfocusout: {
++                        move |_| {
++                            editing.set(false);
++                        }
++                    },
++                }
++            } else {
++                span {
++                    style: format!(
++                        "font-size:10px; color:{TEXT_DIM}; font-variant-numeric:tabular-nums; \
++                         min-width:48px; text-align:center; cursor:text;"
++                    ),
++                    ondoubleclick: move |_| {
++                        if !disabled {
++                            editing.set(true);
++                        }
++                    },
++                    "{display_value}"
++                }
+             }
+ 
+             // Label
+diff --git a/crates/audio-gui/src/viz/mod.rs b/crates/audio-gui/src/viz/mod.rs
+index 7121b49..4fd8470 100644
+--- a/crates/audio-gui/src/viz/mod.rs
++++ b/crates/audio-gui/src/viz/mod.rs
+@@ -1,7 +1,12 @@
+-//! Audio visualizations — waveform displays, transfer curves.
++//! Audio visualizations — waveform displays, transfer curves, EQ graphs.
+ 
++pub mod eq_graph;
+ pub mod transfer_curve;
+ pub mod waveform;
+ 
++pub use eq_graph::{
++    EqBand, EqBandShape, EqGraph, StereoMode, get_band_color, get_band_fill_color, q_to_slope_db,
++    slope_db_to_q, MAX_BANDS,
++};
+ pub use transfer_curve::TransferCurve;
+ pub use waveform::{PeakWaveform, WaveformDisplay};
+diff --git a/crates/audio-gui/src/viz/transfer_curve.rs b/crates/audio-gui/src/viz/transfer_curve.rs
+index 278cd5c..f1aaf21 100644
+--- a/crates/audio-gui/src/viz/transfer_curve.rs
++++ b/crates/audio-gui/src/viz/transfer_curve.rs
+@@ -6,21 +6,30 @@
+ use crate::theme::*;
+ use nih_plug_dioxus::prelude::*;
+ 
+-/// Compute a generic compression transfer function: input_db → output_db.
++/// Compute gain reduction for a given input level using soft-knee compression.
+ ///
+-/// For ratio > 1.0 and input above threshold, applies gain reduction
+-/// with optional soft-knee convexity.
+-fn compress_transfer(input_db: f32, threshold_db: f32, ratio: f32, convexity: f32) -> f32 {
+-    if ratio <= 1.0 || input_db <= threshold_db {
++/// Returns output_db for a given input_db.
++fn compress_transfer(input_db: f32, threshold_db: f32, ratio: f32, knee_db: f32) -> f32 {
++    if ratio <= 1.0 {
+         return input_db;
+     }
+-    let overshoot = input_db - threshold_db;
+-    let target = threshold_db + overshoot / ratio;
+-    let mut gr = input_db - target;
+-    if gr > 0.0 && convexity != 1.0 {
+-        gr = gr.powf(convexity);
++
++    let slope = 1.0 - 1.0 / ratio;
++    let half_knee = knee_db * 0.5;
++
++    if knee_db > 0.001 && (input_db - threshold_db).abs() < half_knee {
++        // Soft knee region: quadratic interpolation
++        let x = input_db - threshold_db + half_knee;
++        let gr = slope * x * x / (2.0 * knee_db);
++        input_db - gr
++    } else if input_db > threshold_db {
++        // Above knee: standard compression
++        let gr = slope * (input_db - threshold_db);
++        input_db - gr
++    } else {
++        // Below threshold: no compression
++        input_db
+     }
+-    input_db - gr
+ }
+ 
+ /// Transfer curve visualization — shows input vs output dB.
+@@ -34,9 +43,9 @@ pub fn TransferCurve(
+     threshold_db: f32,
+     /// Compression ratio (e.g. 4.0 = 4:1).
+     ratio: f32,
+-    /// Soft-knee convexity (1.0 = hard knee).
+-    #[props(default = 1.0)]
+-    convexity: f32,
++    /// Soft knee width in dB (0 = hard knee, 6 = gentle).
++    #[props(default = 6.0)]
++    knee_db: f32,
+     /// Current input level (for the "ball" indicator), or None.
+     #[props(default)]
+     input_level_db: Option<f32>,
+@@ -59,7 +68,7 @@ pub fn TransferCurve(
+     let points: Vec<(f32, f32)> = (0..=num_points)
+         .map(|i| {
+             let input = min_db + (i as f32 / num_points as f32) * range_db;
+-            let output = compress_transfer(input, threshold_db, ratio, convexity);
++            let output = compress_transfer(input, threshold_db, ratio, knee_db);
+             (db_to_x(input), db_to_y(output))
+         })
+         .collect();
+@@ -156,7 +165,7 @@ pub fn TransferCurve(
+             // Input level indicator (ball on curve)
+             if let Some(level) = input_level_db {
+                 {
+-                    let out = compress_transfer(level, threshold_db, ratio, convexity);
++                    let out = compress_transfer(level, threshold_db, ratio, knee_db);
+                     let bx = db_to_x(level) - 3.0;
+                     let by = db_to_y(out) - 3.0;
+                     rsx! {
+diff --git a/crates/fts-comp/comp-dsp/src/chain.rs b/crates/fts-comp/comp-dsp/src/chain.rs
+index b738042..aaf3140 100644
+--- a/crates/fts-comp/comp-dsp/src/chain.rs
++++ b/crates/fts-comp/comp-dsp/src/chain.rs
+@@ -102,7 +102,7 @@ impl Processor for CompChain {
+                         level,
+                         self.comp.threshold_db,
+                         self.comp.ratio,
+-                        self.comp.convexity,
++                        self.comp.knee_db,
+                         self.comp.inertia,
+                         inertia_decay,
+                         ch,
+diff --git a/crates/fts-comp/comp-dsp/src/compressor.rs b/crates/fts-comp/comp-dsp/src/compressor.rs
+index de5b582..bc4125c 100644
+--- a/crates/fts-comp/comp-dsp/src/compressor.rs
++++ b/crates/fts-comp/comp-dsp/src/compressor.rs
+@@ -18,7 +18,7 @@ const MAX_CH: usize = 2;
+ /// Signal flow per sample:
+ /// 1. Input gain
+ /// 2. Level detection (feedforward + optional feedback)
+-/// 3. Gain reduction computation (threshold/ratio/convexity/inertia)
++/// 3. Gain reduction computation (threshold/ratio/knee/inertia)
+ /// 4. Channel linking
+ /// 5. Apply gain reduction
+ /// 6. Output saturation (tanh soft clip)
+@@ -33,7 +33,7 @@ pub struct Compressor {
+     pub ratio: f64,
+     pub attack_ms: f64,
+     pub release_ms: f64,
+-    pub convexity: f64,
++    pub knee_db: f64,
+     pub feedback: f64,
+     pub channel_link: f64,
+     pub inertia: f64,
+@@ -42,6 +42,7 @@ pub struct Compressor {
+     pub fold: f64,
+     pub input_gain_db: f64,
+     pub output_gain_db: f64,
++    pub auto_makeup: bool,
+ 
+     // State
+     sample_rate: f64,
+@@ -59,7 +60,7 @@ impl Compressor {
+             ratio: 4.0,
+             attack_ms: 90.0,
+             release_ms: 400.0,
+-            convexity: 1.0,
++            knee_db: 6.0,
+             feedback: 0.0,
+             channel_link: 1.0,
+             inertia: 0.0,
+@@ -68,6 +69,7 @@ impl Compressor {
+             fold: 0.0,
+             input_gain_db: 0.0,
+             output_gain_db: 0.0,
++            auto_makeup: false,
+ 
+             sample_rate: 48000.0,
+             last_gr_db: [0.0; MAX_CH],
+@@ -77,8 +79,8 @@ impl Compressor {
+     /// Update internal coefficients after parameter changes.
+     pub fn update(&mut self, sample_rate: f64) {
+         self.sample_rate = sample_rate;
+-        let attack_s = linear_to_exponential(self.attack_ms, 0.0, 300.0) / 1000.0;
+-        let release_s = linear_to_exponential(self.release_ms, 0.0, 3000.0) / 1000.0;
++        let attack_s = self.attack_ms / 1000.0;
++        let release_s = self.release_ms / 1000.0;
+         self.detector.set_params(attack_s, release_s, sample_rate);
+     }
+ 
+@@ -89,9 +91,15 @@ impl Compressor {
+     #[inline]
+     pub fn process_sample(&mut self, left: &mut f64, right: &mut f64) {
+         let input_gain = db_to_linear(self.input_gain_db);
+-        let output_gain = db_to_linear(self.output_gain_db);
++        let mut output_gain = db_to_linear(self.output_gain_db);
+         let inertia_decay = 0.99 + (self.inertia_decay * 0.01);
+ 
++        // Auto makeup gain: compensate for expected GR at threshold
++        if self.auto_makeup && self.ratio > 1.0 {
++            let makeup_db = -self.threshold_db * (1.0 - 1.0 / self.ratio) * 0.5;
++            output_gain *= db_to_linear(makeup_db);
++        }
++
+         let dry = [*left, *right];
+ 
+         // Apply input gain
+@@ -109,7 +117,7 @@ impl Compressor {
+                 level_db,
+                 self.threshold_db,
+                 self.ratio,
+-                self.convexity,
++                self.knee_db,
+                 self.inertia,
+                 inertia_decay,
+                 ch,
+@@ -184,16 +192,3 @@ impl Default for Compressor {
+     }
+ }
+ 
+-// ── Utility ────────────────────────────────────────────────────────────
+-
+-/// APComp's exponential parameter scaling.
+-///
+-/// Maps a linear 0..max input to an exponential curve for more natural
+-/// control feel on attack/release/ratio knobs.
+-#[inline]
+-fn linear_to_exponential(value: f64, min: f64, max: f64) -> f64 {
+-    let value = value.clamp(min, max);
+-    let normalized = (value - min) / (max - min);
+-    let exponential = normalized * normalized;
+-    min + exponential * (max - min)
+-}
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 26bd023..fa37b11 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -19,6 +19,8 @@ pub struct Detector {
+     slewed: [f64; MAX_CH],
+     /// Previous output sample per channel (for feedback detection).
+     prev_output: [f64; MAX_CH],
++    /// Whether each channel has received its first non-silent sample.
++    initialized: [bool; MAX_CH],
+ 
+     // Cached coefficients
+     attack_coeff: f64,
+@@ -31,6 +33,7 @@ impl Detector {
+         Self {
+             slewed: [DB_FLOOR; MAX_CH],
+             prev_output: [0.0; MAX_CH],
++            initialized: [false; MAX_CH],
+             attack_coeff: 0.0,
+             release_coeff: 0.0,
+             sample_rate: 48000.0,
+@@ -60,6 +63,13 @@ impl Detector {
+         // Clamp to sane range
+         let input_db = input_db.clamp(DB_FLOOR, 6.0);
+ 
++        // Snap to input on first non-silent sample to avoid slow ramp from DB_FLOOR
++        if !self.initialized[ch] && input_db > DB_FLOOR {
++            self.initialized[ch] = true;
++            self.slewed[ch] = input_db;
++            return self.slewed[ch];
++        }
++
+         // Asymmetric exponential smoothing
+         if input_db > self.slewed[ch] {
+             // Attack: signal rising
+@@ -87,6 +97,7 @@ impl Detector {
+     pub fn reset(&mut self) {
+         self.slewed = [DB_FLOOR; MAX_CH];
+         self.prev_output = [0.0; MAX_CH];
++        self.initialized = [false; MAX_CH];
+     }
+ }
+ 
+diff --git a/crates/fts-comp/comp-dsp/src/gain.rs b/crates/fts-comp/comp-dsp/src/gain.rs
+index 5bbacb7..f49b23f 100644
+--- a/crates/fts-comp/comp-dsp/src/gain.rs
++++ b/crates/fts-comp/comp-dsp/src/gain.rs
+@@ -1,4 +1,4 @@
+-//! Gain reduction computation — threshold, ratio, convexity, inertia.
++//! Gain reduction computation — threshold, ratio, soft knee, inertia.
+ //!
+ //! Converts the detected envelope level into the amount of gain reduction
+ //! to apply, shaped by the compression curve parameters.
+@@ -7,7 +7,7 @@
+ const MAX_CH: usize = 2;
+ 
+ // r[impl comp.chain.signal-flow]
+-/// Gain computer with convexity shaping and inertia momentum.
++/// Gain computer with soft knee and inertia momentum.
+ pub struct GainComputer {
+     /// Current gain reduction in dB per channel.
+     pub gr_db: [f64; MAX_CH],
+@@ -21,18 +21,21 @@ impl GainComputer {
+     pub fn new() -> Self {
+         Self {
+             gr_db: [0.0; MAX_CH],
+-            prev_gr: [-200.0; MAX_CH],
++            prev_gr: [0.0; MAX_CH],
+             inertia_vel: [0.0; MAX_CH],
+         }
+     }
+ 
+     /// Compute gain reduction in dB from the detected level.
+     ///
++    /// Uses a standard soft-knee compression curve. When `knee_db` > 0,
++    /// there is a smooth quadratic transition zone around the threshold.
++    ///
+     /// # Parameters
+     /// - `level_db`: smoothed envelope level in dB (from detector)
+     /// - `threshold_db`: compression threshold in dB
+     /// - `ratio`: compression ratio (1.0 = no compression, 20.0 = hard limiting)
+-    /// - `convexity`: curve shape power (1.0 = standard, <1 = softer, >1 = harder)
++    /// - `knee_db`: soft knee width in dB (0 = hard knee, 6 = gentle, 12+ = very soft)
+     /// - `inertia`: momentum coefficient (-1.0 to 0.3, 0 = off)
+     /// - `inertia_decay`: decay coefficient for inertia velocity (0.99-1.0 range)
+     /// - `ch`: channel index
+@@ -44,7 +47,7 @@ impl GainComputer {
+         level_db: f64,
+         threshold_db: f64,
+         ratio: f64,
+-        convexity: f64,
++        knee_db: f64,
+         inertia: f64,
+         inertia_decay: f64,
+         ch: usize,
+@@ -54,21 +57,22 @@ impl GainComputer {
+             return 0.0;
+         }
+ 
+-        if level_db > threshold_db {
+-            // Standard compression curve: how much above threshold, reduced by ratio
+-            let overshoot = level_db - threshold_db;
+-            let target = threshold_db + overshoot / ratio;
+-            let mut gr = level_db - target;
+-
+-            // Convexity shaping — power function on the gain reduction
+-            if gr > 0.0 && convexity != 1.0 {
+-                gr = gr.powf(convexity);
+-            }
++        let slope = 1.0 - 1.0 / ratio;
++        let half_knee = knee_db * 0.5;
+ 
+-            self.gr_db[ch] = gr;
++        let gr = if knee_db > 0.001 && (level_db - threshold_db).abs() < half_knee {
++            // Soft knee region: quadratic interpolation
++            let x = level_db - threshold_db + half_knee;
++            slope * x * x / (2.0 * knee_db)
++        } else if level_db > threshold_db {
++            // Above knee: standard compression
++            slope * (level_db - threshold_db)
+         } else {
+-            self.gr_db[ch] = 0.0;
+-        }
++            // Below threshold: no compression
++            0.0
++        };
++
++        self.gr_db[ch] = gr;
+ 
+         // Inertia system — adds momentum to gain reduction changes
+         if inertia.abs() > 1e-6 {
+@@ -98,7 +102,7 @@ impl GainComputer {
+ 
+     pub fn reset(&mut self) {
+         self.gr_db = [0.0; MAX_CH];
+-        self.prev_gr = [-200.0; MAX_CH];
++        self.prev_gr = [0.0; MAX_CH];
+         self.inertia_vel = [0.0; MAX_CH];
+     }
+ }
+diff --git a/crates/fts-comp/comp-dsp/src/lib.rs b/crates/fts-comp/comp-dsp/src/lib.rs
+index 80a3364..9b84be1 100644
+--- a/crates/fts-comp/comp-dsp/src/lib.rs
++++ b/crates/fts-comp/comp-dsp/src/lib.rs
+@@ -2,12 +2,12 @@
+ //!
+ //! Based on APComp's versatile compressor architecture, which covers the full
+ //! range from gentle opto-style compression to hard limiting through its
+-//! parameter space (convexity, feedback, inertia).
++//! parameter space (knee, feedback, inertia).
+ //!
+ //! # Architecture
+ //!
+ //! - [`detector`] — Envelope detection with exponential attack/release ballistics
+-//! - [`gain`] — Gain reduction computation (threshold, ratio, knee, convexity)
++//! - [`gain`] — Gain reduction computation (threshold, ratio, soft knee)
+ //! - [`compressor`] — Complete single-band compressor with all APComp features
+ //! - [`chain`] — Full processing chain with sidechain EQ and parallel mix
+ //!
+diff --git a/crates/fts-comp/comp-dsp/tests/compressor.rs b/crates/fts-comp/comp-dsp/tests/compressor.rs
+index f1b457a..d8d06f8 100644
+--- a/crates/fts-comp/comp-dsp/tests/compressor.rs
++++ b/crates/fts-comp/comp-dsp/tests/compressor.rs
+@@ -12,7 +12,7 @@ fn make_comp() -> Compressor {
+     c.ratio = 4.0;
+     c.attack_ms = 1.0; // Fast for testing
+     c.release_ms = 50.0;
+-    c.convexity = 1.0;
++    c.knee_db = 0.0; // hard knee for testing
+     c.feedback = 0.0;
+     c.channel_link = 1.0;
+     c.inertia = 0.0;
+@@ -118,7 +118,7 @@ fn higher_ratio_more_reduction() {
+ 
+ #[test]
+ fn attack_time_affects_transient() {
+-    // Fast attack should reduce the first loud samples more quickly
++    // Fast attack should reduce the first loud samples more quickly after a level jump
+     let mut comp_fast = make_comp();
+     comp_fast.attack_ms = 0.1;
+     comp_fast.update(SAMPLE_RATE);
+@@ -127,8 +127,17 @@ fn attack_time_affects_transient() {
+     comp_slow.attack_ms = 100.0;
+     comp_slow.update(SAMPLE_RATE);
+ 
++    // Warm up with a quiet signal so the detector is initialized at a low level
++    let quiet = 0.01; // ~-40 dB, below threshold
++    for _ in 0..480 {
++        let (mut l, mut r) = (quiet, quiet);
++        comp_fast.process_sample(&mut l, &mut r);
++        let (mut l, mut r) = (quiet, quiet);
++        comp_slow.process_sample(&mut l, &mut r);
++    }
++
++    // Now jump to a loud signal and measure the first 100 samples
+     let amplitude = 1.0;
+-    // Collect first 100 samples (about 2ms at 48kHz)
+     let mut fast_sum = 0.0_f64;
+     let mut slow_sum = 0.0_f64;
+ 
+diff --git a/crates/fts-comp/comp-plugin/src/editor.rs b/crates/fts-comp/comp-plugin/src/editor.rs
+index 697965b..bbeb57a 100644
+--- a/crates/fts-comp/comp-plugin/src/editor.rs
++++ b/crates/fts-comp/comp-plugin/src/editor.rs
+@@ -1,11 +1,12 @@
+ //! Compressor editor — Dioxus GUI root component.
+ //!
+ //! Layout: header, visualization row (transfer curve + waveform + meters),
+-//! and two rows of rotary knobs for all parameters.
++//! and organized knob groups for all parameters.
+ 
+ use std::sync::atomic::Ordering;
+ 
+ use audio_gui::controls::knob::Knob;
++use audio_gui::controls::toggle::Toggle;
+ use audio_gui::prelude::{
+     theme, DragProvider, GrMeter, KnobSize, LevelMeterDb, PeakWaveform, TransferCurve,
+ };
+@@ -25,27 +26,10 @@ pub fn App() -> Element {
+     let input_db = ui.input_peak_db.load(Ordering::Relaxed);
+     let output_db = ui.output_peak_db.load(Ordering::Relaxed);
+ 
+-    // Debug: log metering values periodically
+-    {
+-        use std::sync::atomic::AtomicU64;
+-        static RENDER_COUNT: AtomicU64 = AtomicU64::new(0);
+-        let n = RENDER_COUNT.fetch_add(1, Ordering::Relaxed);
+-        if n % 300 == 0 {
+-            nih_plug::nih_log!(
+-                "[Editor] render={} in={:.1} out={:.1} gr={:.1} pos={}",
+-                n,
+-                input_db,
+-                output_db,
+-                gr_db,
+-                ui.waveform_pos.load(Ordering::Relaxed)
+-            );
+-        }
+-    }
+-
+     // Read current param values for transfer curve
+     let threshold = params.threshold_db.value();
+     let ratio = params.ratio.value();
+-    let convexity = params.convexity.value();
++    let knee = params.knee_db.value();
+ 
+     // Build waveform history from ring buffer
+     let pos = ui.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
+@@ -64,6 +48,13 @@ pub fn App() -> Element {
+         None
+     };
+ 
++    // Format GR display
++    let gr_text = if gr_db > 0.01 {
++        format!("-{:.1} dB", gr_db)
++    } else {
++        "0.0 dB".to_string()
++    };
++
+     rsx! {
+         document::Style { {theme::BASE_CSS} }
+ 
+@@ -85,8 +76,21 @@ pub fn App() -> Element {
+                     BORDER = theme::BORDER,
+                 ),
+                 div {
+-                    style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
+-                    "FTS COMPRESSOR"
++                    style: "display:flex; align-items:baseline; gap:12px;",
++                    div {
++                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
++                        "FTS COMPRESSOR"
++                    }
++                    // GR readout in header
++                    div {
++                        style: format!(
++                            "font-size:12px; color:{}; font-variant-numeric:tabular-nums;",
++                            if gr_db > 6.0 { theme::SIGNAL_WARN }
++                            else if gr_db > 0.1 { theme::SIGNAL_SAFE }
++                            else { theme::TEXT_DIM }
++                        ),
++                        "GR: {gr_text}"
++                    }
+                 }
+                 div {
+                     style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
+@@ -109,7 +113,7 @@ pub fn App() -> Element {
+                     TransferCurve {
+                         threshold_db: threshold,
+                         ratio: ratio,
+-                        convexity: convexity,
++                        knee_db: knee,
+                         input_level_db: input_level,
+                         width: 160.0,
+                         height: 160.0,
+@@ -145,44 +149,98 @@ pub fn App() -> Element {
+                 }
+             }
+ 
+-            // ── Knob rows ────────────────────────────────────────
++            // ── Controls ─────────────────────────────────────────
+             div {
+                 style: format!(
+                     "background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
+-                     display:flex; flex-direction:column; gap:12px; flex:1; min-height:0;",
++                     display:flex; flex-direction:column; gap:10px; flex:1; min-height:0;",
+                     CARD_BG = theme::CARD_BG,
+                 ),
+ 
+                 // Row 1: Core dynamics (large knobs)
+                 div {
+-                    style: "display:flex; gap:4px;",
++                    style: "display:flex; flex-direction:column; gap:8px;",
+                     SectionLabel { text: "Dynamics" }
+-                }
+-                div {
+-                    style: "display:flex; justify-content:center; gap:24px;",
+-                    Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
+-                    Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
+-                    Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
+-                    Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
+-                    Knob { param_ptr: params.convexity.as_ptr(), size: KnobSize::Large, label: "Knee".to_string() }
++                    div {
++                        style: "display:flex; justify-content:center; gap:24px;",
++                        Knob { param_ptr: params.threshold_db.as_ptr(), size: KnobSize::Large }
++                        Knob { param_ptr: params.ratio.as_ptr(), size: KnobSize::Large }
++                        Knob { param_ptr: params.attack_ms.as_ptr(), size: KnobSize::Large }
++                        Knob { param_ptr: params.release_ms.as_ptr(), size: KnobSize::Large }
++                        Knob { param_ptr: params.knee_db.as_ptr(), size: KnobSize::Large }
++                    }
+                 }
+ 
+-                // Row 2: I/O + advanced (medium knobs)
++                // Row 2: Grouped secondary controls
+                 div {
+-                    style: "display:flex; gap:4px;",
+-                    SectionLabel { text: "I/O & Character" }
+-                }
+-                div {
+-                    style: "display:flex; justify-content:center; gap:16px;",
+-                    Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
+-                    Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
+-                    Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
+-                    Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
+-                    Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
+-                    Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
+-                    Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
+-                    Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
+-                    Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
++                    style: "display:flex; gap:20px; justify-content:center;",
++
++                    // I/O group
++                    ControlGroup {
++                        label: "I/O",
++                        Knob { param_ptr: params.input_gain_db.as_ptr(), size: KnobSize::Medium }
++                        Knob { param_ptr: params.output_gain_db.as_ptr(), size: KnobSize::Medium }
++                        Toggle { param_ptr: params.auto_makeup.as_ptr(), label: "Auto" }
++                    }
++
++                    // Divider
++                    div {
++                        style: format!(
++                            "width:1px; background:{}; align-self:stretch;",
++                            theme::BORDER,
++                        ),
++                    }
++
++                    // Mix group
++                    ControlGroup {
++                        label: "Mix",
++                        Knob { param_ptr: params.fold.as_ptr(), size: KnobSize::Medium }
++                        Knob { param_ptr: params.channel_link.as_ptr(), size: KnobSize::Medium }
++                    }
++
++                    // Divider
++                    div {
++                        style: format!(
++                            "width:1px; background:{}; align-self:stretch;",
++                            theme::BORDER,
++                        ),
++                    }
++
++                    // Character group
++                    ControlGroup {
++                        label: "Character",
++                        Knob { param_ptr: params.feedback.as_ptr(), size: KnobSize::Medium }
++                        Knob { param_ptr: params.ceiling.as_ptr(), size: KnobSize::Medium }
++                    }
++
++                    // Divider
++                    div {
++                        style: format!(
++                            "width:1px; background:{}; align-self:stretch;",
++                            theme::BORDER,
++                        ),
++                    }
++
++                    // Sidechain group
++                    ControlGroup {
++                        label: "Sidechain",
++                        Knob { param_ptr: params.sidechain_freq.as_ptr(), size: KnobSize::Medium }
++                    }
++
++                    // Divider
++                    div {
++                        style: format!(
++                            "width:1px; background:{}; align-self:stretch;",
++                            theme::BORDER,
++                        ),
++                    }
++
++                    // Advanced group
++                    ControlGroup {
++                        label: "Advanced",
++                        Knob { param_ptr: params.inertia.as_ptr(), size: KnobSize::Medium }
++                        Knob { param_ptr: params.inertia_decay.as_ptr(), size: KnobSize::Medium }
++                    }
+                 }
+             }
+         }
+@@ -190,6 +248,28 @@ pub fn App() -> Element {
+     }
+ }
+ 
++/// A labeled group of controls with a sub-heading.
++#[component]
++fn ControlGroup(label: &'static str, children: Element) -> Element {
++    rsx! {
++        div {
++            style: "display:flex; flex-direction:column; align-items:center; gap:6px;",
++            div {
++                style: format!(
++                    "font-size:9px; color:{TEXT_DIM}; text-transform:uppercase; \
++                     letter-spacing:0.6px; font-weight:600;",
++                    TEXT_DIM = theme::TEXT_DIM,
++                ),
++                "{label}"
++            }
++            div {
++                style: "display:flex; gap:14px; align-items:flex-end;",
++                {children}
++            }
++        }
++    }
++}
++
+ /// Tiny section label used above visualization and knob rows.
+ #[component]
+ fn SectionLabel(text: &'static str) -> Element {
+diff --git a/crates/fts-comp/comp-plugin/src/lib.rs b/crates/fts-comp/comp-plugin/src/lib.rs
+index c8a71af..f97bf08 100644
+--- a/crates/fts-comp/comp-plugin/src/lib.rs
++++ b/crates/fts-comp/comp-plugin/src/lib.rs
+@@ -71,8 +71,11 @@ pub struct FtsCompParams {
+     #[id = "release"]
+     pub release_ms: FloatParam,
+ 
+-    #[id = "convexity"]
+-    pub convexity: FloatParam,
++    #[id = "knee"]
++    pub knee_db: FloatParam,
++
++    #[id = "auto_makeup"]
++    pub auto_makeup: FloatParam,
+ 
+     #[id = "feedback"]
+     pub feedback: FloatParam,
+@@ -111,7 +114,7 @@ impl Default for FtsCompParams {
+         Self {
+             threshold_db: FloatParam::new(
+                 "Threshold",
+-                0.0,
++                -10.0,
+                 FloatRange::Linear {
+                     min: -60.0,
+                     max: 0.0,
+@@ -156,8 +159,29 @@ impl Default for FtsCompParams {
+             .with_unit(" ms")
+             .with_value_to_string(formatters::v2s_f32_rounded(0)),
+ 
+-            convexity: FloatParam::new("Knee", 1.0, FloatRange::Linear { min: 0.1, max: 3.0 })
+-                .with_value_to_string(formatters::v2s_f32_rounded(2)),
++            knee_db: FloatParam::new(
++                "Knee",
++                6.0,
++                FloatRange::Linear { min: 0.0, max: 30.0 },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            auto_makeup: FloatParam::new(
++                "Auto Gain",
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
++            }))
++            .with_string_to_value(Arc::new(|s| {
++                match s.trim().to_lowercase().as_str() {
++                    "on" | "1" | "true" => Some(1.0),
++                    "off" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                }
++            })),
+ 
+             feedback: FloatParam::new("Feedback", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                 .with_unit("%")
+@@ -294,7 +318,8 @@ impl FtsComp {
+         c.ratio = self.params.ratio.value() as f64;
+         c.attack_ms = self.params.attack_ms.value() as f64;
+         c.release_ms = self.params.release_ms.value() as f64;
+-        c.convexity = self.params.convexity.value() as f64;
++        c.knee_db = self.params.knee_db.value() as f64;
++        c.auto_makeup = self.params.auto_makeup.value() > 0.5;
+         c.feedback = self.params.feedback.value() as f64;
+         c.channel_link = self.params.channel_link.value() as f64;
+         c.inertia = self.params.inertia.value() as f64;
+diff --git a/crates/fts-eq/eq-plugin/Cargo.toml b/crates/fts-eq/eq-plugin/Cargo.toml
+index 387d5d5..44775a9 100644
+--- a/crates/fts-eq/eq-plugin/Cargo.toml
++++ b/crates/fts-eq/eq-plugin/Cargo.toml
+@@ -7,11 +7,14 @@ edition.workspace = true
+ description = "FTS EQ — CLAP/VST3 audio plugin entry point"
+ 
+ [lib]
+-crate-type = ["cdylib"]
++crate-type = ["cdylib", "lib"]
+ 
+ [dependencies]
++audio-gui = { workspace = true }
+ fts-plugin-core = { path = "../../fts-plugin-core" }
+ eq-dsp = { path = "../eq-dsp" }
+ eq-profiles = { path = "../eq-profiles" }
+ eq-ui = { path = "../eq-ui" }
++fts-dsp = { workspace = true }
+ nih_plug = { workspace = true }
++atomic_float = { workspace = true }
+diff --git a/crates/fts-eq/eq-plugin/src/lib.rs b/crates/fts-eq/eq-plugin/src/lib.rs
+index 88194cd..56b3f09 100644
+--- a/crates/fts-eq/eq-plugin/src/lib.rs
++++ b/crates/fts-eq/eq-plugin/src/lib.rs
+@@ -1,21 +1,253 @@
+-//! FTS EQ — nih-plug entry point.
++//! FTS EQ — nih-plug entry point with 24-band parametric EQ and Dioxus GUI.
++//!
++//! Pro-Q 4 style parametric equalizer with draggable band nodes,
++//! frequency response visualization, and per-band filter type selection.
+ 
+-use nih_plug::prelude::*;
++use atomic_float::AtomicF32;
++use fts_plugin_core::prelude::*;
++use std::sync::atomic::Ordering;
++use std::sync::Arc;
+ 
+-struct FtsEq {
+-    params: std::sync::Arc<FtsEqParams>,
+-    // eq_chain: eq_dsp::EqChain,
++use eq_dsp::filter_type::{FilterStructure, FilterType};
++use eq_dsp::EqChain;
++use fts_dsp::{AudioConfig, Processor};
++
++mod editor;
++
++// ── Constants ───────────────────────────────────────────────────────
++
++/// Number of parametric bands (Pro-Q style).
++pub const NUM_BANDS: usize = 24;
++
++// ── Shared UI State ─────────────────────────────────────────────────
++
++/// Audio-thread → UI metering data.
++pub struct EqUiState {
++    pub params: Arc<FtsEqParams>,
++    /// Peak input level in dB.
++    pub input_peak_db: AtomicF32,
++    /// Peak output level in dB.
++    pub output_peak_db: AtomicF32,
++}
++
++impl EqUiState {
++    fn new(params: Arc<FtsEqParams>) -> Self {
++        Self {
++            params,
++            input_peak_db: AtomicF32::new(-100.0),
++            output_peak_db: AtomicF32::new(-100.0),
++        }
++    }
+ }
+ 
++// ── Per-Band Parameters ──────────────────────────────────────────────
++
+ #[derive(Params)]
+-struct FtsEqParams {
+-    // TODO: Define nih-plug params that bridge to eq-dsp + eq-profiles
++pub struct BandParams {
++    #[id = "on"]
++    pub enabled: FloatParam,
++
++    #[id = "type"]
++    pub filter_type: IntParam,
++
++    #[id = "freq"]
++    pub freq_hz: FloatParam,
++
++    #[id = "gain"]
++    pub gain_db: FloatParam,
++
++    #[id = "q"]
++    pub q: FloatParam,
++}
++
++impl BandParams {
++    fn new(idx: usize) -> Self {
++        Self {
++            enabled: FloatParam::new(
++                &format!("B{} On", idx + 1),
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 {
++                    "On".to_string()
++                } else {
++                    "Off".to_string()
++                }
++            }))
++            .with_string_to_value(Arc::new(|s| {
++                match s.trim().to_lowercase().as_str() {
++                    "on" | "1" | "true" => Some(1.0),
++                    "off" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                }
++            })),
++
++            filter_type: IntParam::new(
++                &format!("B{} Type", idx + 1),
++                0, // Bell
++                IntRange::Linear { min: 0, max: 9 },
++            )
++            .with_value_to_string(Arc::new(|v| match v {
++                0 => "Bell".to_string(),
++                1 => "Low Shelf".to_string(),
++                2 => "High Shelf".to_string(),
++                3 => "Low Cut".to_string(),
++                4 => "High Cut".to_string(),
++                5 => "Notch".to_string(),
++                6 => "Bandpass".to_string(),
++                7 => "Tilt Shelf".to_string(),
++                8 => "Flat Tilt".to_string(),
++                9 => "All Pass".to_string(),
++                _ => "Bell".to_string(),
++            })),
++
++            freq_hz: FloatParam::new(
++                &format!("B{} Freq", idx + 1),
++                1000.0,
++                FloatRange::Skewed {
++                    min: 20.0,
++                    max: 20000.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" Hz")
++            .with_value_to_string(Arc::new(|v| {
++                if v >= 1000.0 {
++                    format!("{:.1}k", v / 1000.0)
++                } else {
++                    format!("{:.0}", v)
++                }
++            })),
++
++            gain_db: FloatParam::new(
++                &format!("B{} Gain", idx + 1),
++                0.0,
++                FloatRange::Linear {
++                    min: -30.0,
++                    max: 30.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            q: FloatParam::new(
++                &format!("B{} Q", idx + 1),
++                1.0,
++                FloatRange::Skewed {
++                    min: 0.1,
++                    max: 18.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_value_to_string(formatters::v2s_f32_rounded(2)),
++        }
++    }
++}
++
++// ── Plugin Parameters ────────────────────────────────────────────────
++
++#[derive(Params)]
++pub struct FtsEqParams {
++    #[id = "output_gain"]
++    pub output_gain_db: FloatParam,
++
++    #[nested(array, group = "Band {}")]
++    pub bands: [BandParams; NUM_BANDS],
++}
++
++impl Default for FtsEqParams {
++    fn default() -> Self {
++        Self {
++            output_gain_db: FloatParam::new(
++                "Output",
++                0.0,
++                FloatRange::Linear {
++                    min: -24.0,
++                    max: 24.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            bands: std::array::from_fn(|i| BandParams::new(i)),
++        }
++    }
++}
++
++// ── Plugin ──────────────────────────────────────────────────────────
++
++struct FtsEq {
++    params: Arc<FtsEqParams>,
++    ui_state: Arc<EqUiState>,
++    editor_state: Arc<DioxusState>,
++    chain: EqChain,
++    sample_rate: f64,
+ }
+ 
+ impl Default for FtsEq {
+     fn default() -> Self {
++        let params = Arc::new(FtsEqParams::default());
++        let ui_state = Arc::new(EqUiState::new(params.clone()));
++        let mut chain = EqChain::new();
++        // Pre-allocate all 24 bands
++        for _ in 0..NUM_BANDS {
++            chain.add_band();
++        }
+         Self {
+-            params: std::sync::Arc::new(FtsEqParams {}),
++            params,
++            ui_state,
++            editor_state: DioxusState::new(|| (1000, 600)),
++            chain,
++            sample_rate: 48000.0,
++        }
++    }
++}
++
++/// Map EqBandShape integer to eq-dsp FilterType.
++fn shape_to_filter_type(shape: i32) -> FilterType {
++    match shape {
++        0 => FilterType::Peak,      // Bell
++        1 => FilterType::LowShelf,  // Low Shelf
++        2 => FilterType::HighShelf, // High Shelf
++        3 => FilterType::Highpass,  // Low Cut (cuts lows = highpass)
++        4 => FilterType::Lowpass,   // High Cut (cuts highs = lowpass)
++        5 => FilterType::Notch,     // Notch
++        6 => FilterType::Bandpass,  // Bandpass
++        7 => FilterType::TiltShelf, // Tilt Shelf
++        8 => FilterType::TiltShelf, // Flat Tilt (use tilt shelf)
++        9 => FilterType::Peak,      // All Pass (placeholder)
++        _ => FilterType::Peak,
++    }
++}
++
++impl FtsEq {
++    /// Sync nih-plug params → eq-dsp bands.
++    fn sync_params(&mut self) {
++        for i in 0..NUM_BANDS {
++            let bp = &self.params.bands[i];
++            if let Some(band) = self.chain.band_mut(i) {
++                let enabled = bp.enabled.value() > 0.5;
++                let ft = shape_to_filter_type(bp.filter_type.value());
++                let freq = bp.freq_hz.value() as f64;
++                let gain = bp.gain_db.value() as f64;
++                let q = bp.q.value() as f64;
++
++                if band.enabled != enabled
++                    || band.filter_type != ft
++                    || (band.freq_hz - freq).abs() > 0.01
++                    || (band.gain_db - gain).abs() > 0.01
++                    || (band.q - q).abs() > 0.001
++                {
++                    band.enabled = enabled;
++                    band.filter_type = ft;
++                    band.freq_hz = freq;
++                    band.gain_db = gain;
++                    band.q = q;
++                    band.structure = FilterStructure::Tdf2;
++                    self.chain.update_band(i);
++                }
++            }
+         }
+     }
+ }
+@@ -36,24 +268,112 @@ impl Plugin for FtsEq {
+     type SysExMessage = ();
+     type BackgroundTask = ();
+ 
+-    fn params(&self) -> std::sync::Arc<dyn Params> {
++    fn params(&self) -> Arc<dyn Params> {
+         self.params.clone()
+     }
+ 
++    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
++        create_dioxus_editor_with_state(
++            self.editor_state.clone(),
++            self.ui_state.clone(),
++            editor::App,
++        )
++    }
++
++    fn initialize(
++        &mut self,
++        _audio_io_layout: &AudioIOLayout,
++        buffer_config: &BufferConfig,
++        _context: &mut impl InitContext<Self>,
++    ) -> bool {
++        self.sample_rate = buffer_config.sample_rate as f64;
++        self.chain.update(AudioConfig {
++            sample_rate: self.sample_rate,
++            max_buffer_size: buffer_config.max_buffer_size as usize,
++        });
++        true
++    }
++
++    fn reset(&mut self) {
++        self.chain.reset();
++    }
++
+     fn process(
+         &mut self,
+-        _buffer: &mut Buffer,
++        buffer: &mut Buffer,
+         _aux: &mut AuxiliaryBuffers,
+         _context: &mut impl ProcessContext<Self>,
+     ) -> ProcessStatus {
+-        // TODO: Bridge nih-plug buffer to eq_dsp::EqChain::process
++        self.sync_params();
++
++        let output_gain = fts_dsp::db::db_to_linear(self.params.output_gain_db.value() as f64);
++
++        for mut frame in buffer.iter_samples() {
++            let mut channels = frame.iter_mut();
++            let left_ref = channels.next().unwrap();
++            let right_ref = channels.next().unwrap();
++
++            let mut left = *left_ref as f64;
++            let mut right = *right_ref as f64;
++
++            // Track input peak
++            let input_peak = left.abs().max(right.abs()) as f32;
++
++            // Process through all EQ bands
++            for i in 0..NUM_BANDS {
++                if let Some(band) = self.chain.band_mut(i) {
++                    left = band.tick(left, 0);
++                    right = band.tick(right, 1);
++                }
++            }
++
++            // Apply output gain
++            left *= output_gain;
++            right *= output_gain;
++
++            *left_ref = left as f32;
++            *right_ref = right as f32;
++
++            // Track output peak
++            let output_peak = (left.abs().max(right.abs())) as f32;
++
++            // Update metering (exponential peak decay)
++            let prev_in = self.ui_state.input_peak_db.load(Ordering::Relaxed);
++            let in_db = if input_peak > 0.0 {
++                20.0 * input_peak.log10()
++            } else {
++                -100.0
++            };
++            let new_in = if in_db > prev_in {
++                in_db
++            } else {
++                prev_in - 0.3
++            };
++            self.ui_state.input_peak_db.store(new_in, Ordering::Relaxed);
++
++            let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);
++            let out_db = if output_peak > 0.0 {
++                20.0 * output_peak.log10()
++            } else {
++                -100.0
++            };
++            let new_out = if out_db > prev_out {
++                out_db
++            } else {
++                prev_out - 0.3
++            };
++            self.ui_state
++                .output_peak_db
++                .store(new_out, Ordering::Relaxed);
++        }
++
+         ProcessStatus::Normal
+     }
+ }
+ 
+ impl ClapPlugin for FtsEq {
+     const CLAP_ID: &'static str = "com.fasttrackstudio.eq";
+-    const CLAP_DESCRIPTION: Option<&'static str> = Some("Parametric EQ with hardware profiles");
++    const CLAP_DESCRIPTION: Option<&'static str> = Some("24-band parametric EQ");
+     const CLAP_MANUAL_URL: Option<&'static str> = None;
+     const CLAP_SUPPORT_URL: Option<&'static str> = None;
+     const CLAP_FEATURES: &'static [ClapFeature] = &[
+diff --git a/crates/fts-livetune/livetune-dsp/src/chain.rs b/crates/fts-livetune/livetune-dsp/src/chain.rs
+index 4d72c9c..8c5dd36 100644
+--- a/crates/fts-livetune/livetune-dsp/src/chain.rs
++++ b/crates/fts-livetune/livetune-dsp/src/chain.rs
+@@ -11,11 +11,30 @@
+ use fts_dsp::{AudioConfig, Processor};
+ use serde::{Deserialize, Serialize};
+ 
++use crate::bitstream::BitstreamDetector;
+ use crate::detector::{PitchDetector, PitchEstimate};
++use crate::mpm::MpmDetector;
++use crate::pyin::PyinDetector;
+ use crate::quantizer::{Key, NoteState, Scale, ScaleQuantizer};
+ use crate::vocoder::FormantVocoder;
++use crate::yaapt::YaaptDetector;
+ use pitch_dsp::psola::PsolaShifter;
+ 
++/// Which pitch detection algorithm to use.
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++pub enum DetectorMode {
++    /// YIN (de Cheveigné & Kawahara, 2002). Low-latency autocorrelation.
++    Yin,
++    /// YAAPT (Kasi & Zahorian, 2002). Hybrid spectral + temporal with DP.
++    Yaapt,
++    /// pYIN (Mauch & Dixon, 2014). Probabilistic YIN with HMM Viterbi.
++    Pyin,
++    /// MPM (McLeod & Wyvill, 2005). Normalized SDF with key maxima.
++    Mpm,
++    /// Bitstream ACF. Ultra-fast 1-bit autocorrelation.
++    Bitstream,
++}
++
+ /// Which pitch shifting engine to use.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+ pub enum ShifterMode {
+@@ -40,6 +59,8 @@ pub struct LiveTuneChain {
+     pub amount: f64,
+     /// Dry/wet mix: 0.0 = dry, 1.0 = fully corrected.
+     pub mix: f64,
++    /// Pitch detection algorithm selection.
++    pub detector_mode: DetectorMode,
+     /// Pitch shifting engine selection.
+     pub shifter_mode: ShifterMode,
+     /// Confidence threshold: only correct when pitch confidence exceeds this.
+@@ -51,6 +72,10 @@ pub struct LiveTuneChain {
+ 
+     // -- Internal components --
+     detector: PitchDetector,
++    yaapt: YaaptDetector,
++    pyin: PyinDetector,
++    mpm: MpmDetector,
++    bitstream: BitstreamDetector,
+     quantizer: ScaleQuantizer,
+     psola: PsolaShifter,
+     vocoder: FormantVocoder,
+@@ -74,11 +99,16 @@ impl LiveTuneChain {
+             retune_speed: 0.1,
+             amount: 1.0,
+             mix: 1.0,
++            detector_mode: DetectorMode::Yin,
+             shifter_mode: ShifterMode::Auto,
+             confidence_threshold: 0.5,
+             preserve_formants: true,
+             notes: [NoteState::Enabled; 12],
+             detector: PitchDetector::new(),
++            yaapt: YaaptDetector::new(),
++            pyin: PyinDetector::new(),
++            mpm: MpmDetector::new(),
++            bitstream: BitstreamDetector::new(),
+             quantizer: ScaleQuantizer::new(),
+             psola: PsolaShifter::new(),
+             vocoder: FormantVocoder::new(),
+@@ -99,9 +129,15 @@ impl LiveTuneChain {
+         self.current_shift
+     }
+ 
+-    /// Latency in samples (depends on active shifter).
++    /// Latency in samples (depends on active detector + shifter).
+     pub fn latency(&self) -> usize {
+-        let detector_latency = self.detector.latency();
++        let detector_latency = match self.detector_mode {
++            DetectorMode::Yin => self.detector.latency(),
++            DetectorMode::Yaapt => self.yaapt.latency(),
++            DetectorMode::Pyin => self.pyin.latency(),
++            DetectorMode::Mpm => self.mpm.latency(),
++            DetectorMode::Bitstream => self.bitstream.latency(),
++        };
+         let shifter_latency = match self.shifter_mode {
+             ShifterMode::Psola => self.psola.latency(),
+             ShifterMode::Vocoder => self.vocoder.latency(),
+@@ -129,7 +165,13 @@ impl LiveTuneChain {
+     #[inline]
+     fn process_sample(&mut self, input: f64) -> f64 {
+         // 1. Pitch detection.
+-        self.current_pitch = self.detector.tick(input);
++        self.current_pitch = match self.detector_mode {
++            DetectorMode::Yin => self.detector.tick(input),
++            DetectorMode::Yaapt => self.yaapt.tick(input),
++            DetectorMode::Pyin => self.pyin.tick(input),
++            DetectorMode::Mpm => self.mpm.tick(input),
++            DetectorMode::Bitstream => self.bitstream.tick(input),
++        };
+ 
+         // 2. Scale quantization (only if pitch is detected with confidence).
+         if self.current_pitch.confidence >= self.confidence_threshold
+@@ -183,6 +225,10 @@ impl Default for LiveTuneChain {
+ impl Processor for LiveTuneChain {
+     fn reset(&mut self) {
+         self.detector.reset();
++        self.yaapt.reset();
++        self.pyin.reset();
++        self.mpm.reset();
++        self.bitstream.reset();
+         self.quantizer.reset();
+         self.psola.reset();
+         self.vocoder.reset();
+@@ -193,6 +239,10 @@ impl Processor for LiveTuneChain {
+     fn update(&mut self, config: AudioConfig) {
+         self.sample_rate = config.sample_rate;
+         self.detector.update(config.sample_rate);
++        self.yaapt.update(config.sample_rate);
++        self.pyin.update(config.sample_rate);
++        self.mpm.update(config.sample_rate);
++        self.bitstream.update(config.sample_rate);
+         self.psola.update(config.sample_rate);
+         self.vocoder.update(config.sample_rate);
+     }
+diff --git a/crates/fts-livetune/livetune-dsp/src/lib.rs b/crates/fts-livetune/livetune-dsp/src/lib.rs
+index f122dc3..1c2c2e1 100644
+--- a/crates/fts-livetune/livetune-dsp/src/lib.rs
++++ b/crates/fts-livetune/livetune-dsp/src/lib.rs
+@@ -10,7 +10,13 @@
+ //! - PSOLA fallback for small shifts (<5 semitones)
+ //! - Dry/wet mix and correction amount controls
+ 
++pub mod bitstream;
+ pub mod chain;
+ pub mod detector;
++pub mod lpc;
++pub mod mpm;
++pub mod pvsola;
++pub mod pyin;
+ pub mod quantizer;
+ pub mod vocoder;
++pub mod yaapt;
+diff --git a/crates/fts-livetune/livetune-dsp/src/vocoder.rs b/crates/fts-livetune/livetune-dsp/src/vocoder.rs
+index 7809e0b..c9ab267 100644
+--- a/crates/fts-livetune/livetune-dsp/src/vocoder.rs
++++ b/crates/fts-livetune/livetune-dsp/src/vocoder.rs
+@@ -64,6 +64,12 @@ pub struct FormantVocoder {
+     #[allow(dead_code)]
+     cepstrum: Vec<f64>,
+ 
++    // Laroche-Dolson phase locking scratch buffers.
++    /// Whether each bin is a local magnitude peak.
++    peak_bins: Vec<bool>,
++    /// Index of the nearest peak bin for each bin.
++    nearest_peak: Vec<usize>,
++
+     sample_rate: f64,
+     /// Samples of latency.
+     latency_samples: usize,
+@@ -92,6 +98,8 @@ impl FormantVocoder {
+             phase: vec![0.0; NUM_BINS],
+             envelope: vec![0.0; NUM_BINS],
+             cepstrum: vec![0.0; FFT_SIZE],
++            peak_bins: vec![false; NUM_BINS],
++            nearest_peak: vec![0; NUM_BINS],
+             sample_rate: 48000.0,
+             latency_samples: FFT_SIZE,
+         }
+@@ -244,34 +252,91 @@ impl FormantVocoder {
+ 
+         let expected_phase_diff = 2.0 * PI * HOP_SIZE as f64 / FFT_SIZE as f64;
+ 
++        // --- Pass 1: compute shifted magnitudes for all bins ---
++        // Also store the source bin index for formant preservation.
++        let mut src_indices = vec![0usize; NUM_BINS];
+         for i in 0..NUM_BINS {
+-            // Source bin (fractional).
+             let src = i as f64 / ratio;
+             let src_idx = src.floor() as usize;
+             let frac = src - src_idx as f64;
++            src_indices[i] = src_idx;
+ 
+             if src_idx < NUM_BINS - 1 {
+-                // Interpolate magnitude.
+                 new_mag[i] = self.mag[src_idx] * (1.0 - frac) + self.mag[src_idx + 1] * frac;
++            }
++        }
+ 
+-                // Phase propagation: compute instantaneous frequency from phase difference.
++        // --- Pass 2: identify peak bins in the shifted magnitude spectrum ---
++        for i in 0..NUM_BINS {
++            self.peak_bins[i] = if i == 0 {
++                new_mag[0] > new_mag[1]
++            } else if i == NUM_BINS - 1 {
++                new_mag[NUM_BINS - 1] > new_mag[NUM_BINS - 2]
++            } else {
++                new_mag[i] > new_mag[i - 1] && new_mag[i] > new_mag[i + 1]
++            };
++        }
++
++        // --- Pass 3: compute phase for peak bins using instantaneous frequency ---
++        for i in 0..NUM_BINS {
++            if !self.peak_bins[i] {
++                continue;
++            }
++            let src = i as f64 / ratio;
++            let src_idx = src.floor() as usize;
++            if src_idx < NUM_BINS - 1 {
+                 let phase_diff = self.phase[src_idx] - self.prev_phase[src_idx];
+                 let expected = expected_phase_diff * src_idx as f64;
+                 let mut deviation = phase_diff - expected;
+-                // Wrap to [-pi, pi].
+                 deviation -= (deviation / (2.0 * PI)).round() * 2.0 * PI;
+-
+                 let true_freq = src_idx as f64 + deviation / expected_phase_diff;
+                 let shifted_freq = true_freq * ratio;
+-
+-                // Accumulate phase for synthesis.
+                 new_phase[i] = self.synth_phase[i] + expected_phase_diff * shifted_freq;
+             }
++        }
++
++        // --- Pass 4: build nearest-peak map (sweep left then right) ---
++        // Forward sweep: assign nearest peak seen so far from the left.
++        let mut last_peak: Option<usize> = None;
++        for i in 0..NUM_BINS {
++            if self.peak_bins[i] {
++                last_peak = Some(i);
++            }
++            self.nearest_peak[i] = last_peak.unwrap_or(0);
++        }
++        // Backward sweep: pick the closer peak between left and right.
++        last_peak = None;
++        for i in (0..NUM_BINS).rev() {
++            if self.peak_bins[i] {
++                last_peak = Some(i);
++            }
++            if let Some(rp) = last_peak {
++                let lp = self.nearest_peak[i];
++                if (rp as isize - i as isize).unsigned_abs() < (lp as isize - i as isize).unsigned_abs() {
++                    self.nearest_peak[i] = rp;
++                }
++            }
++        }
+ 
+-            // Apply formant preservation: re-apply original envelope.
+-            if self.preserve_formants && (self.shift_ratio - 1.0).abs() > 0.001 {
++        // --- Pass 5: lock non-peak bins to their nearest peak ---
++        for i in 0..NUM_BINS {
++            if self.peak_bins[i] {
++                continue;
++            }
++            let np = self.nearest_peak[i];
++            // Preserve the analysis-frame phase relationship relative to the peak.
++            let src_i = (i as f64 / ratio).floor() as usize;
++            let src_np = (np as f64 / ratio).floor() as usize;
++            if src_i < NUM_BINS && src_np < NUM_BINS {
++                new_phase[i] = new_phase[np] + (self.phase[src_i.min(NUM_BINS - 1)] - self.phase[src_np.min(NUM_BINS - 1)]);
++            }
++        }
++
++        // --- Formant preservation: re-apply original envelope ---
++        if self.preserve_formants && (self.shift_ratio - 1.0).abs() > 0.001 {
++            for i in 0..NUM_BINS {
++                let src_idx = src_indices[i];
+                 if src_idx < NUM_BINS && self.envelope[src_idx] > 1e-20 {
+-                    // Remove source envelope, apply target envelope.
+                     new_mag[i] *=
+                         self.envelope[i.min(NUM_BINS - 1)] / self.envelope[src_idx].max(1e-20);
+                 }
+diff --git a/crates/fts-pitch/pitch-dsp/src/lib.rs b/crates/fts-pitch/pitch-dsp/src/lib.rs
+index 6c154a9..fcbd044 100644
+--- a/crates/fts-pitch/pitch-dsp/src/lib.rs
++++ b/crates/fts-pitch/pitch-dsp/src/lib.rs
+@@ -19,3 +19,4 @@ pub mod divider;
+ pub mod granular;
+ pub mod pll;
+ pub mod psola;
++pub mod wsola;
+diff --git a/crates/fts-rider/rider-plugin/Cargo.toml b/crates/fts-rider/rider-plugin/Cargo.toml
+index e3f1066..f5ecb5e 100644
+--- a/crates/fts-rider/rider-plugin/Cargo.toml
++++ b/crates/fts-rider/rider-plugin/Cargo.toml
+@@ -10,8 +10,11 @@ description = "FTS Rider — CLAP/VST3 audio plugin entry point"
+ crate-type = ["cdylib"]
+ 
+ [dependencies]
++audio-gui = { workspace = true }
+ fts-plugin-core = { path = "../../fts-plugin-core" }
++fts-dsp = { workspace = true }
+ rider-dsp = { path = "../rider-dsp" }
+ rider-profiles = { path = "../rider-profiles" }
+ rider-ui = { path = "../rider-ui" }
+ nih_plug = { workspace = true }
++atomic_float = { workspace = true }
+diff --git a/crates/fts-rider/rider-plugin/src/lib.rs b/crates/fts-rider/rider-plugin/src/lib.rs
+index 8a6a978..481033b 100644
+--- a/crates/fts-rider/rider-plugin/src/lib.rs
++++ b/crates/fts-rider/rider-plugin/src/lib.rs
+@@ -1,25 +1,271 @@
+-//! FTS Rider — nih-plug entry point.
++//! FTS Rider — nih-plug entry point with full DSP bridge and Dioxus GUI.
+ 
+-use nih_plug::prelude::*;
++use atomic_float::AtomicF32;
++use fts_plugin_core::prelude::*;
++use std::sync::atomic::Ordering;
++use std::sync::Arc;
+ 
+-struct FtsRider {
+-    params: std::sync::Arc<FtsRiderParams>,
+-    // rider_chain: rider_dsp::RiderChain,
++use fts_dsp::{AudioConfig, Processor};
++use rider_dsp::detector::DetectMode;
++use rider_dsp::RiderChain;
++
++mod editor;
++
++// ── Shared UI State ──────────────────────────────────────────────────
++
++/// Audio-thread → UI metering data.
++pub struct RiderUiState {
++    pub params: Arc<FtsRiderParams>,
++    /// Current gain ride amount in dB (positive = boosting, negative = cutting).
++    pub gain_db: AtomicF32,
++    /// Peak input level in dB.
++    pub input_peak_db: AtomicF32,
++    /// Peak output level in dB.
++    pub output_peak_db: AtomicF32,
++    /// Detected level in dB.
++    pub level_db: AtomicF32,
++    /// Waveform history: input peaks (0.0–1.0 normalized), ring buffer.
++    pub waveform_input: Box<[AtomicF32]>,
++    /// Waveform history: gain ride (0.0=max cut, 0.5=unity, 1.0=max boost), ring buffer.
++    pub waveform_gain: Box<[AtomicF32]>,
++    /// Write position into waveform ring buffers.
++    pub waveform_pos: AtomicF32,
+ }
+ 
++/// Number of waveform history entries.
++pub const WAVEFORM_LEN: usize = 200;
++
++impl RiderUiState {
++    fn new(params: Arc<FtsRiderParams>) -> Self {
++        let waveform_input: Box<[AtomicF32]> = (0..WAVEFORM_LEN)
++            .map(|_| AtomicF32::new(0.0))
++            .collect::<Vec<_>>()
++            .into_boxed_slice();
++        let waveform_gain: Box<[AtomicF32]> = (0..WAVEFORM_LEN)
++            .map(|_| AtomicF32::new(0.5))
++            .collect::<Vec<_>>()
++            .into_boxed_slice();
++
++        Self {
++            params,
++            gain_db: AtomicF32::new(0.0),
++            input_peak_db: AtomicF32::new(-100.0),
++            output_peak_db: AtomicF32::new(-100.0),
++            level_db: AtomicF32::new(-100.0),
++            waveform_input,
++            waveform_gain,
++            waveform_pos: AtomicF32::new(0.0),
++        }
++    }
++}
++
++// ── Parameters ───────────────────────────────────────────────────────
++
+ #[derive(Params)]
+-struct FtsRiderParams {
+-    // TODO: Define nih-plug params that bridge to rider-dsp + rider-profiles
++pub struct FtsRiderParams {
++    #[id = "target"]
++    pub target_db: FloatParam,
++
++    #[id = "range"]
++    pub range_db: FloatParam,
++
++    #[id = "speed"]
++    pub speed_ms: FloatParam,
++
++    #[id = "gate"]
++    pub gate_db: FloatParam,
++
++    #[id = "sc_freq"]
++    pub sc_freq: FloatParam,
++
++    #[id = "detect_mode"]
++    pub detect_mode: FloatParam,
++
++    #[id = "sc_listen"]
++    pub sc_listen: FloatParam,
++
++    #[id = "output_gain"]
++    pub output_gain_db: FloatParam,
++}
++
++impl Default for FtsRiderParams {
++    fn default() -> Self {
++        Self {
++            target_db: FloatParam::new(
++                "Target",
++                -18.0,
++                FloatRange::Linear {
++                    min: -40.0,
++                    max: -6.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            range_db: FloatParam::new(
++                "Range",
++                12.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 24.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            speed_ms: FloatParam::new(
++                "Speed",
++                50.0,
++                FloatRange::Skewed {
++                    min: 10.0,
++                    max: 300.0,
++                    factor: FloatRange::skew_factor(-1.5),
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            gate_db: FloatParam::new(
++                "Gate",
++                -50.0,
++                FloatRange::Linear {
++                    min: -70.0,
++                    max: -20.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            sc_freq: FloatParam::new(
++                "SC HPF",
++                80.0,
++                FloatRange::Skewed {
++                    min: 0.0,
++                    max: 500.0,
++                    factor: FloatRange::skew_factor(-1.5),
++                },
++            )
++            .with_unit(" Hz")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            detect_mode: FloatParam::new(
++                "Mode",
++                1.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_step_size(1.0)
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 {
++                    "LUFS".to_string()
++                } else {
++                    "RMS".to_string()
++                }
++            }))
++            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                "lufs" | "k" | "1" => Some(1.0),
++                "rms" | "0" => Some(0.0),
++                _ => s.parse().ok(),
++            })),
++
++            sc_listen: FloatParam::new(
++                "SC Listen",
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_step_size(1.0)
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 {
++                    "On".to_string()
++                } else {
++                    "Off".to_string()
++                }
++            }))
++            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                "on" | "1" | "true" => Some(1.0),
++                "off" | "0" | "false" => Some(0.0),
++                _ => s.parse().ok(),
++            })),
++
++            output_gain_db: FloatParam::new(
++                "Output",
++                0.0,
++                FloatRange::Linear {
++                    min: -12.0,
++                    max: 12.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++        }
++    }
++}
++
++// ── Plugin ───────────────────────────────────────────────────────────
++
++struct FtsRider {
++    params: Arc<FtsRiderParams>,
++    ui_state: Arc<RiderUiState>,
++    editor_state: Arc<DioxusState>,
++    chain: RiderChain,
++    sample_rate: f64,
++    /// Counter for waveform decimation.
++    waveform_counter: usize,
++    /// Samples between waveform writes (~50 updates/sec at 48kHz).
++    waveform_interval: usize,
++    /// Accumulated peak for current waveform interval.
++    waveform_peak: f32,
++    /// Accumulated gain for current waveform interval.
++    waveform_gain_peak: f32,
+ }
+ 
+ impl Default for FtsRider {
+     fn default() -> Self {
++        let params = Arc::new(FtsRiderParams::default());
++        let ui_state = Arc::new(RiderUiState::new(params.clone()));
+         Self {
+-            params: std::sync::Arc::new(FtsRiderParams {}),
++            params,
++            ui_state,
++            editor_state: DioxusState::new(|| (700, 480)),
++            chain: RiderChain::new(),
++            sample_rate: 48000.0,
++            waveform_counter: 0,
++            waveform_interval: 960, // ~50 Hz at 48kHz
++            waveform_peak: 0.0,
++            waveform_gain_peak: 0.0,
+         }
+     }
+ }
+ 
++impl FtsRider {
++    /// Sync nih-plug params → rider-dsp parameters.
++    fn sync_params(&mut self) {
++        let speed = self.params.speed_ms.value() as f64;
++        self.chain.rider.attack_ms = speed * 0.4;
++        self.chain.rider.release_ms = speed * 1.6;
++        self.chain.rider.detector.window_ms = speed;
++
++        self.chain.set_target_db(self.params.target_db.value() as f64);
++        self.chain.set_range_db(self.params.range_db.value() as f64);
++        self.chain
++            .rider
++            .activity_threshold_db = self.params.gate_db.value() as f64;
++
++        let sc_freq = self.params.sc_freq.value() as f64;
++        self.chain.set_sidechain_freq(sc_freq);
++
++        let mode = if self.params.detect_mode.value() > 0.5 {
++            DetectMode::KWeighted
++        } else {
++            DetectMode::Rms
++        };
++        self.chain.set_detect_mode(mode);
++
++        self.chain.sc_listen = self.params.sc_listen.value() > 0.5;
++
++        self.chain.rider.update(self.sample_rate);
++    }
++}
++
+ impl Plugin for FtsRider {
+     const NAME: &'static str = "FTS Rider";
+     const VENDOR: &'static str = "FastTrackStudio";
+@@ -36,24 +282,148 @@ impl Plugin for FtsRider {
+     type SysExMessage = ();
+     type BackgroundTask = ();
+ 
+-    fn params(&self) -> std::sync::Arc<dyn Params> {
++    fn params(&self) -> Arc<dyn Params> {
+         self.params.clone()
+     }
+ 
++    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
++        create_dioxus_editor_with_state(
++            self.editor_state.clone(),
++            self.ui_state.clone(),
++            editor::App,
++        )
++    }
++
++    fn initialize(
++        &mut self,
++        _audio_io_layout: &AudioIOLayout,
++        buffer_config: &BufferConfig,
++        _context: &mut impl InitContext<Self>,
++    ) -> bool {
++        self.sample_rate = buffer_config.sample_rate as f64;
++        self.waveform_interval = (buffer_config.sample_rate as usize) / 50;
++        self.chain.update(AudioConfig {
++            sample_rate: self.sample_rate,
++            max_buffer_size: buffer_config.max_buffer_size as usize,
++        });
++        true
++    }
++
++    fn reset(&mut self) {
++        self.chain.reset();
++        self.waveform_counter = 0;
++        self.waveform_peak = 0.0;
++        self.waveform_gain_peak = 0.0;
++    }
++
+     fn process(
+         &mut self,
+-        _buffer: &mut Buffer,
++        buffer: &mut Buffer,
+         _aux: &mut AuxiliaryBuffers,
+         _context: &mut impl ProcessContext<Self>,
+     ) -> ProcessStatus {
+-        // TODO: Bridge nih-plug buffer to rider_dsp::RiderChain::process
++        self.sync_params();
++
++        let output_gain_lin =
++            fts_dsp::db::db_to_linear(self.params.output_gain_db.value() as f64);
++        let range = self.params.range_db.value().max(0.01);
++
++        for mut frame in buffer.iter_samples() {
++            let mut channels = frame.iter_mut();
++            let left_ref = channels.next().unwrap();
++            let right_ref = channels.next().unwrap();
++
++            let mut left = *left_ref as f64;
++            let mut right = *right_ref as f64;
++
++            // Track input peak
++            let input_peak = left.abs().max(right.abs()) as f32;
++
++            // Process through rider chain
++            self.chain.process(&mut [left], &mut [right]);
++
++            // Apply output gain
++            left *= output_gain_lin;
++            right *= output_gain_lin;
++
++            *left_ref = left as f32;
++            *right_ref = right as f32;
++
++            // Track output peak
++            let output_peak = left.abs().max(right.abs()) as f32;
++
++            // Update metering atomics
++            let gain = self.chain.gain_db() as f32;
++            self.ui_state.gain_db.store(gain, Ordering::Relaxed);
++            self.ui_state
++                .level_db
++                .store(self.chain.level_db() as f32, Ordering::Relaxed);
++
++            // Exponential peak decay for smooth metering
++            let prev_in = self.ui_state.input_peak_db.load(Ordering::Relaxed);
++            let in_db = if input_peak > 0.0 {
++                20.0 * input_peak.log10()
++            } else {
++                -100.0
++            };
++            let new_in = if in_db > prev_in {
++                in_db
++            } else {
++                prev_in - 0.3
++            };
++            self.ui_state.input_peak_db.store(new_in, Ordering::Relaxed);
++
++            let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);
++            let out_db = if output_peak > 0.0 {
++                20.0 * output_peak.log10()
++            } else {
++                -100.0
++            };
++            let new_out = if out_db > prev_out {
++                out_db
++            } else {
++                prev_out - 0.3
++            };
++            self.ui_state
++                .output_peak_db
++                .store(new_out, Ordering::Relaxed);
++
++            // Waveform history accumulation
++            self.waveform_peak = self.waveform_peak.max(input_peak);
++            // Map gain_db to 0.0–1.0: 0.5 = unity, 0.0 = max cut, 1.0 = max boost
++            let gain_norm = (gain / range + 0.5).clamp(0.0, 1.0);
++            self.waveform_gain_peak = if (gain_norm - 0.5).abs() > (self.waveform_gain_peak - 0.5).abs() {
++                gain_norm
++            } else {
++                self.waveform_gain_peak
++            };
++
++            self.waveform_counter += 1;
++            if self.waveform_counter >= self.waveform_interval {
++                let pos =
++                    self.ui_state.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
++                self.ui_state.waveform_input[pos]
++                    .store(self.waveform_peak.min(1.0), Ordering::Relaxed);
++                self.ui_state.waveform_gain[pos]
++                    .store(self.waveform_gain_peak, Ordering::Relaxed);
++                self.ui_state
++                    .waveform_pos
++                    .store((pos + 1) as f32, Ordering::Relaxed);
++
++                self.waveform_counter = 0;
++                self.waveform_peak = 0.0;
++                self.waveform_gain_peak = 0.5;
++            }
++        }
++
+         ProcessStatus::Normal
+     }
+ }
+ 
+ impl ClapPlugin for FtsRider {
+     const CLAP_ID: &'static str = "com.fasttrackstudio.rider";
+-    const CLAP_DESCRIPTION: Option<&'static str> = Some("Vocal rider with automatic level control");
++    const CLAP_DESCRIPTION: Option<&'static str> =
++        Some("Vocal rider with automatic level control");
+     const CLAP_MANUAL_URL: Option<&'static str> = None;
+     const CLAP_SUPPORT_URL: Option<&'static str> = None;
+     const CLAP_FEATURES: &'static [ClapFeature] = &[
+diff --git a/crates/fts-trigger/trigger-dsp/Cargo.toml b/crates/fts-trigger/trigger-dsp/Cargo.toml
+index f63ff03..5a38b21 100644
+--- a/crates/fts-trigger/trigger-dsp/Cargo.toml
++++ b/crates/fts-trigger/trigger-dsp/Cargo.toml
+@@ -9,3 +9,7 @@ description = "Drum trigger processing engine — transient detection, velocity
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp" }
+ eq-dsp = { path = "../../fts-eq/eq-dsp" }
++rustfft = "6.2"
++
++[dev-dependencies]
++symphonia = { version = "0.5", features = ["wav", "pcm"] }
+diff --git a/crates/fts-trigger/trigger-dsp/src/detector.rs b/crates/fts-trigger/trigger-dsp/src/detector.rs
+index b335bb6..9945134 100644
+--- a/crates/fts-trigger/trigger-dsp/src/detector.rs
++++ b/crates/fts-trigger/trigger-dsp/src/detector.rs
+@@ -12,6 +12,8 @@
+ use fts_dsp::db::{db_to_linear, linear_to_db};
+ use fts_dsp::envelope::EnvelopeFollower;
+ 
++use crate::spectral_flux::{FluxMode, SpectralFluxDetector, DEFAULT_FFT_SIZE, DEFAULT_HOP_SIZE};
++
+ /// Sidechain detection mode — how the raw input is converted to a level.
+ #[derive(Debug, Clone, Copy, PartialEq)]
+ pub enum DetectMode {
+@@ -21,6 +23,25 @@ pub enum DetectMode {
+     Rms,
+ }
+ 
++/// Detection algorithm selection.
++#[derive(Debug, Clone, Copy, PartialEq)]
++pub enum DetectAlgorithm {
++    /// Time-domain envelope following (lowest latency, suitable for live).
++    PeakEnvelope,
++    /// Spectral flux onset detection (FFT-based).
++    SpectralFlux,
++    /// SuperFlux with vibrato suppression (FFT-based, highest accuracy).
++    SuperFlux,
++    /// High frequency content — best for percussive onsets.
++    Hfc,
++    /// Complex domain — catches soft/tonal onsets.
++    ComplexDomain,
++    /// Rectified complex domain — best single classical ODF.
++    RectifiedComplexDomain,
++    /// Modified KL divergence — sensitive to quiet onsets.
++    ModifiedKl,
++}
++
+ /// Detector state machine states.
+ #[derive(Debug, Clone, Copy, PartialEq)]
+ enum State {
+@@ -89,6 +110,15 @@ pub struct TriggerDetector {
+     pub reactivity_ms: f64,
+     /// Detection mode.
+     pub mode: DetectMode,
++    /// Detection algorithm.
++    pub algorithm: DetectAlgorithm,
++
++    // Spectral flux detector (used in SpectralFlux/SuperFlux modes)
++    spectral: Option<SpectralFluxDetector>,
++    /// Threshold delta for adaptive peak picking in spectral modes.
++    pub spectral_threshold_delta: f64,
++    /// Pending ODF value from spectral flux (converted to level for state machine).
++    spectral_level: f64,
+ 
+     sample_rate: f64,
+ }
+@@ -117,6 +147,10 @@ impl TriggerDetector {
+             retrigger_ms: 10.0,
+             reactivity_ms: 10.0,
+             mode: DetectMode::Peak,
++            algorithm: DetectAlgorithm::PeakEnvelope,
++            spectral: None,
++            spectral_threshold_delta: 0.5,
++            spectral_level: 0.0,
+             sample_rate: 48000.0,
+         }
+     }
+@@ -141,6 +175,37 @@ impl TriggerDetector {
+         self.detect_samples = (self.detect_time_ms * 0.001 * sample_rate) as u32;
+         self.release_samples = (self.release_time_ms * 0.001 * sample_rate) as u32;
+         self.retrigger_samples = (self.retrigger_ms * 0.001 * sample_rate).max(1.0) as u32;
++
++        // Initialize or update spectral detector if needed
++        let flux_mode = match self.algorithm {
++            DetectAlgorithm::PeakEnvelope => None,
++            DetectAlgorithm::SpectralFlux => Some(FluxMode::SpectralFlux),
++            DetectAlgorithm::SuperFlux => Some(FluxMode::SuperFlux),
++            DetectAlgorithm::Hfc => Some(FluxMode::Hfc),
++            DetectAlgorithm::ComplexDomain => Some(FluxMode::ComplexDomain),
++            DetectAlgorithm::RectifiedComplexDomain => Some(FluxMode::RectifiedComplexDomain),
++            DetectAlgorithm::ModifiedKl => Some(FluxMode::ModifiedKl),
++        };
++
++        match flux_mode {
++            Some(mode) => {
++                if self.spectral.is_none()
++                    || self.spectral.as_ref().unwrap().mode != mode
++                {
++                    self.spectral = Some(SpectralFluxDetector::new(
++                        mode,
++                        DEFAULT_FFT_SIZE,
++                        DEFAULT_HOP_SIZE,
++                        sample_rate,
++                    ));
++                } else {
++                    self.spectral.as_mut().unwrap().update(sample_rate);
++                }
++            }
++            None => {
++                self.spectral = None;
++            }
++        }
+     }
+ 
+     /// Feed one sample and return whether a trigger event occurred.
+@@ -149,7 +214,39 @@ impl TriggerDetector {
+     /// Use [`is_active`] to check ongoing trigger state.
+     #[inline]
+     pub fn tick(&mut self, sample: f64) -> Option<f64> {
+-        // Update envelope level
++        // In spectral modes, feed the spectral detector and use its ODF
++        // as the "level" for the state machine
++        if let Some(ref mut spectral) = self.spectral {
++            if let Some(odf) = spectral.tick(sample) {
++                // Convert ODF to a level the state machine can threshold.
++                // The ODF is unbounded, so we use the peak picker's adaptive
++                // threshold to determine if this is a trigger-worthy onset.
++                // We scale the ODF into a pseudo-amplitude that the existing
++                // threshold comparison can work with.
++                self.spectral_level = odf;
++
++                if spectral.is_peak(odf, self.spectral_threshold_delta) {
++                    // Peak detected — set level high to trigger the state machine
++                    self.level = 1.0; // max level to ensure threshold crossing
++                    self.peak_level = odf; // store raw ODF as "peak" for velocity
++                } else {
++                    // No peak — decay the level
++                    self.level *= 0.5;
++                }
++            }
++
++            // Retrigger prevention
++            if self.since_last_trigger < u32::MAX {
++                self.since_last_trigger = self.since_last_trigger.saturating_add(1);
++            }
++
++            let detect_level = db_to_linear(self.detect_threshold_db);
++            let release_level = detect_level * self.release_ratio;
++
++            return self.run_state_machine(detect_level, release_level);
++        }
++
++        // Time-domain mode: update envelope level
+         let input_abs = sample.abs();
+         self.update_level(input_abs);
+ 
+@@ -161,6 +258,12 @@ impl TriggerDetector {
+         let detect_level = db_to_linear(self.detect_threshold_db);
+         let release_level = detect_level * self.release_ratio;
+ 
++        self.run_state_machine(detect_level, release_level)
++    }
++
++    /// Run the four-state trigger state machine.
++    #[inline]
++    fn run_state_machine(&mut self, detect_level: f64, release_level: f64) -> Option<f64> {
+         let mut triggered = None;
+ 
+         match self.state {
+@@ -237,6 +340,15 @@ impl TriggerDetector {
+         linear_to_db(self.level)
+     }
+ 
++    /// Returns the latency in samples introduced by the current algorithm.
++    /// PeakEnvelope has zero latency; spectral modes have FFT latency.
++    pub fn latency_samples(&self) -> usize {
++        match &self.spectral {
++            Some(s) => s.latency_samples(),
++            None => 0,
++        }
++    }
++
+     pub fn reset(&mut self) {
+         self.state = State::Off;
+         self.level = 0.0;
+@@ -246,6 +358,10 @@ impl TriggerDetector {
+         self.detect_counter = 0;
+         self.release_counter = 0;
+         self.since_last_trigger = u32::MAX;
++        self.spectral_level = 0.0;
++        if let Some(ref mut s) = self.spectral {
++            s.reset();
++        }
+     }
+ 
+     /// Update the internal level based on detection mode.
+diff --git a/crates/fts-trigger/trigger-dsp/src/lib.rs b/crates/fts-trigger/trigger-dsp/src/lib.rs
+index b09c272..b0569f4 100644
+--- a/crates/fts-trigger/trigger-dsp/src/lib.rs
++++ b/crates/fts-trigger/trigger-dsp/src/lib.rs
+@@ -21,7 +21,12 @@
+ 
+ pub mod chain;
+ pub mod detector;
++pub mod fingerprint;
++pub mod hpss;
++pub mod multiband;
+ pub mod sampler;
++pub mod spectral_flux;
++pub mod transient_shape;
+ pub mod velocity;
+ 
+ pub use chain::TriggerChain;
+diff --git a/crates/fts-trigger/trigger-dsp/tests/trigger.rs b/crates/fts-trigger/trigger-dsp/tests/trigger.rs
+index 9986561..7f6fb72 100644
+--- a/crates/fts-trigger/trigger-dsp/tests/trigger.rs
++++ b/crates/fts-trigger/trigger-dsp/tests/trigger.rs
+@@ -2,7 +2,7 @@
+ 
+ use fts_dsp::{AudioConfig, Processor};
+ use trigger_dsp::chain::TriggerChain;
+-use trigger_dsp::detector::{DetectMode, TriggerDetector};
++use trigger_dsp::detector::{DetectAlgorithm, DetectMode, TriggerDetector};
+ use trigger_dsp::sampler::{MixMode, Sample, Sampler, VelocityLayer};
+ use trigger_dsp::velocity::{VelocityCurve, VelocityMapper};
+ 
+@@ -535,6 +535,80 @@ fn reset_clears_state() {
+     }
+ }
+ 
++// ── Spectral algorithm tests ────────────────────────────────────────────
++
++#[test]
++fn detector_spectral_flux_triggers_on_transient() {
++    let mut det = TriggerDetector::new();
++    det.detect_threshold_db = -20.0;
++    det.detect_time_ms = 0.0;
++    det.retrigger_ms = 50.0;
++    det.reactivity_ms = 5.0;
++    det.algorithm = DetectAlgorithm::SpectralFlux;
++    det.update(SAMPLE_RATE);
++
++    assert!(det.latency_samples() > 0, "Spectral mode should report latency");
++
++    // Feed enough silence to fill the ODF ring buffer (31 hops × 441 samples)
++    let mut triggered = false;
++    for _ in 0..16000 {
++        if det.tick(0.0).is_some() {
++            triggered = true;
++        }
++    }
++    assert!(!triggered, "Should not trigger on silence");
++
++    // Loud transient burst — needs multiple hops to produce ODF values
++    triggered = false;
++    for i in 0..4096 {
++        let t = i as f64 / SAMPLE_RATE;
++        let sample = (2.0 * std::f64::consts::PI * 1000.0 * t).sin() * 0.8;
++        if det.tick(sample).is_some() {
++            triggered = true;
++            break;
++        }
++    }
++    assert!(triggered, "Spectral flux should trigger on loud transient");
++}
++
++#[test]
++fn detector_superflux_triggers_on_transient() {
++    let mut det = TriggerDetector::new();
++    det.detect_threshold_db = -20.0;
++    det.detect_time_ms = 0.0;
++    det.retrigger_ms = 50.0;
++    det.reactivity_ms = 5.0;
++    det.algorithm = DetectAlgorithm::SuperFlux;
++    det.update(SAMPLE_RATE);
++
++    assert!(det.latency_samples() > 0, "SuperFlux should report latency");
++
++    // Feed enough silence to fill the ODF ring buffer
++    for _ in 0..16000 {
++        det.tick(0.0);
++    }
++
++    // Loud transient
++    let mut triggered = false;
++    for i in 0..4096 {
++        let t = i as f64 / SAMPLE_RATE;
++        let sample = (2.0 * std::f64::consts::PI * 200.0 * t).sin() * 0.8;
++        if det.tick(sample).is_some() {
++            triggered = true;
++            break;
++        }
++    }
++    assert!(triggered, "SuperFlux should trigger on loud transient");
++}
++
++#[test]
++fn detector_peak_envelope_has_zero_latency() {
++    let mut det = TriggerDetector::new();
++    det.algorithm = DetectAlgorithm::PeakEnvelope;
++    det.update(SAMPLE_RATE);
++    assert_eq!(det.latency_samples(), 0, "PeakEnvelope should have zero latency");
++}
++
+ // ── Deterministic ───────────────────────────────────────────────────────
+ 
+ #[test]
+diff --git a/crates/fts-trigger/trigger-plugin/Cargo.toml b/crates/fts-trigger/trigger-plugin/Cargo.toml
+index e6cf76e..154f330 100644
+--- a/crates/fts-trigger/trigger-plugin/Cargo.toml
++++ b/crates/fts-trigger/trigger-plugin/Cargo.toml
+@@ -12,6 +12,13 @@ crate-type = ["cdylib"]
+ [dependencies]
+ fts-plugin-core = { path = "../../fts-plugin-core" }
+ trigger-dsp = { path = "../trigger-dsp" }
++eq-dsp = { path = "../../fts-eq/eq-dsp" }
+ trigger-profiles = { path = "../trigger-profiles" }
+ trigger-ui = { path = "../trigger-ui" }
++audio-gui = { workspace = true }
+ nih_plug = { workspace = true }
++atomic_float = { workspace = true }
++fts-dsp = { workspace = true }
++crossbeam-channel = { workspace = true }
++symphonium = { workspace = true }
++serde = { workspace = true }
+diff --git a/crates/fts-trigger/trigger-plugin/src/lib.rs b/crates/fts-trigger/trigger-plugin/src/lib.rs
+index ee251d0..ec287eb 100644
+--- a/crates/fts-trigger/trigger-plugin/src/lib.rs
++++ b/crates/fts-trigger/trigger-plugin/src/lib.rs
+@@ -1,21 +1,584 @@
+-//! FTS Trigger — nih-plug entry point.
++//! FTS Trigger — 8-slot drum replacement plugin.
++//!
++//! Slate Trigger 2-inspired drum replacer with transient detection,
++//! 8 sample slots, per-slot gain/pan/mute/solo, and velocity mapping.
+ 
+-use nih_plug::prelude::*;
++use atomic_float::AtomicF32;
++use fts_plugin_core::prelude::*;
++use std::sync::atomic::Ordering;
++use std::sync::{Arc, Mutex};
+ 
+-struct FtsTrigger {
+-    params: std::sync::Arc<FtsTriggerParams>,
+-    // trigger_chain: trigger_dsp::TriggerChain,
++use fts_dsp::AudioConfig;
++use trigger_dsp::detector::{DetectAlgorithm, DetectMode};
++use trigger_dsp::sampler::MixMode;
++use trigger_dsp::velocity::VelocityCurve;
++
++mod editor;
++mod engine;
++mod loader;
++
++use engine::{TriggerEngine, NUM_SLOTS};
++use loader::SampleLoadMessage;
++
++// ── Constants ───────────────────────────────────────────────────────
++
++pub const WAVEFORM_LEN: usize = 200;
++
++// ── Shared UI State ─────────────────────────────────────────────────
++
++/// Audio-thread → UI metering data.
++pub struct TriggerUiState {
++    pub params: Arc<FtsTriggerParams>,
++    pub last_velocity: AtomicF32,
++    pub detector_level_db: AtomicF32,
++    pub triggered: AtomicF32,
++    pub input_peak_db: AtomicF32,
++    pub output_peak_db: AtomicF32,
++    pub waveform_input: Box<[AtomicF32]>,
++    pub waveform_triggers: Box<[AtomicF32]>,
++    pub waveform_pos: AtomicF32,
++    pub slot_playing: [AtomicF32; NUM_SLOTS],
++    pub slot_peak_db: [AtomicF32; NUM_SLOTS],
++    pub slot_names: [Mutex<String>; NUM_SLOTS],
++    pub sample_tx: crossbeam_channel::Sender<SampleLoadMessage>,
++    pub sample_rate: AtomicF32,
++}
++
++impl TriggerUiState {
++    fn new(
++        params: Arc<FtsTriggerParams>,
++        tx: crossbeam_channel::Sender<SampleLoadMessage>,
++    ) -> Self {
++        let waveform_input: Box<[AtomicF32]> = (0..WAVEFORM_LEN)
++            .map(|_| AtomicF32::new(0.0))
++            .collect::<Vec<_>>()
++            .into_boxed_slice();
++        let waveform_triggers: Box<[AtomicF32]> = (0..WAVEFORM_LEN)
++            .map(|_| AtomicF32::new(0.0))
++            .collect::<Vec<_>>()
++            .into_boxed_slice();
++
++        Self {
++            params,
++            last_velocity: AtomicF32::new(0.0),
++            detector_level_db: AtomicF32::new(-100.0),
++            triggered: AtomicF32::new(0.0),
++            input_peak_db: AtomicF32::new(-100.0),
++            output_peak_db: AtomicF32::new(-100.0),
++            waveform_input,
++            waveform_triggers,
++            waveform_pos: AtomicF32::new(0.0),
++            slot_playing: std::array::from_fn(|_| AtomicF32::new(0.0)),
++            slot_peak_db: std::array::from_fn(|_| AtomicF32::new(-100.0)),
++            slot_names: std::array::from_fn(|_| Mutex::new(String::new())),
++            sample_tx: tx,
++            sample_rate: AtomicF32::new(48000.0),
++        }
++    }
+ }
+ 
++// ── Per-Slot Parameters ─────────────────────────────────────────────
++
+ #[derive(Params)]
+-struct FtsTriggerParams {
+-    // TODO: Define nih-plug params that bridge to trigger-dsp + trigger-profiles
++pub struct SlotParams {
++    #[id = "gain"]
++    pub gain: FloatParam,
++
++    #[id = "pan"]
++    pub pan: FloatParam,
++
++    #[id = "pitch"]
++    pub pitch: FloatParam,
++
++    #[id = "enabled"]
++    pub enabled: FloatParam,
++
++    #[id = "mute"]
++    pub mute: FloatParam,
++
++    #[id = "solo"]
++    pub solo: FloatParam,
++}
++
++impl SlotParams {
++    fn new(idx: usize) -> Self {
++        Self {
++            gain: FloatParam::new(
++                &format!("S{} Gain", idx + 1),
++                0.0,
++                FloatRange::Linear {
++                    min: -60.0,
++                    max: 12.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            pan: FloatParam::new(
++                &format!("S{} Pan", idx + 1),
++                0.0,
++                FloatRange::Linear {
++                    min: -1.0,
++                    max: 1.0,
++                },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v < -0.01 {
++                    format!("{:.0}L", -v * 100.0)
++                } else if v > 0.01 {
++                    format!("{:.0}R", v * 100.0)
++                } else {
++                    "C".to_string()
++                }
++            })),
++
++            pitch: FloatParam::new(
++                &format!("S{} Pitch", idx + 1),
++                0.0,
++                FloatRange::Linear {
++                    min: -24.0,
++                    max: 24.0,
++                },
++            )
++            .with_unit(" st")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            enabled: FloatParam::new(
++                &format!("S{} On", idx + 1),
++                1.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
++            }))
++            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                "on" | "1" | "true" => Some(1.0),
++                "off" | "0" | "false" => Some(0.0),
++                _ => s.parse().ok(),
++            })),
++
++            mute: FloatParam::new(
++                &format!("S{} Mute", idx + 1),
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 { "M".to_string() } else { "-".to_string() }
++            }))
++            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                "m" | "1" | "true" => Some(1.0),
++                "-" | "0" | "false" => Some(0.0),
++                _ => s.parse().ok(),
++            })),
++
++            solo: FloatParam::new(
++                &format!("S{} Solo", idx + 1),
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 { "S".to_string() } else { "-".to_string() }
++            }))
++            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                "s" | "1" | "true" => Some(1.0),
++                "-" | "0" | "false" => Some(0.0),
++                _ => s.parse().ok(),
++            })),
++        }
++    }
++}
++
++// ── Persisted Slot Paths ────────────────────────────────────────────
++
++#[derive(Default, serde::Serialize, serde::Deserialize)]
++pub struct SlotPaths {
++    pub paths: [Option<String>; NUM_SLOTS],
++}
++
++// ── Plugin Parameters ───────────────────────────────────────────────
++
++#[derive(Params)]
++pub struct FtsTriggerParams {
++    // Detection
++    #[id = "threshold"]
++    pub threshold: FloatParam,
++
++    #[id = "sensitivity"]
++    pub sensitivity: FloatParam,
++
++    #[id = "retrigger"]
++    pub retrigger: FloatParam,
++
++    #[id = "release_ratio"]
++    pub release_ratio: FloatParam,
++
++    #[id = "release_time"]
++    pub release_time: FloatParam,
++
++    #[id = "reactivity"]
++    pub reactivity: FloatParam,
++
++    #[id = "detect_mode"]
++    pub detect_mode: IntParam,
++
++    #[id = "detect_algorithm"]
++    pub detect_algorithm: IntParam,
++
++    // Sidechain
++    #[id = "sc_hpf"]
++    pub sc_hpf: FloatParam,
++
++    #[id = "sc_lpf"]
++    pub sc_lpf: FloatParam,
++
++    #[id = "sc_listen"]
++    pub sc_listen: FloatParam,
++
++    // Velocity
++    #[id = "dynamics"]
++    pub dynamics: FloatParam,
++
++    #[id = "vel_curve"]
++    pub vel_curve: IntParam,
++
++    // Mix/Output
++    #[id = "mix_mode"]
++    pub mix_mode: IntParam,
++
++    #[id = "mix_amount"]
++    pub mix_amount: FloatParam,
++
++    #[id = "output_gain"]
++    pub output_gain: FloatParam,
++
++    // Per-slot (8 slots)
++    #[nested(array, group = "Slot {}")]
++    pub slots: [SlotParams; NUM_SLOTS],
++
++    // Persisted sample paths
++    #[persist = "slot_paths"]
++    pub slot_paths: Arc<Mutex<SlotPaths>>,
++}
++
++impl Default for FtsTriggerParams {
++    fn default() -> Self {
++        Self {
++            threshold: FloatParam::new(
++                "Threshold",
++                -30.0,
++                FloatRange::Linear {
++                    min: -60.0,
++                    max: 0.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            sensitivity: FloatParam::new(
++                "Sensitivity",
++                1.0,
++                FloatRange::Skewed {
++                    min: 0.1,
++                    max: 10.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(2)),
++
++            retrigger: FloatParam::new(
++                "Retrigger",
++                10.0,
++                FloatRange::Skewed {
++                    min: 1.0,
++                    max: 200.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            release_ratio: FloatParam::new(
++                "Hysteresis",
++                0.5,
++                FloatRange::Linear {
++                    min: 0.1,
++                    max: 0.9,
++                },
++            )
++            .with_value_to_string(formatters::v2s_f32_rounded(2)),
++
++            release_time: FloatParam::new(
++                "Release",
++                5.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 50.0,
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            reactivity: FloatParam::new(
++                "Reactivity",
++                10.0,
++                FloatRange::Skewed {
++                    min: 0.5,
++                    max: 250.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            detect_mode: IntParam::new("Mode", 0, IntRange::Linear { min: 0, max: 1 })
++                .with_value_to_string(Arc::new(|v| match v {
++                    0 => "Peak".to_string(),
++                    1 => "RMS".to_string(),
++                    _ => "Peak".to_string(),
++                })),
++
++            detect_algorithm: IntParam::new(
++                "Algorithm",
++                0,
++                IntRange::Linear { min: 0, max: 6 },
++            )
++            .with_value_to_string(Arc::new(|v| match v {
++                0 => "Live".to_string(),
++                1 => "Flux".to_string(),
++                2 => "SuperFlux".to_string(),
++                3 => "HFC".to_string(),
++                4 => "Complex".to_string(),
++                5 => "RectComplex".to_string(),
++                6 => "Mod KL".to_string(),
++                _ => "Live".to_string(),
++            })),
++
++            // Sidechain
++            sc_hpf: FloatParam::new(
++                "SC HPF",
++                0.0,
++                FloatRange::Skewed {
++                    min: 0.0,
++                    max: 1000.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" Hz")
++            .with_value_to_string(Arc::new(|v| {
++                if v < 1.0 {
++                    "Off".to_string()
++                } else {
++                    format!("{:.0}", v)
++                }
++            })),
++
++            sc_lpf: FloatParam::new(
++                "SC LPF",
++                0.0,
++                FloatRange::Skewed {
++                    min: 0.0,
++                    max: 20000.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" Hz")
++            .with_value_to_string(Arc::new(|v| {
++                if v < 1.0 {
++                    "Off".to_string()
++                } else if v >= 1000.0 {
++                    format!("{:.1}k", v / 1000.0)
++                } else {
++                    format!("{:.0}", v)
++                }
++            })),
++
++            sc_listen: FloatParam::new(
++                "SC Listen",
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
++            }))
++            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                "on" | "1" | "true" => Some(1.0),
++                "off" | "0" | "false" => Some(0.0),
++                _ => s.parse().ok(),
++            })),
++
++            // Velocity
++            dynamics: FloatParam::new(
++                "Dynamics",
++                0.5,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            vel_curve: IntParam::new("Curve", 0, IntRange::Linear { min: 0, max: 3 })
++                .with_value_to_string(Arc::new(|v| match v {
++                    0 => "Linear".to_string(),
++                    1 => "Log".to_string(),
++                    2 => "Exp".to_string(),
++                    3 => "Fixed".to_string(),
++                    _ => "Linear".to_string(),
++                })),
++
++            // Mix/Output
++            mix_mode: IntParam::new("Mix", 0, IntRange::Linear { min: 0, max: 2 })
++                .with_value_to_string(Arc::new(|v| match v {
++                    0 => "Replace".to_string(),
++                    1 => "Layer".to_string(),
++                    2 => "Blend".to_string(),
++                    _ => "Replace".to_string(),
++                })),
++
++            mix_amount: FloatParam::new(
++                "Blend",
++                1.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            output_gain: FloatParam::new(
++                "Output",
++                0.0,
++                FloatRange::Linear {
++                    min: -24.0,
++                    max: 24.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            // Slots
++            slots: std::array::from_fn(|i| SlotParams::new(i)),
++
++            // Persisted paths
++            slot_paths: Arc::new(Mutex::new(SlotPaths::default())),
++        }
++    }
++}
++
++// ── Plugin ──────────────────────────────────────────────────────────
++
++struct FtsTrigger {
++    params: Arc<FtsTriggerParams>,
++    ui_state: Arc<TriggerUiState>,
++    editor_state: Arc<DioxusState>,
++    engine: TriggerEngine,
++    sample_rate: f64,
++    sample_rx: crossbeam_channel::Receiver<SampleLoadMessage>,
++
++    // Waveform decimation
++    waveform_counter: usize,
++    waveform_interval: usize,
++    waveform_peak: f32,
++    waveform_trigger_peak: f32,
+ }
+ 
+ impl Default for FtsTrigger {
+     fn default() -> Self {
++        let params = Arc::new(FtsTriggerParams::default());
++        let (tx, rx) = crossbeam_channel::bounded(32);
++        let ui_state = Arc::new(TriggerUiState::new(params.clone(), tx));
+         Self {
+-            params: std::sync::Arc::new(FtsTriggerParams {}),
++            params,
++            ui_state,
++            editor_state: DioxusState::new(|| (1060, 640)),
++            engine: TriggerEngine::new(),
++            sample_rate: 48000.0,
++            sample_rx: rx,
++            waveform_counter: 0,
++            waveform_interval: 960,
++            waveform_peak: 0.0,
++            waveform_trigger_peak: 0.0,
++        }
++    }
++}
++
++impl FtsTrigger {
++    fn sync_params(&mut self) {
++        let e = &mut self.engine;
++
++        // Detection
++        e.threshold_db = self.params.threshold.value() as f64;
++        e.detect_time_ms = self.params.sensitivity.value() as f64;
++        e.retrigger_ms = self.params.retrigger.value() as f64;
++        e.release_ratio = self.params.release_ratio.value() as f64;
++        e.release_time_ms = self.params.release_time.value() as f64;
++        e.reactivity_ms = self.params.reactivity.value() as f64;
++        e.detect_mode = match self.params.detect_mode.value() {
++            1 => DetectMode::Rms,
++            _ => DetectMode::Peak,
++        };
++        e.detect_algorithm = match self.params.detect_algorithm.value() {
++            1 => DetectAlgorithm::SpectralFlux,
++            2 => DetectAlgorithm::SuperFlux,
++            3 => DetectAlgorithm::Hfc,
++            4 => DetectAlgorithm::ComplexDomain,
++            5 => DetectAlgorithm::RectifiedComplexDomain,
++            6 => DetectAlgorithm::ModifiedKl,
++            _ => DetectAlgorithm::PeakEnvelope,
++        };
++
++        // Sidechain
++        e.sc_hpf_freq = self.params.sc_hpf.value() as f64;
++        e.sc_lpf_freq = self.params.sc_lpf.value() as f64;
++        e.sc_listen = self.params.sc_listen.value() > 0.5;
++
++        // Velocity
++        e.dynamics = self.params.dynamics.value() as f64;
++        e.velocity_curve = match self.params.vel_curve.value() {
++            1 => VelocityCurve::Logarithmic,
++            2 => VelocityCurve::Exponential,
++            3 => VelocityCurve::Fixed,
++            _ => VelocityCurve::Linear,
++        };
++
++        // Mix/Output
++        e.mix_mode = match self.params.mix_mode.value() {
++            1 => MixMode::Layer,
++            2 => MixMode::Blend,
++            _ => MixMode::Replace,
++        };
++        e.mix_amount = self.params.mix_amount.value() as f64;
++        e.output_gain = fts_dsp::db::db_to_linear(self.params.output_gain.value() as f64);
++
++        // Per-slot
++        for s in 0..NUM_SLOTS {
++            let sp = &self.params.slots[s];
++            e.slot_gain[s] = fts_dsp::db::db_to_linear(sp.gain.value() as f64);
++            e.slot_pan[s] = sp.pan.value() as f64;
++            e.slot_enabled[s] = sp.enabled.value() > 0.5;
++            e.slot_mute[s] = sp.mute.value() > 0.5;
++            e.slot_solo[s] = sp.solo.value() > 0.5;
++
++            // Pitch: semitones to playback rate
++            let pitch_st = sp.pitch.value() as f64;
++            e.slot_pitch[s] = 2.0_f64.powf(pitch_st / 12.0);
++            // Apply pitch to each slot's sampler layers
++            for layer in &mut e.slots[s].layers {
++                for sample in &mut layer.samples {
++                    sample.playback_rate = e.slot_pitch[s];
++                }
++            }
++        }
++
++        e.update(AudioConfig {
++            sample_rate: self.sample_rate,
++            max_buffer_size: 512,
++        });
++    }
++
++    fn poll_loaded_samples(&mut self) {
++        while let Ok(msg) = self.sample_rx.try_recv() {
++            if msg.slot < NUM_SLOTS {
++                self.engine.slots[msg.slot].set_single_sample(msg.sample);
++                if let Ok(mut name) = self.ui_state.slot_names[msg.slot].lock() {
++                    *name = msg.name;
++                }
++            }
+         }
+     }
+ }
+@@ -36,17 +599,188 @@ impl Plugin for FtsTrigger {
+     type SysExMessage = ();
+     type BackgroundTask = ();
+ 
+-    fn params(&self) -> std::sync::Arc<dyn Params> {
++    fn params(&self) -> Arc<dyn Params> {
+         self.params.clone()
+     }
+ 
++    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
++        create_dioxus_editor_with_state(
++            self.editor_state.clone(),
++            self.ui_state.clone(),
++            editor::App,
++        )
++    }
++
++    fn initialize(
++        &mut self,
++        _audio_io_layout: &AudioIOLayout,
++        buffer_config: &BufferConfig,
++        _context: &mut impl InitContext<Self>,
++    ) -> bool {
++        self.sample_rate = buffer_config.sample_rate as f64;
++        self.waveform_interval = (buffer_config.sample_rate as usize) / 50;
++        self.ui_state
++            .sample_rate
++            .store(buffer_config.sample_rate, Ordering::Relaxed);
++
++        self.engine.update(AudioConfig {
++            sample_rate: self.sample_rate,
++            max_buffer_size: buffer_config.max_buffer_size as usize,
++        });
++
++        // Reload samples from persisted paths
++        if let Ok(paths) = self.params.slot_paths.lock() {
++            for (slot, path) in paths.paths.iter().enumerate() {
++                if let Some(ref p) = path {
++                    let tx = self.ui_state.sample_tx.clone();
++                    let sr = self.sample_rate;
++                    loader::load_sample_async(p.clone(), slot, sr, tx);
++                }
++            }
++        }
++
++        true
++    }
++
++    fn reset(&mut self) {
++        self.engine.reset();
++        self.waveform_counter = 0;
++        self.waveform_peak = 0.0;
++        self.waveform_trigger_peak = 0.0;
++    }
++
+     fn process(
+         &mut self,
+-        _buffer: &mut Buffer,
++        buffer: &mut Buffer,
+         _aux: &mut AuxiliaryBuffers,
+         _context: &mut impl ProcessContext<Self>,
+     ) -> ProcessStatus {
+-        // TODO: Bridge nih-plug buffer to trigger_dsp::TriggerChain::process
++        // Poll for loaded samples
++        self.poll_loaded_samples();
++
++        // Sync params
++        self.sync_params();
++
++        // Report latency to host (non-zero for spectral modes)
++        let latency = self.engine.detector.latency_samples() as u32;
++        _context.set_latency_samples(latency);
++
++        // Process in blocks — convert f32 <-> f64
++        for mut frame in buffer.iter_samples() {
++            let mut channels = frame.iter_mut();
++            let left_ref = channels.next().unwrap();
++            let right_ref = channels.next().unwrap();
++
++            let mut left = *left_ref as f64;
++            let mut right = *right_ref as f64;
++
++            let input_peak = left.abs().max(right.abs()) as f32;
++
++            // Process one sample through the engine
++            let mut left_buf = [left];
++            let mut right_buf = [right];
++            self.engine.process(&mut left_buf, &mut right_buf);
++            left = left_buf[0];
++            right = right_buf[0];
++
++            *left_ref = left as f32;
++            *right_ref = right as f32;
++
++            let output_peak = left.abs().max(right.abs()) as f32;
++
++            // Update metering atomics
++            // Input peak with decay
++            let prev_in = self.ui_state.input_peak_db.load(Ordering::Relaxed);
++            let in_db = if input_peak > 0.0 {
++                20.0 * input_peak.log10()
++            } else {
++                -100.0
++            };
++            let new_in = if in_db > prev_in { in_db } else { prev_in - 0.3 };
++            self.ui_state
++                .input_peak_db
++                .store(new_in, Ordering::Relaxed);
++
++            // Output peak with decay
++            let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);
++            let out_db = if output_peak > 0.0 {
++                20.0 * output_peak.log10()
++            } else {
++                -100.0
++            };
++            let new_out = if out_db > prev_out {
++                out_db
++            } else {
++                prev_out - 0.3
++            };
++            self.ui_state
++                .output_peak_db
++                .store(new_out, Ordering::Relaxed);
++
++            // Detector level
++            let det_db = self.engine.detector.level_db() as f32;
++            self.ui_state
++                .detector_level_db
++                .store(det_db, Ordering::Relaxed);
++
++            // Trigger flash
++            if self.engine.triggered_this_block {
++                self.ui_state.triggered.store(1.0, Ordering::Relaxed);
++                self.ui_state
++                    .last_velocity
++                    .store(self.engine.last_velocity as f32, Ordering::Relaxed);
++            }
++
++            // Slot metering
++            for s in 0..NUM_SLOTS {
++                let peak = self.engine.slot_peak[s] as f32;
++                let peak_db = if peak > 0.0 {
++                    20.0 * peak.log10()
++                } else {
++                    -100.0
++                };
++                self.ui_state.slot_peak_db[s].store(peak_db, Ordering::Relaxed);
++                self.ui_state.slot_playing[s].store(
++                    if self.engine.slots[s].is_playing() {
++                        1.0
++                    } else {
++                        0.0
++                    },
++                    Ordering::Relaxed,
++                );
++            }
++
++            // Waveform history
++            self.waveform_peak = self.waveform_peak.max(input_peak);
++            if self.engine.triggered_this_block {
++                self.waveform_trigger_peak = 1.0;
++            }
++            self.waveform_counter += 1;
++            if self.waveform_counter >= self.waveform_interval {
++                let pos =
++                    self.ui_state.waveform_pos.load(Ordering::Relaxed) as usize % WAVEFORM_LEN;
++                self.ui_state.waveform_input[pos]
++                    .store(self.waveform_peak.min(1.0), Ordering::Relaxed);
++                self.ui_state.waveform_triggers[pos]
++                    .store(self.waveform_trigger_peak, Ordering::Relaxed);
++                self.ui_state
++                    .waveform_pos
++                    .store((pos + 1) as f32, Ordering::Relaxed);
++
++                self.waveform_counter = 0;
++                self.waveform_peak = 0.0;
++                self.waveform_trigger_peak = 0.0;
++            }
++        }
++
++        // Decay trigger flash
++        let prev = self.ui_state.triggered.load(Ordering::Relaxed);
++        if prev > 0.0 {
++            self.ui_state
++                .triggered
++                .store((prev - 0.02).max(0.0), Ordering::Relaxed);
++        }
++
+         ProcessStatus::Normal
+     }
+ }
+diff --git a/crates/fts-trigger/trigger-ui/src/control_view.rs b/crates/fts-trigger/trigger-ui/src/control_view.rs
+index 2b39c56..d17e0d0 100644
+--- a/crates/fts-trigger/trigger-ui/src/control_view.rs
++++ b/crates/fts-trigger/trigger-ui/src/control_view.rs
+@@ -1,3 +1,122 @@
+-//! Trigger control view.
++//! Mixer strip and mixer section components for the trigger plugin.
+ 
+-// TODO: Implement
++use audio_gui::controls::knob::Knob;
++use audio_gui::controls::slider::ParamSlider;
++use audio_gui::prelude::{theme, KnobSize};
++use fts_plugin_core::prelude::*;
++
++/// A single mixer channel strip for one sample slot.
++#[component]
++pub fn MixerStrip(
++    /// Slot index (0-7).
++    slot: usize,
++    /// Display name of loaded sample.
++    name: String,
++    /// Per-slot peak level in dB.
++    peak_db: f32,
++    /// Whether this slot is currently playing.
++    playing: bool,
++    /// Param pointers for this slot's controls.
++    gain_ptr: ParamPtr,
++    pan_ptr: ParamPtr,
++    pitch_ptr: ParamPtr,
++    enabled_ptr: ParamPtr,
++    mute_ptr: ParamPtr,
++    solo_ptr: ParamPtr,
++) -> Element {
++    let slot_num = slot + 1;
++    let display_name = if name.is_empty() {
++        "---".to_string()
++    } else if name.len() > 8 {
++        format!("{}...", &name[..6])
++    } else {
++        name.clone()
++    };
++
++    let led_color = if playing {
++        theme::SIGNAL_SAFE
++    } else {
++        theme::TOGGLE_OFF
++    };
++
++    let peak_text = if peak_db > -100.0 {
++        format!("{:.0}", peak_db)
++    } else {
++        "-inf".to_string()
++    };
++
++    rsx! {
++        div {
++            style: format!(
++                "display:flex; flex-direction:column; align-items:center; gap:4px; \
++                 padding:6px 4px; background:{SURFACE}; border-radius:4px; \
++                 min-width:110px; flex:1;",
++                SURFACE = theme::SURFACE,
++            ),
++
++            // Slot number + LED
++            div {
++                style: "display:flex; align-items:center; gap:4px;",
++                div {
++                    style: format!(
++                        "width:8px; height:8px; border-radius:50%; background:{};",
++                        led_color,
++                    ),
++                }
++                div {
++                    style: format!(
++                        "font-size:11px; font-weight:700; color:{};",
++                        theme::TEXT,
++                    ),
++                    "{slot_num}"
++                }
++            }
++
++            // Sample name
++            div {
++                style: format!(
++                    "font-size:9px; color:{}; text-align:center; \
++                     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; \
++                     max-width:100px;",
++                    if name.is_empty() { theme::TEXT_DIM } else { theme::TEXT },
++                ),
++                title: "{name}",
++                "{display_name}"
++            }
++
++            // Gain fader
++            div {
++                style: "flex:1; display:flex; flex-direction:column; align-items:center; \
++                        gap:2px; min-height:80px; width:100%;",
++                ParamSlider { param_ptr: gain_ptr, height: 80.0 }
++            }
++
++            // Peak readout
++            div {
++                style: format!(
++                    "font-size:9px; font-variant-numeric:tabular-nums; color:{};",
++                    if peak_db > -6.0 { theme::SIGNAL_WARN }
++                    else if peak_db > -60.0 { theme::TEXT_DIM }
++                    else { theme::TOGGLE_OFF }
++                ),
++                "{peak_text} dB"
++            }
++
++            // Pan knob
++            Knob { param_ptr: pan_ptr, size: KnobSize::Small }
++
++            // Pitch knob
++            Knob { param_ptr: pitch_ptr, size: KnobSize::Small }
++
++            // Mute / Solo row
++            div {
++                style: "display:flex; gap:4px;",
++                ParamSlider { param_ptr: mute_ptr, height: 20.0 }
++                ParamSlider { param_ptr: solo_ptr, height: 20.0 }
++            }
++
++            // Enable toggle
++            ParamSlider { param_ptr: enabled_ptr, height: 18.0 }
++        }
++    }
++}
+diff --git a/flake.nix b/flake.nix
+index 00e54c1..a14fb05 100644
+--- a/flake.nix
++++ b/flake.nix
+@@ -124,6 +124,9 @@
+                     dbus
+                     zlib
+                     stdenv.cc.cc.lib
++
++                    # Issue tracking (beads)
++                    dolt
+                   ];
+ 
+                   languages.rust = {

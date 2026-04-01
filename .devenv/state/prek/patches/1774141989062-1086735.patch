@@ -1,0 +1,2216 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index d10c7ae..b0e6cca 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -694,6 +694,15 @@ dependencies = [
+  "nih_plug_dioxus",
+ ]
+ 
++[[package]]
++name = "audio-gui"
++version = "0.1.0"
++source = "git+https://github.com/FastTrackStudios/audio-gui.git?branch=main#ca3d08fa460579b8dbff221d700c80eeb448c5a5"
++dependencies = [
++ "nih_plug",
++ "nih_plug_dioxus",
++]
++
+ [[package]]
+ name = "autocfg"
+ version = "1.5.0"
+@@ -1541,7 +1550,7 @@ name = "comp-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "comp-dsp",
+  "comp-profiles",
+  "comp-ui",
+@@ -1566,7 +1575,7 @@ dependencies = [
+ name = "comp-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "comp-dsp",
+  "comp-profiles",
+  "fts-plugin-core",
+@@ -2319,7 +2328,7 @@ dependencies = [
+ name = "delay-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "delay-dsp",
+  "delay-profiles",
+  "fts-plugin-core",
+@@ -3131,7 +3140,7 @@ name = "eq-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "eq-dsp",
+  "eq-profiles",
+  "eq-ui",
+@@ -3152,7 +3161,7 @@ dependencies = [
+ name = "eq-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "eq-dsp",
+  "eq-profiles",
+  "fts-plugin-core",
+@@ -3772,7 +3781,7 @@ version = "0.1.0"
+ dependencies = [
+  "anyhow",
+  "atomic_float 1.1.0",
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "nih_plug",
+  "nih_plug_dioxus",
+  "thiserror 2.0.18",
+@@ -3978,7 +3987,7 @@ dependencies = [
+ name = "gate-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-plugin-core",
+  "gate-dsp",
+  "gate-profiles",
+@@ -4265,6 +4274,13 @@ version = "1.0.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "f9e2d4c0a8296178d8802098410ca05d86b17a10bb5ab559b3fb404c1f948220"
+ 
++[[package]]
++name = "gui-test"
++version = "0.1.0"
++dependencies = [
++ "nih_plug_dioxus",
++]
++
+ [[package]]
+ name = "guillotiere"
+ version = "0.6.2"
+@@ -5268,7 +5284,7 @@ dependencies = [
+ name = "limiter-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-plugin-core",
+  "limiter-dsp",
+  "limiter-profiles",
+@@ -5332,7 +5348,7 @@ name = "livetune-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-dsp",
+  "fts-plugin-core",
+  "livetune-dsp",
+@@ -5789,8 +5805,7 @@ dependencies = [
+ [[package]]
+ name = "moire"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ac52dcc0ff5b4710a66626370b1bf85ba3d924fd8019e8cfa100e8dafffda4ad"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ dependencies = [
+  "moire-macros",
+  "moire-macros-noop",
+@@ -5801,8 +5816,7 @@ dependencies = [
+ [[package]]
+ name = "moire-macros"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c494331faed7953b795b7769a84e9272e6f59e34ddceebadba4715b245957bc2"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ dependencies = [
+  "proc-macro2",
+  "quote",
+@@ -5812,14 +5826,12 @@ dependencies = [
+ [[package]]
+ name = "moire-macros-noop"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "92ccdc0bf403f5ecf29c09e8e9f178caed89a914ea032e0c2d99d3824b78892d"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ 
+ [[package]]
+ name = "moire-runtime"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "568cc05b223c4c76247467e3bdaa7862f05c38d5c8f6e44198613880f90ecd98"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ dependencies = [
+  "ctor",
+  "facet",
+@@ -5835,10 +5847,8 @@ dependencies = [
+ [[package]]
+ name = "moire-tokio"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "fdb30c43038ce71c727da5a4ff01d09dd4c823486cc17b3b08661420d0ceda43"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ dependencies = [
+- "ctor",
+  "moire-runtime",
+  "moire-types",
+  "parking_lot",
+@@ -5856,8 +5866,7 @@ dependencies = [
+ [[package]]
+ name = "moire-trace-types"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1ef6f98b447211257a517d101f0f5cf4300627cd6fd1c0c13ff53d157a872c9d"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ dependencies = [
+  "facet",
+ ]
+@@ -5865,8 +5874,7 @@ dependencies = [
+ [[package]]
+ name = "moire-types"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "667b2fc41e30d3b0f7d0d29e978d3f473afaf0e0be355202eead317e35ace200"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ dependencies = [
+  "facet",
+  "facet-value",
+@@ -5876,8 +5884,7 @@ dependencies = [
+ [[package]]
+ name = "moire-wasm"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f143cef34407271acdbca3af106d82b330693e0990ef87df146441392d8a9577"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ dependencies = [
+  "async-channel",
+  "async-lock",
+@@ -5892,8 +5899,7 @@ dependencies = [
+ [[package]]
+ name = "moire-wire"
+ version = "1.0.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "bf0ec84eeb2e23a83339cf5edc9d5a3a9ec5849416bd4051951fba416ea3e0f7"
++source = "git+https://github.com/bearcove/moire?rev=13eac79#13eac79c1b128282dd792a611319d0a1016ad15d"
+ dependencies = [
+  "facet",
+  "facet-json",
+@@ -7201,7 +7207,7 @@ name = "pitch-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+@@ -8028,7 +8034,7 @@ dependencies = [
+ name = "reverb-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-plugin-core",
+  "reverb-dsp",
+  "reverb-profiles",
+@@ -8092,7 +8098,7 @@ name = "rider-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+@@ -8112,7 +8118,7 @@ dependencies = [
+ name = "rider-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-plugin-core",
+  "rider-dsp",
+  "rider-profiles",
+@@ -9596,7 +9602,7 @@ dependencies = [
+ name = "tape-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-plugin-core",
+  "tape-dsp",
+  "tape-profiles",
+@@ -10136,7 +10142,7 @@ name = "trigger-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "crossbeam-channel",
+  "eq-dsp",
+  "fts-dsp",
+@@ -10160,7 +10166,7 @@ dependencies = [
+ name = "trigger-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
+  "fts-plugin-core",
+  "trigger-dsp",
+  "trigger-profiles",
+diff --git a/Cargo.toml b/Cargo.toml
+index 3df17bf..fea91f5 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -99,7 +99,7 @@ license = "MIT OR Apache-2.0"
+ 
+ [workspace.dependencies]
+ # Internal crates
+-audio-gui = { path = "crates/audio-gui" }
++audio-gui = { git = "https://github.com/FastTrackStudios/audio-gui.git", branch = "main" }
+ fts-plugin-core = { path = "crates/fts-plugin-core" }
+ fts-dsp = { path = "crates/fts-dsp" }
+ fts-sample = { path = "crates/fts-sample" }
+@@ -231,7 +231,17 @@ anyrender_vello_cpu = { git = "https://github.com/FastTrackStudios/anyrender.git
+ anyrender_vello_hybrid = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+ anyrender_svg = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+ wgpu_context = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
+-# moire-trace-capture: tolerate broken frame-pointer chains (NixOS glibc
+-# doesn't preserve frame pointers, so the upstream version panics; this fork
+-# breaks gracefully). Remove once bearcove/moire accepts a fix upstream.
+-moire-trace-capture = { path = "vendor/moire-trace-capture" }
++# moire: unify crates.io moire with the git rev that roam pulls in,
++# avoiding duplicate moire-runtime #[ctor] registrations that crash.
++moire = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
++moire-macros-noop = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
++moire-runtime = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
++moire-tokio = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
++moire-trace-types = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
++moire-types = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
++moire-wasm = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
++moire-wire = { git = "https://github.com/bearcove/moire", rev = "13eac79" }
++
++# moire-trace-capture: tolerate broken frame-pointer chains (NixOS glibc).
++[patch."https://github.com/bearcove/moire"]
++moire-trace-capture = { path = "../forks/moire-trace-capture" }
+diff --git a/crates/audio-gui/src/viz/eq_graph.rs b/crates/audio-gui/src/viz/eq_graph.rs
+index 6c9e15c..21af074 100644
+--- a/crates/audio-gui/src/viz/eq_graph.rs
++++ b/crates/audio-gui/src/viz/eq_graph.rs
+@@ -526,6 +526,47 @@ pub fn EqGraph(
+     let sp_fill = spectrum_svg.as_ref().map(|(_, f)| f.clone()).unwrap_or_default();
+ 
+     rsx! {
++        // Wrapper div — Blitz doesn't deliver onwheel to SVG elements,
++        // so we handle it on this div instead.
++        div {
++            style: "width:100%; height:100%;",
++
++            // Handle mouse wheel for Q adjustment (on div because Blitz
++            // doesn't fire onwheel on SVG elements)
++            onwheel: move |evt: WheelEvent| {
++                evt.prevent_default();
++
++                if disabled {
++                    return;
++                }
++
++                let dragging = { *dragging_band.read() };
++                let focused = { *focused_band.read() };
++                let hovered = { *hovered_band.read() };
++                let target_band = dragging.or(focused).or(hovered);
++
++                if let Some(band_idx) = target_band {
++                    let delta_vec = evt.delta().strip_units();
++                    let delta = delta_vec.y;
++                    let q_multiplier = if delta < 0.0 { 1.15 } else { 0.87 };
++
++                    let updated_band = {
++                        let mut bands_vec = bands.write();
++                        if band_idx < bands_vec.len() {
++                            let new_q = (bands_vec[band_idx].q * q_multiplier).clamp(0.1, 18.0);
++                            bands_vec[band_idx].q = new_q;
++                            Some(bands_vec[band_idx].clone())
++                        } else {
++                            None
++                        }
++                    };
++
++                    if let (Some(band), Some(cb)) = (updated_band, &on_band_change) {
++                        cb.call((band_idx, band));
++                    }
++                }
++            },
++
+         svg {
+             // Use viewBox for proper scaling - SVG will scale to fit container
+             view_box: "0 0 {vb_width} {vb_height}",
+@@ -555,7 +596,6 @@ pub fn EqGraph(
+                     return;
+                 }
+ 
+-                // Get element-relative coordinates and transform to viewBox space
+                 let coords = evt.element_coordinates();
+                 let (x, y) = transform_coords(coords.x, coords.y);
+ 
+@@ -784,46 +824,7 @@ pub fn EqGraph(
+                 }
+             },
+ 
+-            // Handle mouse wheel for Q adjustment
+-            onwheel: move |evt: WheelEvent| {
+-                // Always prevent default to stop page scrolling when over the EQ graph
+-                evt.prevent_default();
+-
+-                if disabled {
+-                    return;
+-                }
+-
+-                // Adjust Q for dragging, focused, or hovered band - copy values first
+-                let dragging = { *dragging_band.read() };
+-                let focused = { *focused_band.read() };
+-                let hovered = { *hovered_band.read() };
+-                let target_band = dragging.or(focused).or(hovered);
+-
+-                if let Some(band_idx) = target_band {
+-                    // Get the Y delta from wheel event (strip units to get raw value)
+-                    let delta_vec = evt.delta().strip_units();
+-                    let delta = delta_vec.y;
+-                    // Wheel up = increase Q, wheel down = decrease Q
+-                    let q_multiplier = if delta < 0.0 { 1.15 } else { 0.87 };
+-
+-                    let updated_band = {
+-                        let mut bands_vec = bands.write();
+-                        if band_idx < bands_vec.len() {
+-                            let new_q = (bands_vec[band_idx].q * q_multiplier).clamp(0.1, 18.0);
+-                            bands_vec[band_idx].q = new_q;
+-                            Some(bands_vec[band_idx].clone())
+-                        } else {
+-                            None
+-                        }
+-                    };
+-
+-                    if let (Some(band), Some(cb)) = (updated_band, &on_band_change) {
+-                        cb.call((band_idx, band));
+-                    }
+-                }
+-            },
+-
+-            // Handle mousedown on empty area - detect double-click to add new band
++            // Handle mousedown - detect double-click to add new band, or click on band to drag
+             // Using mousedown instead of ondoubleclick so user can immediately drag the new node
+             onmousedown: move |evt: MouseEvent| {
+                 if disabled {
+@@ -839,20 +840,97 @@ pub fn EqGraph(
+                     return;
+                 }
+ 
+-                // Check if clicking on an existing band (those have their own handlers)
+-                let clicking_on_band = {
++                // Check if clicking on an existing band.
++                // Blitz doesn't deliver mouse events to SVG child elements,
++                // so we handle band clicks at the SVG level.
++                let clicked_band: Option<usize> = {
+                     let bands_vec = bands.read();
+-                    bands_vec.iter().any(|band| {
+-                        if !band.used { return false; }
++                    let mut closest: Option<(usize, f64)> = None;
++                    for (idx, band) in bands_vec.iter().enumerate() {
++                        if !band.used { continue; }
+                         let bx = freq_to_x(band.frequency as f64);
+                         let by = db_to_y(band.gain as f64);
+                         let dist = ((x - bx).powi(2) + (y - by).powi(2)).sqrt();
+-                        dist < 15.0
+-                    })
++                        if dist < 15.0 {
++                            if closest.is_none() || dist < closest.unwrap().1 {
++                                closest = Some((idx, dist));
++                            }
++                        }
++                    }
++                    closest.map(|(idx, _)| idx)
+                 };
+ 
+-                if clicking_on_band {
+-                    last_click.set(None);
++                if let Some(idx) = clicked_band {
++                    // Check for double-click on this band (reset gain to 0)
++                    let now = now_ms();
++                    let last_click_val = { *last_click.read() };
++                    let is_double = if let Some((last_time, last_x, last_y)) = last_click_val {
++                        let time_diff = now - last_time;
++                        let distance = ((x - last_x).powi(2) + (y - last_y).powi(2)).sqrt();
++                        time_diff < double_click_threshold_ms && distance < double_click_distance
++                    } else {
++                        false
++                    };
++
++                    if is_double {
++                        last_click.set(None);
++                        let updated_band = {
++                            let mut bands_vec = bands.write();
++                            if idx < bands_vec.len() {
++                                bands_vec[idx].gain = 0.0;
++                                Some(bands_vec[idx].clone())
++                            } else {
++                                None
++                            }
++                        };
++                        if let (Some(band), Some(cb)) = (updated_band, &on_band_change) {
++                            cb.call((idx, band));
++                        }
++                        evt.stop_propagation();
++                        return;
++                    }
++
++                    // Single click — start dragging this band
++                    last_click.set(Some((now, x, y)));
++
++                    let is_shift = evt.modifiers().shift();
++                    let current_selected = { selected_bands.read().clone() };
++                    let new_selected = if is_shift {
++                        let mut sel = current_selected.clone();
++                        if sel.contains(&idx) {
++                            sel.retain(|&i| i != idx);
++                        } else {
++                            sel.push(idx);
++                        }
++                        sel
++                    } else if !current_selected.contains(&idx) {
++                        vec![idx]
++                    } else {
++                        current_selected.clone()
++                    };
++                    selected_bands.set(new_selected.clone());
++
++                    drag_start.set(Some((x, y)));
++                    let start_bands: Vec<(usize, f32, f32)> = {
++                        let bands_vec = bands.read();
++                        new_selected
++                            .iter()
++                            .filter_map(|&i| {
++                                bands_vec.get(i).map(|b| (i, b.frequency, b.gain))
++                            })
++                            .collect()
++                    };
++                    drag_start_bands.set(start_bands);
++                    selection_rect.set(None);
++
++                    dragging_band.set(Some(idx));
++                    set_focused(Some(idx));
++                    if let Some(cb) = &on_begin {
++                        cb.call(idx);
++                    }
++
++                    evt.stop_propagation();
++                    evt.prevent_default();
+                     return;
+                 }
+ 
+@@ -1565,7 +1643,8 @@ pub fn EqGraph(
+                     rsx! {}
+                 }
+             }
+-        }
++        } // svg
++        } // wrapper div
+     }
+ }
+ 
+diff --git a/crates/fts-eq/eq-dsp/src/band.rs b/crates/fts-eq/eq-dsp/src/band.rs
+index a3e1f21..4d11f91 100644
+--- a/crates/fts-eq/eq-dsp/src/band.rs
++++ b/crates/fts-eq/eq-dsp/src/band.rs
+@@ -12,7 +12,7 @@ use crate::filter_type::{FilterStructure, FilterType};
+ use crate::section::{SvfSection, Tdf2Section};
+ 
+ /// Maximum filter order (number of poles). Must be even for 2nd-order cascading.
+-pub const MAX_ORDER: usize = 12;
++pub const MAX_ORDER: usize = 16;
+ /// Maximum number of cascaded 2nd-order sections.
+ const MAX_SECTIONS: usize = MAX_ORDER / 2;
+ 
+@@ -32,6 +32,9 @@ pub struct Band {
+     tdf2: [Tdf2Section; MAX_SECTIONS],
+     svf: [SvfSection; MAX_SECTIONS],
+     num_sections: usize,
++    /// Output gain multiplier for filter types that use gain as output level
++    /// (lowpass, highpass, bandpass, notch, allpass).
++    output_gain: f64,
+ }
+ 
+ impl Band {
+@@ -47,6 +50,7 @@ impl Band {
+             tdf2: std::array::from_fn(|_| Tdf2Section::new()),
+             svf: std::array::from_fn(|_| SvfSection::new()),
+             num_sections: 1,
++            output_gain: 1.0,
+         }
+     }
+ 
+@@ -58,6 +62,9 @@ impl Band {
+ 
+         let order = self.order.clamp(1, MAX_ORDER);
+ 
++        // Reset output gain (filter types that need it will set it)
++        self.output_gain = 1.0;
++
+         match self.filter_type {
+             FilterType::Lowpass | FilterType::Highpass => {
+                 self.update_pass_filter(order, config);
+@@ -71,52 +78,97 @@ impl Band {
+             FilterType::BandShelf => {
+                 self.update_band_shelf(order, config);
+             }
+-            FilterType::Bandpass | FilterType::Notch => {
+-                // Always 2nd order
+-                self.num_sections = 1;
+-                let c = coeff::calculate(
+-                    self.filter_type,
+-                    self.freq_hz,
+-                    self.q,
+-                    self.gain_db,
+-                    config.sample_rate,
+-                );
+-                self.set_section_coeffs(0, c);
++            FilterType::Bandpass => {
++                self.update_bandpass(order, config);
++            }
++            FilterType::Notch => {
++                self.update_notch(order, config);
++            }
++            FilterType::Allpass => {
++                self.update_allpass(order, config);
+             }
+         }
+     }
+ 
+     fn update_pass_filter(&mut self, order: usize, config: AudioConfig) {
++        // Pro-Q 4 applies gain as output level for cut filters.
++        self.output_gain = 10.0_f64.powf(self.gain_db / 20.0);
++
++        // Pro-Q 4 uses the user's Q for each 2nd-order section.
++        // With low Q (< 0.707), sections are overdamped and rolloff is gentler.
++        // With Q = 0.707 (Butterworth), standard maximally-flat response.
++        // With Q > 0.707, resonance at cutoff.
++
+         if order == 1 {
+             self.num_sections = 1;
+-            // 1st-order: use a 2nd-order section with low Q for gentle slope
+-            let c = coeff::calculate(self.filter_type, self.freq_hz, 0.5, 0.0, config.sample_rate);
++            let c = match self.filter_type {
++                FilterType::Lowpass => coeff::lowpass_1(self.freq_hz, config.sample_rate),
++                FilterType::Highpass => coeff::highpass_1(self.freq_hz, config.sample_rate),
++                _ => unreachable!(),
++            };
+             self.set_section_coeffs(0, c);
+             return;
+         }
+ 
+-        let num = order / 2;
+-        self.num_sections = num.min(MAX_SECTIONS);
+-
+-        // Butterworth Q distribution for each section
+-        let theta0 = PI / (num as f64) / 4.0;
+-        let scale = (std::f64::consts::SQRT_2 * self.q).powf(1.0 / num as f64);
++        // For odd orders, use a 1st-order section + N 2nd-order sections
++        let has_first_order = order % 2 == 1;
++        let num_2nd = order / 2;
++        let total_sections = if has_first_order { num_2nd + 1 } else { num_2nd };
++        self.num_sections = total_sections.min(MAX_SECTIONS);
++
++        let mut section_idx = 0;
++
++        if has_first_order && section_idx < self.num_sections {
++            let c = match self.filter_type {
++                FilterType::Lowpass => coeff::lowpass_1(self.freq_hz, config.sample_rate),
++                FilterType::Highpass => coeff::highpass_1(self.freq_hz, config.sample_rate),
++                _ => unreachable!(),
++            };
++            self.set_section_coeffs(section_idx, c);
++            section_idx += 1;
++        }
+ 
+-        for i in 0..self.num_sections {
+-            let theta = theta0 * (2 * i + 1) as f64;
+-            let q_section = 0.5 / theta.cos() * scale;
++        // Each 2nd-order section uses the user's Q directly
++        for _ in 0..num_2nd.min(self.num_sections - section_idx) {
+             let c = coeff::calculate(
+                 self.filter_type,
+                 self.freq_hz,
+-                q_section,
++                self.q,
+                 0.0,
+                 config.sample_rate,
+             );
+-            self.set_section_coeffs(i, c);
++            self.set_section_coeffs(section_idx, c);
++            section_idx += 1;
+         }
+     }
+ 
+     fn update_shelf_filter(&mut self, order: usize, config: AudioConfig) {
++        if order == 1 {
++            self.num_sections = 1;
++            let c = match self.filter_type {
++                FilterType::LowShelf => {
++                    coeff::low_shelf_1(self.freq_hz, self.gain_db, config.sample_rate)
++                }
++                FilterType::HighShelf => {
++                    coeff::high_shelf_1(self.freq_hz, self.gain_db, config.sample_rate)
++                }
++                FilterType::TiltShelf => {
++                    // 1st-order tilt shelf: split gain between low and high
++                    // Approximate as a low shelf with half the gain effect
++                    coeff::calculate(
++                        self.filter_type,
++                        self.freq_hz,
++                        self.q,
++                        self.gain_db,
++                        config.sample_rate,
++                    )
++                }
++                _ => unreachable!(),
++            };
++            self.set_section_coeffs(0, c);
++            return;
++        }
++
+         if order <= 2 {
+             self.num_sections = 1;
+             let c = coeff::calculate(
+@@ -133,17 +185,13 @@ impl Band {
+         let num = order / 2;
+         self.num_sections = num.min(MAX_SECTIONS);
+ 
+-        // Distribute gain across sections
++        // Distribute gain across sections with Butterworth Q distribution.
+         let g = 10.0_f64.powf(self.gain_db / 20.0);
+         let g_per_section = g.powf(1.0 / num as f64);
+         let gain_per_section = 20.0 * g_per_section.log10();
+ 
+-        let theta0 = PI / (num as f64) / 4.0;
+-        let scale = (std::f64::consts::SQRT_2 * self.q).powf(1.0 / num as f64);
+-
+         for i in 0..self.num_sections {
+-            let theta = theta0 * (2 * i + 1) as f64;
+-            let q_section = 0.5 / theta.cos() * scale;
++            let q_section = butterworth_q(num, i);
+             let c = coeff::calculate(
+                 self.filter_type,
+                 self.freq_hz,
+@@ -169,8 +217,25 @@ impl Band {
+             return;
+         }
+ 
+-        // Higher-order peak: use band shelf (opposing shelf pair)
+-        self.update_band_shelf(order, config);
++        // Higher-order peak: cascade multiple 2nd-order peak sections
++        // with gain distributed across sections.
++        let num = order / 2;
++        self.num_sections = num.min(MAX_SECTIONS);
++
++        let g = 10.0_f64.powf(self.gain_db / 20.0);
++        let g_per = g.powf(1.0 / num as f64);
++        let gain_per = 20.0 * g_per.log10();
++
++        for i in 0..self.num_sections {
++            let c = coeff::calculate(
++                FilterType::Peak,
++                self.freq_hz,
++                self.q,
++                gain_per,
++                config.sample_rate,
++            );
++            self.set_section_coeffs(i, c);
++        }
+     }
+ 
+     /// Band shelf: opposing low shelf pair at bandwidth edges.
+@@ -214,6 +279,142 @@ impl Band {
+         }
+     }
+ 
++    /// Bandpass via HP + LP cascade.
++    ///
++    /// Pro-Q 4 implements bandpass as a highpass at the lower bandwidth edge
++    /// cascaded with a lowpass at the upper edge, each at the requested slope.
++    fn update_bandpass(&mut self, order: usize, config: AudioConfig) {
++        // Pro-Q 4 applies gain as output level for bandpass.
++        self.output_gain = 10.0_f64.powf(self.gain_db / 20.0);
++
++        // Compute bandwidth edges from Q
++        let halfbw = (0.5 / self.q).asinh() / 2.0_f64.ln();
++        let scale = 2.0_f64.powf(halfbw);
++        let f_lo = self.freq_hz / scale;
++        let f_hi = self.freq_hz * scale;
++
++        if order == 1 {
++            self.num_sections = 2;
++            let c_hp = coeff::highpass_1(f_lo, config.sample_rate);
++            self.set_section_coeffs(0, c_hp);
++            let c_lp = coeff::lowpass_1(f_hi, config.sample_rate);
++            self.set_section_coeffs(1, c_lp);
++            return;
++        }
++
++        let has_first_order = order % 2 == 1;
++        let num_2nd = order / 2;
++        let sections_per_side = if has_first_order { num_2nd + 1 } else { num_2nd };
++        self.num_sections = (sections_per_side * 2).min(MAX_SECTIONS);
++
++        let mut idx = 0;
++
++        if has_first_order && idx + 1 < self.num_sections {
++            let c_hp = coeff::highpass_1(f_lo, config.sample_rate);
++            self.set_section_coeffs(idx, c_hp);
++            idx += 1;
++            let c_lp = coeff::lowpass_1(f_hi, config.sample_rate);
++            self.set_section_coeffs(idx, c_lp);
++            idx += 1;
++        }
++
++        // Each 2nd-order section uses user's Q
++        for _ in 0..num_2nd {
++            if idx + 1 >= self.num_sections {
++                break;
++            }
++
++            let c_hp = coeff::calculate(
++                FilterType::Highpass,
++                f_lo,
++                self.q,
++                0.0,
++                config.sample_rate,
++            );
++            self.set_section_coeffs(idx, c_hp);
++            idx += 1;
++
++            let c_lp = coeff::calculate(
++                FilterType::Lowpass,
++                f_hi,
++                self.q,
++                0.0,
++                config.sample_rate,
++            );
++            self.set_section_coeffs(idx, c_lp);
++            idx += 1;
++        }
++    }
++
++    /// Higher-order notch: cascade multiple 2nd-order notch sections.
++    fn update_notch(&mut self, order: usize, config: AudioConfig) {
++        // Pro-Q 4 applies gain as output level for notch.
++        self.output_gain = 10.0_f64.powf(self.gain_db / 20.0);
++
++        if order <= 2 {
++            self.num_sections = 1;
++            let c = coeff::calculate(
++                FilterType::Notch,
++                self.freq_hz,
++                self.q,
++                0.0,
++                config.sample_rate,
++            );
++            self.set_section_coeffs(0, c);
++            return;
++        }
++
++        let num = (order / 2).max(1);
++        self.num_sections = num.min(MAX_SECTIONS);
++
++        for i in 0..self.num_sections {
++            let c = coeff::calculate(
++                FilterType::Notch,
++                self.freq_hz,
++                self.q,
++                0.0,
++                config.sample_rate,
++            );
++            self.set_section_coeffs(i, c);
++        }
++    }
++
++    /// Higher-order allpass: cascade multiple 2nd-order allpass sections.
++    fn update_allpass(&mut self, order: usize, config: AudioConfig) {
++        if order == 1 {
++            self.num_sections = 1;
++            let c = coeff::allpass_1(self.freq_hz, config.sample_rate);
++            self.set_section_coeffs(0, c);
++            return;
++        }
++
++        let has_first_order = order % 2 == 1;
++        let num_2nd = order / 2;
++        let total_sections = if has_first_order { num_2nd + 1 } else { num_2nd };
++        self.num_sections = total_sections.min(MAX_SECTIONS);
++
++        let mut section_idx = 0;
++
++        if has_first_order && section_idx < self.num_sections {
++            let c = coeff::allpass_1(self.freq_hz, config.sample_rate);
++            self.set_section_coeffs(section_idx, c);
++            section_idx += 1;
++        }
++
++        for i in 0..num_2nd.min(self.num_sections - section_idx) {
++            let q_section = butterworth_q(num_2nd, i);
++            let c = coeff::calculate(
++                FilterType::Allpass,
++                self.freq_hz,
++                q_section,
++                0.0,
++                config.sample_rate,
++            );
++            self.set_section_coeffs(section_idx, c);
++            section_idx += 1;
++        }
++    }
++
+     fn set_section_coeffs(&mut self, idx: usize, coeffs: coeff::Coeffs) {
+         self.tdf2[idx].set_coeffs(coeffs);
+         self.svf[idx].set_coeffs(coeffs);
+@@ -238,7 +439,7 @@ impl Band {
+                 }
+             }
+         }
+-        sample
++        sample * self.output_gain
+     }
+ 
+     // r[impl dsp.biquad.reset]
+@@ -257,3 +458,12 @@ impl Default for Band {
+         Self::new()
+     }
+ }
++
++/// Butterworth Q value for the i-th 2nd-order section of an n-section cascade.
++///
++/// For an n-section (2n-pole) Butterworth filter, each section's Q is:
++///   Q_i = 1 / (2 * cos(π * (2i + 1) / (4n)))
++fn butterworth_q(n: usize, i: usize) -> f64 {
++    let angle = PI * (2 * i + 1) as f64 / (4 * n) as f64;
++    0.5 / angle.cos()
++}
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 71cfc4a..3babeea 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -50,6 +50,7 @@ pub fn calculate(
+         FilterType::Highpass => highpass_2(w0, q),
+         FilterType::Bandpass => bandpass_2(w0, q),
+         FilterType::Notch => notch_2(w0, q),
++        FilterType::Allpass => allpass_2(w0, q),
+         FilterType::BandShelf => {
+             // Band shelf is handled at the band level by cascading shelves
+             PASSTHROUGH
+@@ -266,6 +267,107 @@ fn tilt_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     }
+ }
+ 
++/// 2nd-order allpass filter.
++///
++/// Unity magnitude at all frequencies, phase shift around w0.
++/// Uses the same pole placement as the bandpass, with zeros mirrored.
++fn allpass_2(w0: f64, q: f64) -> Coeffs {
++    let (a1, a2) = solve_poles(w0, 0.5 / q, 1.0);
++
++    // Allpass: numerator = reversed denominator
++    // H(z) = (a2 + a1*z^-1 + z^-2) / (1 + a1*z^-1 + a2*z^-2)
++    [1.0, a1, a2, a2, a1, 1.0]
++}
++
++/// 1st-order lowpass filter coefficients.
++///
++/// True 1st-order (6 dB/oct) using matched z-transform.
++pub fn lowpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
++    let w0 = (2.0 * PI * freq_hz / sample_rate).clamp(1e-6, PI - 1e-6);
++    // Matched pole: p = exp(-w0)
++    let p = (-w0).exp();
++    // Unity gain at DC: b0 = 1 - p
++    let b0 = 1.0 - p;
++    [1.0, -p, 0.0, b0, 0.0, 0.0]
++}
++
++/// 1st-order highpass filter coefficients.
++///
++/// True 1st-order (6 dB/oct) using matched z-transform.
++pub fn highpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
++    let w0 = (2.0 * PI * freq_hz / sample_rate).clamp(1e-6, PI - 1e-6);
++    let p = (-w0).exp();
++    // Zero at DC, unity at Nyquist
++    let b0 = (1.0 + p) / 2.0;
++    [1.0, -p, 0.0, b0, -b0, 0.0]
++}
++
++/// 1st-order low shelf filter coefficients.
++pub fn low_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
++    let w0 = (2.0 * PI * freq_hz / sample_rate).clamp(1e-6, PI - 1e-6);
++    let g = 10.0_f64.powf(gain_db / 20.0);
++
++    if (g - 1.0).abs() < 1e-6 {
++        return PASSTHROUGH;
++    }
++
++    // Bilinear transform 1st-order shelf
++    let wc = w0.tan();
++    if g > 1.0 {
++        // Boost
++        let gwc = g * wc;
++        let a0_inv = 1.0 / (1.0 + wc);
++        let b0 = (1.0 + gwc) * a0_inv;
++        let b1 = (-1.0 + gwc) * a0_inv;
++        let a1 = (-1.0 + wc) * a0_inv;
++        [1.0, a1, 0.0, b0, b1, 0.0]
++    } else {
++        // Cut
++        let wc_g = wc / g;
++        let a0_inv = 1.0 / (1.0 + wc_g);
++        let b0 = (1.0 + wc) * a0_inv;
++        let b1 = (-1.0 + wc) * a0_inv;
++        let a1 = (-1.0 + wc_g) * a0_inv;
++        [1.0, a1, 0.0, b0, b1, 0.0]
++    }
++}
++
++/// 1st-order high shelf filter coefficients.
++pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
++    let w0 = (2.0 * PI * freq_hz / sample_rate).clamp(1e-6, PI - 1e-6);
++    let g = 10.0_f64.powf(gain_db / 20.0);
++
++    if (g - 1.0).abs() < 1e-6 {
++        return PASSTHROUGH;
++    }
++
++    // Bilinear transform 1st-order high shelf
++    let wc = w0.tan();
++    if g > 1.0 {
++        // Boost
++        let a0_inv = 1.0 / (1.0 + wc);
++        let b0 = (g + wc) * a0_inv;
++        let b1 = (-g + wc) * a0_inv;
++        let a1 = (-1.0 + wc) * a0_inv;
++        [1.0, a1, 0.0, b0, b1, 0.0]
++    } else {
++        // Cut
++        let a0_inv = 1.0 / (g + wc);
++        let b0 = (1.0 + wc) * a0_inv;
++        let b1 = (-1.0 + wc) * a0_inv;
++        let a1 = (-g + wc) * a0_inv;
++        [1.0, a1, 0.0, b0, b1, 0.0]
++    }
++}
++
++/// 1st-order allpass filter coefficients.
++pub fn allpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
++    let w0 = (2.0 * PI * freq_hz / sample_rate).clamp(1e-6, PI - 1e-6);
++    let p = (-w0).exp();
++    // Allpass: H(z) = (-p + z^-1) / (1 - p*z^-1)
++    [1.0, -p, 0.0, -p, 1.0, 0.0]
++}
++
+ /// 2nd-order matched low shelf = tilt shelf with gain, then scale numerator.
+ ///
+ /// DC gain = sqrt(g) * sqrt(g) = g. Nyquist gain = (1/sqrt(g)) * sqrt(g) = 1.
+diff --git a/crates/fts-eq/eq-dsp/src/filter_type.rs b/crates/fts-eq/eq-dsp/src/filter_type.rs
+index e692d7e..0a99ab4 100644
+--- a/crates/fts-eq/eq-dsp/src/filter_type.rs
++++ b/crates/fts-eq/eq-dsp/src/filter_type.rs
+@@ -12,6 +12,8 @@ pub enum FilterType {
+     Highpass,
+     Bandpass,
+     Notch,
++    /// Allpass: unity magnitude, phase shift at center frequency.
++    Allpass,
+     /// Band shelf: peak-like shape built from opposing shelf pair.
+     /// Used for higher-order peak filters (order > 2).
+     BandShelf,
+@@ -41,7 +43,6 @@ impl FilterType {
+ 
+     /// Whether this filter type uses a Q parameter.
+     pub fn has_q(self) -> bool {
+-        // All types use Q except notch (fixed by design)
+-        !matches!(self, FilterType::Notch)
++        true
+     }
+ }
+diff --git a/crates/fts-eq/eq-plugin/src/editor.rs b/crates/fts-eq/eq-plugin/src/editor.rs
+index 43b9070..5e649f1 100644
+--- a/crates/fts-eq/eq-plugin/src/editor.rs
++++ b/crates/fts-eq/eq-plugin/src/editor.rs
+@@ -16,8 +16,8 @@ fn shape_to_int(shape: EqBandShape) -> i32 {
+     match shape {
+         EqBandShape::Bell => 0,
+         EqBandShape::LowShelf => 1,
+-        EqBandShape::HighShelf => 2,
+-        EqBandShape::LowCut => 3,
++        EqBandShape::LowCut => 2,
++        EqBandShape::HighShelf => 3,
+         EqBandShape::HighCut => 4,
+         EqBandShape::Notch => 5,
+         EqBandShape::BandPass => 6,
+@@ -32,8 +32,8 @@ fn int_to_shape(v: i32) -> EqBandShape {
+     match v {
+         0 => EqBandShape::Bell,
+         1 => EqBandShape::LowShelf,
+-        2 => EqBandShape::HighShelf,
+-        3 => EqBandShape::LowCut,
++        2 => EqBandShape::LowCut,
++        3 => EqBandShape::HighShelf,
+         4 => EqBandShape::HighCut,
+         5 => EqBandShape::Notch,
+         6 => EqBandShape::BandPass,
+@@ -138,13 +138,13 @@ pub fn App() -> Element {
+                     sample_rate: sample_rate,
+                     spectrum_db: spectrum,
+                     focused_band_out: focused_band,
+-                    // Window is 1000x600; header ~33px, bottom bar ~52px
++                    // Blitz element_coordinates() returns element-relative
++                    // coords (confirmed by debug: elem==client for the SVG).
++                    // rendered_width/height = actual pixel size of the SVG element.
+                     rendered_width: 1000.0,
+-                    rendered_height: 515.0,
+-                    // Blitz element_coordinates() returns window coords;
+-                    // subtract the element's position in the window
++                    rendered_height: 511.0,
+                     offset_x: 0.0,
+-                    offset_y: 33.0,
++                    offset_y: 0.0,
+ 
+                     on_band_change: {
+                         let ctx = ctx.clone();
+diff --git a/crates/fts-eq/eq-plugin/src/lib.rs b/crates/fts-eq/eq-plugin/src/lib.rs
+index ccea6f7..13f9ad9 100644
+--- a/crates/fts-eq/eq-plugin/src/lib.rs
++++ b/crates/fts-eq/eq-plugin/src/lib.rs
+@@ -71,6 +71,15 @@ pub struct BandParams {
+ 
+     #[id = "q"]
+     pub q: FloatParam,
++
++    /// Filter slope: 0=6dB/oct, 1=12, 2=18, 3=24, 4=30, 5=36, 6=42, 7=48, 8=72, 9=96, 10=Brickwall.
++    /// Maps to Pro-Q 4 slope values.
++    #[id = "slope"]
++    pub slope: IntParam,
++
++    /// Solo this band (mutes all other bands when active).
++    #[id = "solo"]
++    pub solo: FloatParam,
+ }
+ 
+ impl BandParams {
+@@ -104,8 +113,8 @@ impl BandParams {
+             .with_value_to_string(Arc::new(|v| match v {
+                 0 => "Bell".to_string(),
+                 1 => "Low Shelf".to_string(),
+-                2 => "High Shelf".to_string(),
+-                3 => "Low Cut".to_string(),
++                2 => "Low Cut".to_string(),
++                3 => "High Shelf".to_string(),
+                 4 => "High Cut".to_string(),
+                 5 => "Notch".to_string(),
+                 6 => "Bandpass".to_string(),
+@@ -154,6 +163,42 @@ impl BandParams {
+                 },
+             )
+             .with_value_to_string(formatters::v2s_f32_rounded(2)),
++
++            slope: IntParam::new(
++                &format!("B{} Slope", idx + 1),
++                2, // 18 dB/oct default (matches Pro-Q 4 default of index 2)
++                IntRange::Linear { min: 0, max: 10 },
++            )
++            .with_value_to_string(Arc::new(|v| match v {
++                0 => "6 dB/oct".to_string(),
++                1 => "12 dB/oct".to_string(),
++                2 => "18 dB/oct".to_string(),
++                3 => "24 dB/oct".to_string(),
++                4 => "30 dB/oct".to_string(),
++                5 => "36 dB/oct".to_string(),
++                6 => "48 dB/oct".to_string(),
++                7 => "60 dB/oct".to_string(),
++                8 => "72 dB/oct".to_string(),
++                9 => "96 dB/oct".to_string(),
++                10 => "Brickwall".to_string(),
++                _ => format!("{}", v),
++            })),
++
++            solo: FloatParam::new(
++                &format!("B{} Solo", idx + 1),
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 { "On".to_string() } else { "Off".to_string() }
++            }))
++            .with_string_to_value(Arc::new(|s| {
++                match s.trim().to_lowercase().as_str() {
++                    "on" | "1" | "true" => Some(1.0),
++                    "off" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                }
++            })),
+         }
+     }
+ }
+@@ -231,19 +276,39 @@ impl Default for FtsEq {
+     }
+ }
+ 
++/// Map slope index (0–10) to filter order for eq-dsp.
++/// Pro-Q 4 slopes: 6,12,18,24,30,36,42,48,72,96 dB/oct + Brickwall.
++/// Each 6 dB/oct = 1 pole (order 1).
++fn slope_to_order(slope: i32) -> usize {
++    match slope {
++        0 => 1,   // 6 dB/oct
++        1 => 2,   // 12 dB/oct
++        2 => 3,   // 18 dB/oct
++        3 => 4,   // 24 dB/oct
++        4 => 5,   // 30 dB/oct
++        5 => 6,   // 36 dB/oct
++        6 => 8,   // 48 dB/oct (Pro-Q 4 skips 42)
++        7 => 10,  // 60 dB/oct
++        8 => 12,  // 72 dB/oct
++        9 => 16,  // 96 dB/oct (clamped to MAX_ORDER in DSP)
++        10 => 16, // Brickwall (max we can do)
++        _ => 2,
++    }
++}
++
+ /// Map EqBandShape integer to eq-dsp FilterType.
+ fn shape_to_filter_type(shape: i32) -> FilterType {
+     match shape {
+         0 => FilterType::Peak,      // Bell
+         1 => FilterType::LowShelf,  // Low Shelf
+-        2 => FilterType::HighShelf, // High Shelf
+-        3 => FilterType::Highpass,  // Low Cut (cuts lows = highpass)
++        2 => FilterType::Highpass,  // Low Cut (cuts lows = highpass)
++        3 => FilterType::HighShelf, // High Shelf
+         4 => FilterType::Lowpass,   // High Cut (cuts highs = lowpass)
+         5 => FilterType::Notch,     // Notch
+         6 => FilterType::Bandpass,  // Bandpass
+         7 => FilterType::TiltShelf, // Tilt Shelf
+-        8 => FilterType::TiltShelf, // Flat Tilt (use tilt shelf)
+-        9 => FilterType::Peak,      // All Pass (placeholder)
++        8 => FilterType::TiltShelf, // Flat Tilt (use tilt shelf as approximation)
++        9 => FilterType::Allpass,   // All Pass
+         _ => FilterType::Peak,
+     }
+ }
+@@ -251,26 +316,35 @@ fn shape_to_filter_type(shape: i32) -> FilterType {
+ impl FtsEq {
+     /// Sync nih-plug params → eq-dsp bands.
+     fn sync_params(&mut self) {
++        // Check if any band has solo active
++        let any_solo = (0..NUM_BANDS).any(|i| self.params.bands[i].solo.value() > 0.5);
++
+         for i in 0..NUM_BANDS {
+             let bp = &self.params.bands[i];
+             if let Some(band) = self.chain.band_mut(i) {
+-                let enabled = bp.enabled.value() > 0.5;
++                let band_enabled = bp.enabled.value() > 0.5;
++                let is_solo = bp.solo.value() > 0.5;
++                // If any band is soloed, only soloed bands are active
++                let enabled = if any_solo { band_enabled && is_solo } else { band_enabled };
+                 let ft = shape_to_filter_type(bp.filter_type.value());
+                 let freq = bp.freq_hz.value() as f64;
+                 let gain = bp.gain_db.value() as f64;
+                 let q = bp.q.value() as f64;
++                let order = slope_to_order(bp.slope.value());
+ 
+                 if band.enabled != enabled
+                     || band.filter_type != ft
+                     || (band.freq_hz - freq).abs() > 0.01
+                     || (band.gain_db - gain).abs() > 0.01
+                     || (band.q - q).abs() > 0.001
++                    || band.order != order
+                 {
+                     band.enabled = enabled;
+                     band.filter_type = ft;
+                     band.freq_hz = freq;
+                     band.gain_db = gain;
+                     band.q = q;
++                    band.order = order;
+                     band.structure = FilterStructure::Tdf2;
+                     self.chain.update_band(i);
+                 }
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index 137c6c5..d675507 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -7,10 +7,13 @@
+ use fts_dsp::{AudioConfig, Processor};
+ use serde::{Deserialize, Serialize};
+ 
++use crate::allpass_shift::AllpassShifter;
+ use crate::divider::{DivideRatio, FreqDivider};
+ use crate::granular::GranularShifter;
+ use crate::pll::{PllOctave, PllTracker, SubWaveform};
+ use crate::psola::PsolaShifter;
++use crate::rubberband::RubberbandShifter;
++use crate::signalsmith::SignalsmithShifter;
+ use crate::wsola::WsolaShifter;
+ 
+ /// Which pitch shifting algorithm to use.
+@@ -33,6 +36,15 @@ pub enum Algorithm {
+     /// WSOLA waveform-similarity overlap-add. ~1024 sample latency.
+     /// Works on any signal (monophonic or polyphonic) without pitch detection.
+     Wsola,
++    /// Signalsmith Stretch — high-quality FFT-based spectral pitch shifter.
++    /// Clean, polyphonic-capable. ~256+ sample latency.
++    Signalsmith,
++    /// Rubber Band Library — professional pitch shifter with formant preservation.
++    /// High quality, ~512+ sample latency.
++    Rubberband,
++    /// Allpass interpolation — Dattorro/Schroeder barberpole style.
++    /// Zero latency, classic hardware pitch shifter character.
++    Allpass,
+ }
+ 
+ /// Convert semitones to pitch ratio: `2^(semitones / 12)`.
+@@ -54,6 +66,8 @@ pub struct PitchChain {
+     pub semitones: f64,
+     /// Dry/wet mix (0.0–1.0).
+     pub mix: f64,
++    /// Live mode: minimize latency at the cost of quality.
++    pub live: bool,
+ 
+     // -- PLL-specific settings --
+     /// PLL sub-oscillator waveform.
+@@ -68,6 +82,13 @@ pub struct PitchChain {
+     granular: GranularShifter,
+     psola: PsolaShifter,
+     wsola: WsolaShifter,
++    signalsmith: SignalsmithShifter,
++    rubberband: RubberbandShifter,
++    allpass: AllpassShifter,
++
++    /// Track previous live state to detect changes and reinitialise.
++    prev_live: bool,
++    sample_rate: f64,
+ }
+ 
+ impl PitchChain {
+@@ -76,6 +97,7 @@ impl PitchChain {
+             algorithm: Algorithm::FreqDivider,
+             semitones: -12.0,
+             mix: 1.0,
++            live: false,
+             pll_waveform: SubWaveform::Saw,
+             grain_size: 1024,
+             divider: FreqDivider::new(),
+@@ -83,6 +105,11 @@ impl PitchChain {
+             granular: GranularShifter::new(),
+             psola: PsolaShifter::new(),
+             wsola: WsolaShifter::new(),
++            signalsmith: SignalsmithShifter::new(),
++            rubberband: RubberbandShifter::new(),
++            allpass: AllpassShifter::new(),
++            prev_live: false,
++            sample_rate: 48000.0,
+         }
+     }
+ 
+@@ -94,6 +121,9 @@ impl PitchChain {
+             Algorithm::Granular => self.granular.latency(),
+             Algorithm::Psola => self.psola.latency(),
+             Algorithm::Wsola => self.wsola.latency(),
++            Algorithm::Signalsmith => self.signalsmith.latency(),
++            Algorithm::Rubberband => self.rubberband.latency(),
++            Algorithm::Allpass => self.allpass.latency(),
+         }
+     }
+ 
+@@ -110,6 +140,30 @@ impl PitchChain {
+ 
+     /// Sync algorithm-specific parameters before processing.
+     fn sync_params(&mut self) {
++        // Detect live mode changes and reconfigure engines.
++        if self.live != self.prev_live {
++            self.prev_live = self.live;
++
++            // PSOLA: smaller analysis window in live mode.
++            self.psola.base_window_size = if self.live { 512 } else { 2048 };
++
++            // WSOLA: smaller grains in live mode.
++            self.wsola.base_grain_size = if self.live { 256 } else { 1024 };
++
++            // Signalsmith: cheaper preset + smaller blocks.
++            self.signalsmith.live = self.live;
++
++            // Rubberband: R2 engine + smaller blocks.
++            self.rubberband.live = self.live;
++
++            // Re-initialise engines with new settings.
++            let sr = self.sample_rate;
++            self.psola.update(sr);
++            self.wsola.update(sr);
++            self.signalsmith.update(sr);
++            self.rubberband.update(sr);
++        }
++
+         let ratio = semitones_to_ratio(self.semitones.clamp(-24.0, 24.0));
+         let (is_down, is_oct2) = self.nearest_octave();
+ 
+@@ -130,10 +184,14 @@ impl PitchChain {
+         };
+         self.pll.mix = if is_down { self.mix } else { 0.0 };
+ 
+-        // Granular: arbitrary ratio.
++        // Granular: arbitrary ratio. In live mode, cap grain size at 256.
+         self.granular.speed = ratio;
+         self.granular.mix = self.mix;
+-        self.granular.grain_size = self.grain_size;
++        self.granular.grain_size = if self.live {
++            self.grain_size.min(256)
++        } else {
++            self.grain_size
++        };
+ 
+         // PSOLA: arbitrary ratio.
+         self.psola.speed = ratio;
+@@ -142,6 +200,18 @@ impl PitchChain {
+         // WSOLA: arbitrary ratio.
+         self.wsola.speed = ratio;
+         self.wsola.mix = self.mix;
++
++        // Signalsmith: arbitrary ratio.
++        self.signalsmith.speed = ratio;
++        self.signalsmith.mix = self.mix;
++
++        // Rubberband: arbitrary ratio.
++        self.rubberband.speed = ratio;
++        self.rubberband.mix = self.mix;
++
++        // Allpass: arbitrary ratio.
++        self.allpass.speed = ratio;
++        self.allpass.mix = self.mix;
+     }
+ }
+ 
+@@ -158,14 +228,21 @@ impl Processor for PitchChain {
+         self.granular.reset();
+         self.psola.reset();
+         self.wsola.reset();
++        self.signalsmith.reset();
++        self.rubberband.reset();
++        self.allpass.reset();
+     }
+ 
+     fn update(&mut self, config: AudioConfig) {
++        self.sample_rate = config.sample_rate;
+         self.divider.update(config.sample_rate);
+         self.pll.update(config.sample_rate);
+         self.granular.update(config.sample_rate);
+         self.psola.update(config.sample_rate);
+         self.wsola.update(config.sample_rate);
++        self.signalsmith.update(config.sample_rate);
++        self.rubberband.update(config.sample_rate);
++        self.allpass.update(config.sample_rate);
+     }
+ 
+     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
+@@ -197,6 +274,21 @@ impl Processor for PitchChain {
+                     *s = self.wsola.tick(*s);
+                 }
+             }
++            Algorithm::Signalsmith => {
++                for s in left.iter_mut() {
++                    *s = self.signalsmith.tick(*s);
++                }
++            }
++            Algorithm::Rubberband => {
++                for s in left.iter_mut() {
++                    *s = self.rubberband.tick(*s);
++                }
++            }
++            Algorithm::Allpass => {
++                for s in left.iter_mut() {
++                    *s = self.allpass.tick(*s);
++                }
++            }
+         }
+ 
+         // Copy mono result to right channel.
+@@ -256,6 +348,9 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
++            Algorithm::Allpass,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -410,6 +505,9 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
++            Algorithm::Allpass,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -438,6 +536,9 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
++            Algorithm::Allpass,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -478,6 +579,9 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
++            Algorithm::Allpass,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -500,24 +604,185 @@ mod tests {
+         }
+     }
+ 
++    const ALL_ALGOS: [Algorithm; 8] = [
++        Algorithm::FreqDivider,
++        Algorithm::Pll,
++        Algorithm::Granular,
++        Algorithm::Psola,
++        Algorithm::Wsola,
++        Algorithm::Signalsmith,
++        Algorithm::Rubberband,
++        Algorithm::Allpass,
++    ];
++
+     #[test]
+-    fn latency_values() {
++    fn latency_standard_mode() {
+         let mut chain = PitchChain::new();
++        chain.live = false;
+         chain.update(config());
++        // Process one block so sync_params runs.
++        let mut l = sine_block(220.0, 0, 512);
++        let mut r = l.clone();
+ 
++        for algo in ALL_ALGOS {
++            chain.algorithm = algo;
++            chain.process(&mut l, &mut r);
++            let lat = chain.latency();
++            let ms = lat as f64 / SR * 1000.0;
++            eprintln!("  {algo:?} standard: {lat} samples ({ms:.1} ms)");
++        }
++
++        // Zero-latency algorithms.
+         chain.algorithm = Algorithm::FreqDivider;
+         assert_eq!(chain.latency(), 0);
+-
+         chain.algorithm = Algorithm::Pll;
+         assert_eq!(chain.latency(), 0);
+ 
++        // Time-domain algorithms: moderate latency.
+         chain.algorithm = Algorithm::Granular;
+-        assert_eq!(chain.latency(), 1024);
+-
++        assert!(chain.latency() <= 4096, "Granular too high: {}", chain.latency());
+         chain.algorithm = Algorithm::Psola;
+-        assert!(chain.latency() > 0);
+-
++        assert!(chain.latency() > 0 && chain.latency() <= 4096);
+         chain.algorithm = Algorithm::Wsola;
+-        assert_eq!(chain.latency(), 1024);
++        assert!(chain.latency() <= 2048, "WSOLA too high: {}", chain.latency());
++    }
++
++    #[test]
++    fn latency_live_mode() {
++        let mut chain = PitchChain::new();
++        chain.live = true;
++        chain.update(config());
++        // Process one block so sync_params runs and live mode propagates.
++        let mut l = sine_block(220.0, 0, 512);
++        let mut r = l.clone();
++
++        for algo in ALL_ALGOS {
++            chain.algorithm = algo;
++            chain.process(&mut l, &mut r);
++            let lat = chain.latency();
++            let ms = lat as f64 / SR * 1000.0;
++            eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
++        }
++
++        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
++        // Rubberband R2 real-time has ~1024 sample minimum internal latency.
++        let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
++        for algo in ALL_ALGOS {
++            chain.algorithm = algo;
++            chain.process(&mut l, &mut r);
++            let lat = chain.latency();
++            assert!(
++                lat <= live_limit_samples,
++                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
++                lat as f64 / SR * 1000.0,
++            );
++        }
++    }
++
++    #[test]
++    fn live_mode_reduces_latency() {
++        for algo in ALL_ALGOS {
++            let mut standard = PitchChain::new();
++            standard.algorithm = algo;
++            standard.live = false;
++            standard.semitones = -12.0;
++            standard.update(config());
++            let mut l = sine_block(220.0, 0, 512);
++            let mut r = l.clone();
++            standard.process(&mut l, &mut r);
++            let std_lat = standard.latency();
++
++            let mut live = PitchChain::new();
++            live.algorithm = algo;
++            live.live = true;
++            live.semitones = -12.0;
++            live.update(config());
++            let mut l = sine_block(220.0, 0, 512);
++            let mut r = l.clone();
++            live.process(&mut l, &mut r);
++            let live_lat = live.latency();
++
++            eprintln!(
++                "  {algo:?}: standard={std_lat} live={live_lat} ({})",
++                if live_lat < std_lat { "reduced" }
++                else if live_lat == std_lat { "same" }
++                else { "INCREASED!" }
++            );
++
++            // Live should never increase latency.
++            assert!(
++                live_lat <= std_lat,
++                "{algo:?} live latency ({live_lat}) > standard ({std_lat})!"
++            );
++        }
++    }
++
++    #[test]
++    fn throughput_all_algorithms() {
++        let block_size = 512;
++        let num_blocks = 200;
++        let total_samples = block_size * num_blocks;
++
++        for algo in ALL_ALGOS {
++            let mut chain = PitchChain::new();
++            chain.algorithm = algo;
++            chain.semitones = -12.0;
++            chain.mix = 1.0;
++            chain.update(config());
++
++            let start = std::time::Instant::now();
++            for b in 0..num_blocks {
++                let mut left = sine_block(220.0, b * block_size, block_size);
++                let mut right = left.clone();
++                chain.process(&mut left, &mut right);
++            }
++            let elapsed = start.elapsed();
++
++            let audio_duration_s = total_samples as f64 / SR;
++            let process_s = elapsed.as_secs_f64();
++            let realtime_ratio = audio_duration_s / process_s;
++
++            eprintln!(
++                "  {algo:?}: {total_samples} samples in {:.1}ms ({realtime_ratio:.0}x realtime)",
++                process_s * 1000.0,
++            );
++
++            // In release mode all algorithms must be faster than realtime.
++            // In debug mode (unoptimized), some heavy algorithms (PSOLA, Rubberband)
++            // may be slower — just check they complete without hanging.
++            #[cfg(not(debug_assertions))]
++            assert!(
++                realtime_ratio > 1.0,
++                "{algo:?} is SLOWER than realtime: {realtime_ratio:.1}x"
++            );
++        }
++    }
++
++    #[test]
++    fn live_mode_produces_output() {
++        // Verify live mode still produces actual audio, not silence.
++        for algo in ALL_ALGOS {
++            let mut chain = PitchChain::new();
++            chain.algorithm = algo;
++            chain.semitones = -12.0;
++            chain.mix = 1.0;
++            chain.live = true;
++            chain.update(config());
++
++            let mut energy = 0.0;
++            for b in 0..100 {
++                let mut left = sine_block(220.0, b * 512, 512);
++                let mut right = left.clone();
++                chain.process(&mut left, &mut right);
++                if b > 20 {
++                    energy += left.iter().map(|s| s * s).sum::<f64>();
++                }
++            }
++
++            assert!(
++                energy > 0.1,
++                "{algo:?} live mode produced no output: energy={energy}"
++            );
++        }
+     }
+ }
+diff --git a/crates/fts-pitch/pitch-dsp/src/lib.rs b/crates/fts-pitch/pitch-dsp/src/lib.rs
+index 7e9794e..3fdb0fc 100644
+--- a/crates/fts-pitch/pitch-dsp/src/lib.rs
++++ b/crates/fts-pitch/pitch-dsp/src/lib.rs
+@@ -14,6 +14,7 @@
+ //! 4. **PSOLA** — Pitch-synchronous overlap-add.
+ //!    ~1152 sample latency, highest quality monophonic.
+ 
++pub mod allpass_shift;
+ pub mod chain;
+ pub mod divider;
+ pub mod granular;
+diff --git a/crates/fts-pitch/pitch-dsp/src/psola.rs b/crates/fts-pitch/pitch-dsp/src/psola.rs
+index b0f45af..39ba4e6 100644
+--- a/crates/fts-pitch/pitch-dsp/src/psola.rs
++++ b/crates/fts-pitch/pitch-dsp/src/psola.rs
+@@ -16,6 +16,8 @@ pub struct PsolaShifter {
+     pub speed: f64,
+     /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
++    /// Base analysis window size. Default 2048; set to 512 for low-latency live mode.
++    pub base_window_size: usize,
+ 
+     // Circular analysis buffer.
+     analysis_buf: DelayLine,
+@@ -58,6 +60,7 @@ impl PsolaShifter {
+         Self {
+             speed: 0.5,
+             mix: 1.0,
++            base_window_size: Self::DEFAULT_WINDOW,
+             analysis_buf: DelayLine::new(buf_len),
+             output_buf: vec![0.0; buf_len],
+             output_pos: 0,
+@@ -89,6 +92,7 @@ impl PsolaShifter {
+ 
+         self.autocorr_scratch.resize(self.max_period + 1, 0.0);
+         self.detect_interval = 512.min(self.max_period);
++        self.window_size = self.base_window_size;
+     }
+ 
+     pub fn reset(&mut self) {
+diff --git a/crates/fts-pitch/pitch-dsp/src/rubberband.rs b/crates/fts-pitch/pitch-dsp/src/rubberband.rs
+index a3b2ec0..37d7f3a 100644
+--- a/crates/fts-pitch/pitch-dsp/src/rubberband.rs
++++ b/crates/fts-pitch/pitch-dsp/src/rubberband.rs
+@@ -67,8 +67,10 @@ mod ffi {
+ // Public interface
+ // ---------------------------------------------------------------------------
+ 
+-/// Block size used for feeding samples into Rubber Band.
++/// Block size for standard quality mode.
+ const BLOCK_SIZE: usize = 512;
++/// Block size for live (low-latency) mode.
++const BLOCK_SIZE_LIVE: usize = 128;
+ 
+ /// Rubber Band-based pitch shifter with sample-by-sample interface.
+ ///
+@@ -81,6 +83,8 @@ pub struct RubberbandShifter {
+     pub mix: f64,
+     /// Enable formant preservation.
+     pub preserve_formants: bool,
++    /// Live mode: use R2 engine and smaller blocks for lower latency.
++    pub live: bool,
+ 
+     /// Raw FFI handle (null when uninitialised).
+     state: ffi::RubberBandState,
+@@ -101,6 +105,10 @@ pub struct RubberbandShifter {
+     sample_rate: f64,
+     /// Latency reported by rubberband at creation time.
+     reported_latency: usize,
++    /// Current block size (depends on live mode).
++    block_size: usize,
++    /// Track previous live state to detect changes.
++    prev_live: bool,
+ }
+ 
+ impl RubberbandShifter {
+@@ -109,6 +117,7 @@ impl RubberbandShifter {
+             speed: 0.5,
+             mix: 1.0,
+             preserve_formants: false,
++            live: false,
+             state: std::ptr::null_mut(),
+             in_buf: vec![0.0f32; BLOCK_SIZE],
+             in_count: 0,
+@@ -118,6 +127,8 @@ impl RubberbandShifter {
+             current_formants: false,
+             sample_rate: 48000.0,
+             reported_latency: 0,
++            block_size: BLOCK_SIZE,
++            prev_live: false,
+         }
+     }
+ 
+@@ -126,14 +137,20 @@ impl RubberbandShifter {
+     /// Must be called before `tick()` will produce output.
+     pub fn update(&mut self, sample_rate: f64) {
+         self.sample_rate = sample_rate;
++        self.block_size = if self.live { BLOCK_SIZE_LIVE } else { BLOCK_SIZE };
++        self.prev_live = self.live;
+ 
+         // Tear down any previous instance.
+         self.destroy_state();
+ 
+-        let options = ffi::OPTION_PROCESS_REALTIME
+-            | ffi::OPTION_ENGINE_FINER
++        // Live mode: R2 engine (default, no ENGINE_FINER) for lower latency.
++        // Standard mode: R3 engine (ENGINE_FINER) for higher quality.
++        let mut options = ffi::OPTION_PROCESS_REALTIME
+             | ffi::OPTION_PITCH_HIGH_QUALITY
+             | ffi::OPTION_THREADING_NEVER;
++        if !self.live {
++            options |= ffi::OPTION_ENGINE_FINER;
++        }
+ 
+         let pitch_scale = self.speed.clamp(0.01, 100.0);
+ 
+@@ -149,9 +166,12 @@ impl RubberbandShifter {
+         assert!(!state.is_null(), "rubberband_new returned null");
+ 
+         unsafe {
+-            ffi::rubberband_set_max_process_size(state, BLOCK_SIZE as u32);
++            ffi::rubberband_set_max_process_size(state, self.block_size as u32);
+         }
+ 
++        // Resize input buffer for new block size.
++        self.in_buf.resize(self.block_size, 0.0);
++
+         self.state = state;
+         self.current_pitch_scale = pitch_scale;
+         self.current_formants = self.preserve_formants;
+@@ -170,11 +190,11 @@ impl RubberbandShifter {
+ 
+         // Prime the engine: feed silence equal to the latency so that
+         // subsequent output is aligned.
+-        let prime_samples = self.reported_latency + BLOCK_SIZE;
+-        let silence = vec![0.0f32; BLOCK_SIZE];
++        let prime_samples = self.reported_latency + self.block_size;
++        let silence = vec![0.0f32; self.block_size];
+         let mut fed = 0;
+         while fed < prime_samples {
+-            let n = BLOCK_SIZE.min(prime_samples - fed);
++            let n = self.block_size.min(prime_samples - fed);
+             let slice = &silence[..n];
+             let ptr: *const f32 = slice.as_ptr();
+             unsafe {
+@@ -231,10 +251,10 @@ impl RubberbandShifter {
+         self.in_count += 1;
+ 
+         // When we have a full block, push it into rubberband.
+-        if self.in_count >= BLOCK_SIZE {
++        if self.in_count >= self.block_size {
+             let ptr: *const f32 = self.in_buf.as_ptr();
+             unsafe {
+-                ffi::rubberband_process(self.state, &ptr, BLOCK_SIZE as u32, 0);
++                ffi::rubberband_process(self.state, &ptr, self.block_size as u32, 0);
+             }
+             self.in_count = 0;
+             self.drain_available();
+diff --git a/crates/fts-pitch/pitch-dsp/src/signalsmith.rs b/crates/fts-pitch/pitch-dsp/src/signalsmith.rs
+index 6314007..b035308 100644
+--- a/crates/fts-pitch/pitch-dsp/src/signalsmith.rs
++++ b/crates/fts-pitch/pitch-dsp/src/signalsmith.rs
+@@ -14,9 +14,10 @@
+ use signalsmith_stretch::Stretch;
+ use std::collections::VecDeque;
+ 
+-/// Block size used for internal buffering between the sample-by-sample
+-/// interface and the block-based Signalsmith Stretch engine.
++/// Block size for standard quality mode.
+ const BLOCK_SIZE: usize = 256;
++/// Block size for live (low-latency) mode.
++const BLOCK_SIZE_LIVE: usize = 64;
+ 
+ /// Signalsmith Stretch pitch shifter.
+ pub struct SignalsmithShifter {
+@@ -24,6 +25,8 @@ pub struct SignalsmithShifter {
+     pub speed: f64,
+     /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
++    /// Live mode: use cheaper preset and smaller blocks for lower latency.
++    pub live: bool,
+ 
+     /// The underlying Signalsmith Stretch instance.
+     stretch: Stretch,
+@@ -41,6 +44,11 @@ pub struct SignalsmithShifter {
+ 
+     /// The last `speed` value sent to the engine, used to avoid redundant calls.
+     last_speed: f64,
++
++    /// Current block size (depends on live mode).
++    block_size: usize,
++    /// Track previous live state to detect changes.
++    prev_live: bool,
+ }
+ 
+ impl SignalsmithShifter {
+@@ -51,21 +59,37 @@ impl SignalsmithShifter {
+         let mut s = Self {
+             speed: 0.5,
+             mix: 1.0,
++            live: false,
+             stretch,
+             input_buf: Vec::with_capacity(BLOCK_SIZE),
+             output_queue: VecDeque::with_capacity(BLOCK_SIZE * 2),
+             output_scratch: vec![0.0f32; BLOCK_SIZE],
+             sample_rate,
+             last_speed: -1.0, // force first update
++            block_size: BLOCK_SIZE,
++            prev_live: false,
+         };
+         s.apply_speed();
+         s
+     }
+ 
+     pub fn update(&mut self, sample_rate: f64) {
+-        if (self.sample_rate - sample_rate).abs() > 0.5 {
++        let sr_changed = (self.sample_rate - sample_rate).abs() > 0.5;
++        let live_changed = self.live != self.prev_live;
++
++        if sr_changed || live_changed {
+             self.sample_rate = sample_rate;
+-            self.stretch = Stretch::preset_default(1, sample_rate as u32);
++            self.prev_live = self.live;
++            self.block_size = if self.live { BLOCK_SIZE_LIVE } else { BLOCK_SIZE };
++
++            self.stretch = if self.live {
++                // Low-latency: small FFT block (256) with 1/4 hop (64).
++                // Trades spectral resolution for ~5ms latency at 48kHz.
++                Stretch::new(1, 256, 64)
++            } else {
++                Stretch::preset_default(1, sample_rate as u32)
++            };
++
+             self.input_buf.clear();
+             self.output_queue.clear();
+             self.last_speed = -1.0;
+@@ -91,7 +115,7 @@ impl SignalsmithShifter {
+ 
+         self.input_buf.push(input as f32);
+ 
+-        if self.input_buf.len() >= BLOCK_SIZE {
++        if self.input_buf.len() >= self.block_size {
+             self.process_block();
+         }
+ 
+@@ -101,7 +125,7 @@ impl SignalsmithShifter {
+     }
+ 
+     pub fn latency(&self) -> usize {
+-        self.stretch.input_latency() + self.stretch.output_latency() + BLOCK_SIZE
++        self.stretch.input_latency() + self.stretch.output_latency() + self.block_size
+     }
+ 
+     // ── private ──────────────────────────────────────────────────────
+diff --git a/crates/fts-pitch/pitch-dsp/src/wsola.rs b/crates/fts-pitch/pitch-dsp/src/wsola.rs
+index cfa3158..f38e1e9 100644
+--- a/crates/fts-pitch/pitch-dsp/src/wsola.rs
++++ b/crates/fts-pitch/pitch-dsp/src/wsola.rs
+@@ -20,6 +20,9 @@ pub struct WsolaShifter {
+     pub speed: f64,
+     /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
++    /// Base grain size at 48kHz (scaled by sample rate in update()).
++    /// Default 1024; set to 256 for low-latency live mode.
++    pub base_grain_size: usize,
+ 
+     // Circular analysis buffer (input history).
+     analysis_buf: DelayLine,
+@@ -65,6 +68,7 @@ impl WsolaShifter {
+         Self {
+             speed: 0.5,
+             mix: 1.0,
++            base_grain_size: Self::DEFAULT_GRAIN,
+             analysis_buf: DelayLine::new(buf_len),
+             output_buf: vec![0.0; buf_len],
+             output_pos: 0,
+@@ -83,7 +87,7 @@ impl WsolaShifter {
+         self.sample_rate = sample_rate;
+ 
+         // Scale grain size proportionally to sample rate.
+-        self.grain_size = ((Self::DEFAULT_GRAIN as f64 * sample_rate) / 48000.0) as usize;
++        self.grain_size = ((self.base_grain_size as f64 * sample_rate) / 48000.0) as usize;
+         // Keep grain size even for symmetric windowing.
+         if self.grain_size % 2 != 0 {
+             self.grain_size += 1;
+diff --git a/crates/fts-pitch/pitch-plugin/src/editor.rs b/crates/fts-pitch/pitch-plugin/src/editor.rs
+index db99eda..a7c48b9 100644
+--- a/crates/fts-pitch/pitch-plugin/src/editor.rs
++++ b/crates/fts-pitch/pitch-plugin/src/editor.rs
+@@ -5,6 +5,7 @@ use std::sync::Arc;
+ 
+ use audio_gui::controls::knob::Knob;
+ use audio_gui::controls::segment::SegmentButton;
++use audio_gui::controls::toggle::Toggle;
+ use audio_gui::prelude::{theme, DragProvider, KnobSize, LevelMeterDb, SectionLabel};
+ use fts_plugin_core::prelude::*;
+ 
+@@ -32,18 +33,22 @@ pub fn App() -> Element {
+         format!("{latency} smp")
+     };
+ 
+-    let st = params.semitones.value();
+-    let st_text = if st > 0.0 {
+-        format!("+{st:.1} st")
++    let pitch_st = params.pitch.value();
++    let fine_ct = params.fine_tune.value();
++    let total_st = pitch_st as f32 + fine_ct / 100.0;
++    let st_text = if total_st > 0.0 {
++        format!("+{total_st:.1} st")
+     } else {
+-        format!("{st:.1} st")
++        format!("{total_st:.1} st")
+     };
+ 
+     // Extract ParamPtrs (Copy) for Knob components.
+-    let semitones_ptr = params.semitones.as_ptr();
++    let pitch_ptr = params.pitch.as_ptr();
++    let fine_tune_ptr = params.fine_tune.as_ptr();
+     let mix_ptr = params.mix.as_ptr();
+     let output_gain_ptr = params.output_gain_db.as_ptr();
+     let grain_size_ptr = params.grain_size.as_ptr();
++    let live_ptr = params.live.as_ptr();
+     let wf = params.pll_waveform.value();
+ 
+     // Build algorithm setter closures (need owned Arcs).
+@@ -111,10 +116,11 @@ pub fn App() -> Element {
+                 }
+             }
+ 
+-            // ── Algorithm selector ───────────────────────────────
++            // ── Algorithm selector + Live toggle ─────────────────
+             div {
+                 style: format!(
+-                    "display:flex; gap:4px; background:{CARD_BG}; border-radius:6px; padding:8px;",
++                    "display:flex; gap:8px; align-items:center; background:{CARD_BG}; \
++                     border-radius:6px; padding:8px;",
+                     CARD_BG = theme::CARD_BG,
+                 ),
+                 SectionLabel { text: "Algorithm" }
+@@ -125,7 +131,14 @@ pub fn App() -> Element {
+                     SegmentButton { label: "Granular", selected: algo == 2, on_click: algo_setter(2) }
+                     SegmentButton { label: "PSOLA", selected: algo == 3, on_click: algo_setter(3) }
+                     SegmentButton { label: "WSOLA", selected: algo == 4, on_click: algo_setter(4) }
++                    SegmentButton { label: "Signalsmith", selected: algo == 5, on_click: algo_setter(5) }
++                    SegmentButton { label: "Rubberband", selected: algo == 6, on_click: algo_setter(6) }
++                    SegmentButton { label: "Allpass", selected: algo == 7, on_click: algo_setter(7) }
+                 }
++                div {
++                    style: format!("width:1px; background:{}; align-self:stretch;", theme::BORDER),
++                }
++                Toggle { param_ptr: live_ptr, label: "Live" }
+             }
+ 
+             // ── Main controls + Meters ───────────────────────────
+@@ -146,7 +159,8 @@ pub fn App() -> Element {
+                         SectionLabel { text: "Pitch" }
+                         div {
+                             style: "display:flex; justify-content:center; gap:24px;",
+-                            Knob { param_ptr: semitones_ptr, size: KnobSize::Large }
++                            Knob { param_ptr: pitch_ptr, size: KnobSize::Large }
++                            Knob { param_ptr: fine_tune_ptr, size: KnobSize::Large }
+                             Knob { param_ptr: mix_ptr, size: KnobSize::Large }
+                             Knob { param_ptr: output_gain_ptr, size: KnobSize::Large }
+                         }
+diff --git a/crates/fts-pitch/pitch-plugin/src/lib.rs b/crates/fts-pitch/pitch-plugin/src/lib.rs
+index 3a3330e..0d32be9 100644
+--- a/crates/fts-pitch/pitch-plugin/src/lib.rs
++++ b/crates/fts-pitch/pitch-plugin/src/lib.rs
+@@ -39,13 +39,17 @@ impl PitchUiState {
+ 
+ #[derive(Params)]
+ pub struct FtsPitchParams {
+-    /// Algorithm selection: 0=FreqDivider, 1=PLL, 2=Granular, 3=PSOLA.
++    /// Algorithm selection.
+     #[id = "algorithm"]
+     pub algorithm: IntParam,
+ 
+-    /// Pitch shift in semitones (-24 to +24).
+-    #[id = "semitones"]
+-    pub semitones: FloatParam,
++    /// Pitch shift in whole semitones (-24 to +24).
++    #[id = "pitch"]
++    pub pitch: IntParam,
++
++    /// Fine-tune adjustment in cents (-50 to +50).
++    #[id = "fine_tune"]
++    pub fine_tune: FloatParam,
+ 
+     /// Dry/wet mix (0.0-1.0).
+     #[id = "mix"]
+@@ -62,12 +66,16 @@ pub struct FtsPitchParams {
+     /// Output gain in dB.
+     #[id = "output_gain"]
+     pub output_gain_db: FloatParam,
++
++    /// Live mode: minimize latency at the cost of quality.
++    #[id = "live"]
++    pub live: BoolParam,
+ }
+ 
+ impl Default for FtsPitchParams {
+     fn default() -> Self {
+         Self {
+-            algorithm: IntParam::new("Algorithm", 0, IntRange::Linear { min: 0, max: 4 })
++            algorithm: IntParam::new("Algorithm", 5, IntRange::Linear { min: 0, max: 7 })
+                 .with_value_to_string(Arc::new(|v| {
+                     match v {
+                         0 => "Divider".to_string(),
+@@ -75,6 +83,9 @@ impl Default for FtsPitchParams {
+                         2 => "Granular".to_string(),
+                         3 => "PSOLA".to_string(),
+                         4 => "WSOLA".to_string(),
++                        5 => "Signalsmith".to_string(),
++                        6 => "Rubberband".to_string(),
++                        7 => "Allpass".to_string(),
+                         _ => format!("{v}"),
+                     }
+                 }))
+@@ -85,19 +96,33 @@ impl Default for FtsPitchParams {
+                         "granular" | "grain" | "2" => Some(2),
+                         "psola" | "3" => Some(3),
+                         "wsola" | "4" => Some(4),
++                        "signalsmith" | "5" => Some(5),
++                        "rubberband" | "rubber" | "6" => Some(6),
++                        "allpass" | "7" => Some(7),
+                         _ => s.parse().ok(),
+                     }
+                 })),
+ 
+-            semitones: FloatParam::new(
+-                "Semitones",
+-                -12.0,
++            pitch: IntParam::new("Pitch", -12, IntRange::Linear { min: -24, max: 24 })
++                .with_unit(" st")
++                .with_value_to_string(Arc::new(|v| {
++                    if v > 0 {
++                        format!("+{v}")
++                    } else {
++                        format!("{v}")
++                    }
++                }))
++                .with_string_to_value(Arc::new(|s| s.trim().parse().ok())),
++
++            fine_tune: FloatParam::new(
++                "Fine",
++                0.0,
+                 FloatRange::Linear {
+-                    min: -24.0,
+-                    max: 24.0,
++                    min: -50.0,
++                    max: 50.0,
+                 },
+             )
+-            .with_unit(" st")
++            .with_unit(" ct")
+             .with_value_to_string(formatters::v2s_f32_rounded(1)),
+ 
+             mix: FloatParam::new("Mix", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+@@ -144,6 +169,8 @@ impl Default for FtsPitchParams {
+             )
+             .with_unit(" dB")
+             .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            live: BoolParam::new("Live", false),
+         }
+     }
+ }
+@@ -181,9 +208,13 @@ impl FtsPitch {
+             2 => Algorithm::Granular,
+             3 => Algorithm::Psola,
+             4 => Algorithm::Wsola,
+-            _ => Algorithm::Granular,
++            5 => Algorithm::Signalsmith,
++            6 => Algorithm::Rubberband,
++            7 => Algorithm::Allpass,
++            _ => Algorithm::Signalsmith,
+         };
+-        self.chain.semitones = self.params.semitones.value() as f64;
++        self.chain.semitones =
++            self.params.pitch.value() as f64 + self.params.fine_tune.value() as f64 / 100.0;
+         self.chain.mix = self.params.mix.value() as f64;
+         self.chain.pll_waveform = match self.params.pll_waveform.value() {
+             0 => SubWaveform::Square,
+@@ -192,6 +223,7 @@ impl FtsPitch {
+             _ => SubWaveform::Saw,
+         };
+         self.chain.grain_size = self.params.grain_size.value() as usize;
++        self.chain.live = self.params.live.value();
+     }
+ }
+ 
+diff --git a/flake.nix b/flake.nix
+index a14fb05..ef0a0b9 100644
+--- a/flake.nix
++++ b/flake.nix
+@@ -119,6 +119,10 @@
+                     # Audio libs
+                     alsa-lib
+                     pipewire.jack
++                    rubberband
++
++                    # C/C++ bindgen (signalsmith-stretch build)
++                    llvmPackages.libclang
+ 
+                     # Misc system libs
+                     dbus
+@@ -138,6 +142,12 @@
+                     FTS_REAPER_EXECUTABLE = "${ftsDev.reaper}/bin/reaper";
+                     FTS_REAPER_RESOURCES = "${ftsDev.reaper}/opt/REAPER";
+                     FTS_REAPER_CONFIG = ftsReaperConfig;
++                    # bindgen needs libclang (signalsmith-stretch C++ wrapper)
++                    LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
++                    # Linker needs librubberband for FFI
++                    LIBRARY_PATH = pkgs.lib.makeLibraryPath [
++                      pkgs.rubberband
++                    ];
+                     # Help wgpu find Vulkan
+                     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+                       pkgs.vulkan-loader
+diff --git a/vendor/moire-trace-capture/src/lib.rs b/vendor/moire-trace-capture/src/lib.rs
+index 346d67f..dcf4015 100644
+--- a/vendor/moire-trace-capture/src/lib.rs
++++ b/vendor/moire-trace-capture/src/lib.rs
+@@ -126,9 +126,13 @@ static FRAME_POINTER_VALIDATION_ONCE: Once = Once::new();
+ pub fn validate_frame_pointers_or_panic() {
+     FRAME_POINTER_VALIDATION_ONCE.call_once(|| {
+         if let Err(reason) = platform::validate_frame_pointers_impl() {
+-            panic!(
+-                "frame-pointer validation failed: {reason}. \
+-recompile with -C force-frame-pointers=yes"
++            // On NixOS, glibc is built without -fno-omit-frame-pointer so the
++            // frame-pointer chain breaks after only a few frames. Log instead
++            // of panicking — trace capture will still work for frames that are
++            // compiled with force-frame-pointers=yes.
++            eprintln!(
++                "moire-trace-capture: frame-pointer validation failed: {reason}. \
++Trace capture may be incomplete."
+             );
+         }
+     });

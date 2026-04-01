@@ -1,0 +1,12 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index 63a9ff0..4bbdc44 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -85,6 +85,7 @@ members = [
+     # Metering library
+     "crates/fts-meter/meter-dsp",
+     "crates/fts-meter/meter-ui",
++    "crates/fts-meter/meter-plugin",
+ 
+     # Pitch plugin (octave shifter)
+     "crates/fts-pitch/pitch-dsp",

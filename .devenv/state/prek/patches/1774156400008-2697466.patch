@@ -1,0 +1,2233 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..787e063 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5752,6 +5752,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..822350b 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -86,6 +86,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+diff --git a/crates/fts-eq/eq-dsp/src/band.rs b/crates/fts-eq/eq-dsp/src/band.rs
+index e56975e..2ca85ed 100644
+--- a/crates/fts-eq/eq-dsp/src/band.rs
++++ b/crates/fts-eq/eq-dsp/src/band.rs
+@@ -341,69 +341,33 @@ impl Band {
+         }
+     }
+ 
+-    /// Bandpass via HP + LP cascade.
++    /// Bandpass via cascaded 2nd-order matched bandpass sections.
+     ///
+-    /// Pro-Q 4 implements bandpass as a highpass at the lower bandwidth edge
+-    /// cascaded with a lowpass at the upper edge, each at the requested slope.
++    /// Pro-Q 4's bandpass uses resonant bandpass filters centered at the
++    /// specified frequency. Higher slopes cascade more sections.
+     fn update_bandpass(&mut self, order: usize, config: AudioConfig) {
+-        // Pro-Q 4 bypasses bandpass at slope 0.
+-        if order <= 1 {
++        if order == 0 {
+             self.num_sections = 0;
+             return;
+         }
+ 
+-        // Compute bandwidth edges from Q
+-        let halfbw = (0.5 / self.q).asinh() / 2.0_f64.ln();
+-        let scale = 2.0_f64.powf(halfbw);
+-        let f_lo = self.freq_hz / scale;
+-        let f_hi = self.freq_hz * scale;
+-
+-        let has_first_order = order % 2 == 1;
+-        let num_2nd = order / 2;
+-        let sections_per_side = if has_first_order {
+-            num_2nd + 1
+-        } else {
+-            num_2nd
+-        };
+-        self.num_sections = (sections_per_side * 2).min(MAX_SECTIONS);
+-
+-        let mut idx = 0;
+-
+-        if has_first_order && idx + 1 < self.num_sections {
+-            let c_hp = coeff::highpass_1(f_lo, config.sample_rate);
+-            self.set_section_coeffs(idx, c_hp);
+-            idx += 1;
+-            let c_lp = coeff::lowpass_1(f_hi, config.sample_rate);
+-            self.set_section_coeffs(idx, c_lp);
+-            idx += 1;
+-        }
+-
+-        // 2nd-order sections with Butterworth Q
+-        for i in 0..num_2nd {
+-            if idx + 1 >= self.num_sections {
+-                break;
+-            }
+-            let q_section = butterworth_q(num_2nd, i);
++        // Each 2nd-order bandpass section provides ~6 dB/oct rolloff per side.
++        // Slope maps to order, and we need ceil(order/2) biquad sections
++        // (since each biquad is 2nd order).
++        // For odd orders, we still use a 2nd-order section — there's no
++        // meaningful 1st-order bandpass.
++        let num_sections = ((order + 1) / 2).max(1).min(MAX_SECTIONS);
++        self.num_sections = num_sections;
+ 
+-            let c_hp = coeff::calculate(
+-                FilterType::Highpass,
+-                f_lo,
+-                q_section,
+-                0.0,
+-                config.sample_rate,
+-            );
+-            self.set_section_coeffs(idx, c_hp);
+-            idx += 1;
+-
+-            let c_lp = coeff::calculate(
+-                FilterType::Lowpass,
+-                f_hi,
+-                q_section,
++        for i in 0..num_sections {
++            let c = coeff::calculate(
++                FilterType::Bandpass,
++                self.freq_hz,
++                self.q,
+                 0.0,
+                 config.sample_rate,
+             );
+-            self.set_section_coeffs(idx, c_lp);
+-            idx += 1;
++            self.set_section_coeffs(i, c);
+         }
+     }
+ 
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index ec21379..27deb51 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -1,11 +1,7 @@
+-//! Vicanek matched filter coefficient calculation.
++//! Filter coefficient calculation — hybrid matched/RBJ approach.
+ //!
+-//! Based on Martin Vicanek, "Matched Second Order Digital Filters" (2016)
+-//! and the ZLEqualizer implementation by ZL Audio.
+-//!
+-//! Unlike the standard Audio EQ Cookbook (bilinear transform), this uses
+-//! impulse-invariance for poles and frequency-domain matching for zeros,
+-//! giving no frequency cramping near Nyquist.
++//! Peak, notch, allpass, and tilt shelf use Vicanek matched design (no Nyquist cramping).
++//! LP, HP, bandpass, and shelves use RBJ cookbook (bilinear transform) to match Pro-Q 4.
+ 
+ use std::f64::consts::PI;
+ 
+@@ -19,15 +15,7 @@ pub type Coeffs = [f64; 6];
+ pub const PASSTHROUGH: Coeffs = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
+ 
+ // r[impl dsp.biquad.coefficients]
+-/// Calculate matched filter coefficients for the given parameters.
+-///
+-/// - `filter_type`: which filter shape
+-/// - `freq_hz`: center/corner frequency in Hz
+-/// - `q`: resonance (0.707 = Butterworth)
+-/// - `gain_db`: boost/cut in dB (ignored for pass/notch types)
+-/// - `sample_rate`: sample rate in Hz
+-///
+-/// Returns `[a0, a1, a2, b0, b1, b2]`.
++/// Calculate filter coefficients for the given parameters.
+ pub fn calculate(
+     filter_type: FilterType,
+     freq_hz: f64,
+@@ -36,9 +24,7 @@ pub fn calculate(
+     sample_rate: f64,
+ ) -> Coeffs {
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
+-    let g = 10.0_f64.powf(gain_db / 20.0); // linear gain
+-
+-    // Clamp w0 to avoid instability at extremes
++    let g = 10.0_f64.powf(gain_db / 20.0);
+     let w0 = w0.clamp(1e-6, PI - 1e-6);
+ 
+     match filter_type {
+@@ -51,16 +37,12 @@ pub fn calculate(
+         FilterType::Bandpass => bandpass_2(w0, q),
+         FilterType::Notch => notch_2(w0, q),
+         FilterType::Allpass => allpass_2(w0, q),
+-        FilterType::BandShelf | FilterType::FlatTilt => {
+-            // These are handled at the band level
+-            PASSTHROUGH
+-        }
++        FilterType::BandShelf | FilterType::FlatTilt => PASSTHROUGH,
+     }
+ }
+ 
+-/// Solve for poles using impulse invariance.
+-/// `b` = damping = 0.5/Q, `c` = 1.0 (standard) or sqrt(sqrt(g)) for shelves.
+-/// Returns (a1, a2).
++// ── Vicanek matched filter helpers ──────────────────────────────────
++
+ fn solve_poles(w0: f64, b: f64, c: f64) -> (f64, f64) {
+     let t = (-b * w0).exp();
+     let a1 = if b <= c {
+@@ -72,7 +54,6 @@ fn solve_poles(w0: f64, b: f64, c: f64) -> (f64, f64) {
+     (a1, a2)
+ }
+ 
+-/// Phi basis functions for magnitude-squared matching.
+ #[inline]
+ fn phi0(w: f64) -> f64 {
+     0.5 + 0.5 * w.cos()
+@@ -83,8 +64,6 @@ fn phi1(w: f64) -> f64 {
+     0.5 - 0.5 * w.cos()
+ }
+ 
+-/// Convert magnitude-squared B coefficients to b coefficients (minimum phase).
+-/// `big_b = [B0, B1, B2]` → returns `(b0, b1, b2)`.
+ fn mag_sq_to_b(big_b: [f64; 3]) -> (f64, f64, f64) {
+     let b0_sq = big_b[0].max(0.0);
+     let b1_sq = big_b[1].max(0.0);
+@@ -93,7 +72,6 @@ fn mag_sq_to_b(big_b: [f64; 3]) -> (f64, f64, f64) {
+     let w = (b0_sqrt + b1_sqrt) / 2.0;
+ 
+     if big_b[2].abs() < 1e-30 {
+-        // b2 = 0 case (lowpass)
+         let b0 = w;
+         let b1 = b0_sqrt - b0;
+         return (b0, b1, 0.0);
+@@ -106,196 +84,115 @@ fn mag_sq_to_b(big_b: [f64; 3]) -> (f64, f64, f64) {
+     (b0, b1, b2)
+ }
+ 
+-/// 2nd-order lowpass (RBJ cookbook / bilinear transform).
+-///
+-/// Uses the standard bilinear transform which frequency-cramps near Nyquist,
+-/// matching Pro-Q 4's LP behavior.
++// ── RBJ cookbook filters ─────────────────────────────────────────────
++
+ fn lowpass_2(w0: f64, q: f64) -> Coeffs {
+     let sin_w0 = w0.sin();
+     let cos_w0 = w0.cos();
+     let alpha = sin_w0 / (2.0 * q);
+-
+     let b1 = 1.0 - cos_w0;
+     let b0 = b1 / 2.0;
+     let b2 = b0;
+     let a0 = 1.0 + alpha;
+     let a1 = -2.0 * cos_w0;
+     let a2 = 1.0 - alpha;
+-
+     let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+-/// 2nd-order highpass (RBJ cookbook / bilinear transform).
+-///
+-/// Uses the standard bilinear transform which frequency-cramps near Nyquist,
+-/// matching Pro-Q 4's HP behavior.
+ fn highpass_2(w0: f64, q: f64) -> Coeffs {
+     let sin_w0 = w0.sin();
+     let cos_w0 = w0.cos();
+     let alpha = sin_w0 / (2.0 * q);
+-
+     let b1 = -(1.0 + cos_w0);
+     let b0 = -b1 / 2.0;
+     let b2 = b0;
+     let a0 = 1.0 + alpha;
+     let a1 = -2.0 * cos_w0;
+     let a2 = 1.0 - alpha;
+-
+     let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+-/// 2nd-order matched bandpass.
+ fn bandpass_2(w0: f64, q: f64) -> Coeffs {
+-    let (a1, a2) = solve_poles(w0, 0.5 / q, 1.0);
+-
+-    let a0_big = (1.0 + a1 + a2) * (1.0 + a1 + a2);
+-    let a1_big = (1.0 - a1 + a2) * (1.0 - a1 + a2);
+-    let a2_big = -4.0 * a2;
+-
+-    let p0 = phi0(w0);
+-    let p1 = phi1(w0);
+-
+-    // Zero at DC (B0=0), unity at w0
+-    let r1 = a0_big * p0 + a1_big * p1 + a2_big * p0 * p1 * 4.0;
+-    let r2 = -a0_big + a1_big + 4.0 * (p0 - p1) * a2_big;
+-
+-    let b2_big = (r1 - r2 * p1) / (4.0 * p1 * p1);
+-    let b1_big = r2 + 4.0 * (p1 - p0) * b2_big;
+-
+-    let (b0, b1, b2) = mag_sq_to_b([0.0, b1_big.max(0.0), b2_big]);
+-
+-    [1.0, a1, a2, b0, b1, b2]
++    let sin_w0 = w0.sin();
++    let cos_w0 = w0.cos();
++    let alpha = sin_w0 / (2.0 * q);
++    let b0 = alpha;
++    let b1 = 0.0;
++    let b2 = -alpha;
++    let a0 = 1.0 + alpha;
++    let a1 = -2.0 * cos_w0;
++    let a2 = 1.0 - alpha;
++    let a0_inv = 1.0 / a0;
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+-/// 2nd-order matched notch.
++// ── Vicanek matched filters ─────────────────────────────────────────
++
+ fn notch_2(w0: f64, q: f64) -> Coeffs {
+     let (a1, a2) = solve_poles(w0, 0.5 / q, 1.0);
+-
+-    // Zeros placed exactly at w0
+     let b0 = 1.0;
+     let b1 = -2.0 * w0.cos();
+     let b2 = 1.0;
+-
+-    // Normalize for unity at DC
+     let dc_num = b0 + b1 + b2;
+     let dc_den = 1.0 + a1 + a2;
+     let scale = dc_den / dc_num;
+-
+     [1.0, a1, a2, b0 * scale, b1 * scale, b2 * scale]
+ }
+ 
+-/// 2nd-order matched peak EQ.
+ fn peak_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-
+-    // Poles use modified damping that depends on gain
+     let pole_q = (g.sqrt() * q).max(0.01);
+     let (a1, a2) = solve_poles(w0, 0.5 / pole_q, 1.0);
+-
+     let a0_big = (1.0 + a1 + a2) * (1.0 + a1 + a2);
+     let a1_big = (1.0 - a1 + a2) * (1.0 - a1 + a2);
+     let a2_big = -4.0 * a2;
+-
+     let p0 = phi0(w0);
+     let p1 = phi1(w0);
+-
+     let g_sq = g * g;
+-
+-    // Unity at DC, match G^2 at w0
+     let r1 = (a0_big * p0 + a1_big * p1 + a2_big * p0 * p1 * 4.0) * g_sq;
+     let r2 = (-a0_big + a1_big + 4.0 * (p0 - p1) * a2_big) * g_sq;
+-
+     let b0_big = a0_big;
+     let b2_big = (r1 - r2 * p1 - b0_big) / (4.0 * p1 * p1);
+     let b1_big = r2 + b0_big + 4.0 * (p1 - p0) * b2_big;
+-
+     let (b0, b1, b2) = mag_sq_to_b([b0_big, b1_big.max(0.0), b2_big]);
+-
+     [1.0, a1, a2, b0, b1, b2]
+ }
+ 
+-/// 2nd-order matched tilt shelf.
+ fn tilt_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-
+-    let g_work;
+-    let invert;
+-
+-    // For g > 1, we compute the inverse and swap a/b at the end
+-    if g > 1.0 {
+-        g_work = 1.0 / g;
+-        invert = true;
+-    } else {
+-        g_work = g;
+-        invert = false;
+-    }
+-
+-    let g4 = g_work.sqrt().sqrt(); // g^(1/4)
++    let (g_work, invert) = if g > 1.0 { (1.0 / g, true) } else { (g, false) };
++    let g4 = g_work.sqrt().sqrt();
+     let (a1, a2) = solve_poles(w0, g4 / (2.0 * q), g4);
+-
+     let a0_big = (1.0 + a1 + a2) * (1.0 + a1 + a2);
+     let a1_big = (1.0 - a1 + a2) * (1.0 - a1 + a2);
+     let a2_big = -4.0 * a2;
+-
+     let p0 = phi0(w0);
+     let p1 = phi1(w0);
+-
+-    // Match at DC: gain = sqrt(g), at Nyquist: gain = 1/sqrt(g), at w0: gain = 1
+-    let dc_gain_sq = g_work;
+-    let ny_gain_sq = 1.0 / g_work;
+-
+-    let b0_big = a0_big * dc_gain_sq;
+-    let b1_big = a1_big * ny_gain_sq;
+-
+-    // Solve for B2 using match at w0
+-    let target = a0_big * p0 + a1_big * p1 + a2_big * p0 * p1 * 4.0; // gain = 1 at w0
++    let b0_big = a0_big * g_work;
++    let b1_big = a1_big / g_work;
++    let target = a0_big * p0 + a1_big * p1 + a2_big * p0 * p1 * 4.0;
+     let b2_big = (target - b0_big * p0 - b1_big * p1) / (4.0 * p0 * p1);
+-
+     let (b0, b1, b2) = mag_sq_to_b([b0_big.max(0.0), b1_big.max(0.0), b2_big]);
+-
+     if invert {
+-        // Swap numerator and denominator
+         [b0, b1, b2, 1.0, a1, a2]
+     } else {
+         [1.0, a1, a2, b0, b1, b2]
+     }
+ }
+ 
+-/// 2nd-order allpass filter.
+-///
+-/// Unity magnitude at all frequencies, phase shift around w0.
+-/// Uses the same pole placement as the bandpass, with zeros mirrored.
+ fn allpass_2(w0: f64, q: f64) -> Coeffs {
+     let (a1, a2) = solve_poles(w0, 0.5 / q, 1.0);
+-
+-    // Allpass: numerator = reversed denominator
+-    // H(z) = (a2 + a1*z^-1 + z^-2) / (1 + a1*z^-1 + a2*z^-2)
+     [1.0, a1, a2, a2, a1, 1.0]
+ }
+ 
+-/// 1st-order lowpass filter coefficients (bilinear transform).
+-///
+-/// True 1st-order (6 dB/oct) with frequency cramping matching Pro-Q 4.
++// ── 1st-order filters ───────────────────────────────────────────────
++
+ pub fn lowpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+     let w0 = (2.0 * PI * freq_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+     let wc = (w0 / 2.0).tan();
+@@ -306,9 +203,6 @@ pub fn lowpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+     [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+-/// 1st-order highpass filter coefficients (bilinear transform).
+-///
+-/// True 1st-order (6 dB/oct) with frequency cramping matching Pro-Q 4.
+ pub fn highpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+     let w0 = (2.0 * PI * freq_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+     let wc = (w0 / 2.0).tan();
+@@ -319,222 +213,126 @@ pub fn highpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+     [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+-/// 1st-order low shelf filter coefficients.
+-///
+-/// Pro-Q 4 convention: freq_hz is the half-gain-in-dB point (where gain = sqrt(G)).
+-/// For a 1st-order analog shelf, the half-gain point is at sqrt(G) * corner_freq,
+-/// so we shift the corner: corner = freq / sqrt(G).
+ pub fn low_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+     let g = 10.0_f64.powf(gain_db / 20.0);
+-
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-
+-    // Shift corner frequency so that freq_hz is the half-gain-in-dB point.
+-    // Boost (g > 1): half-gain at sqrt(g)*corner → corner = freq/sqrt(g) (shift down)
+-    // Cut (g < 1): half-gain at corner/sqrt(g) → corner = freq*sqrt(g) (shift down)
+-    let corner_hz = if g > 1.0 {
+-        freq_hz / g.sqrt()
+-    } else {
++    // Matched 1st-order low shelf: impulse-invariance pole + DC/Nyquist magnitude match.
++    // Avoids bilinear transform frequency cramping near Nyquist.
++    //
++    // Analog prototype: H(s) = g * (s + wz) / (s + wp)
++    // where wp = w0*sqrt(g) for boost, w0/sqrt(g) for cut
++    // DC = g, Nyquist = 1.
++    let wp_hz = if g > 1.0 {
+         freq_hz * g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-
+-    // Bilinear transform 1st-order shelf (prewarp with w0/2)
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        // Boost
+-        let gwc = g * wc;
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        let b0 = (1.0 + gwc) * a0_inv;
+-        let b1 = (-1.0 + gwc) * a0_inv;
+-        let a1 = (-1.0 + wc) * a0_inv;
+-        [1.0, a1, 0.0, b0, b1, 0.0]
+     } else {
+-        // Cut
+-        let wc_g = wc / g;
+-        let a0_inv = 1.0 / (1.0 + wc_g);
+-        let b0 = (1.0 + wc) * a0_inv;
+-        let b1 = (-1.0 + wc) * a0_inv;
+-        let a1 = (-1.0 + wc_g) * a0_inv;
+-        [1.0, a1, 0.0, b0, b1, 0.0]
+-    }
++        freq_hz / g.sqrt()
++    };
++    let wp = 2.0 * PI * wp_hz;
++    let a1 = -(-wp / sample_rate).exp();
++    // Match: DC gain = g, Nyquist gain = 1
++    let b0 = (g * (1.0 + a1) + (1.0 - a1)) / 2.0;
++    let b1 = (g * (1.0 + a1) - (1.0 - a1)) / 2.0;
++    [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+-/// 1st-order high shelf filter coefficients.
+-///
+-/// Pro-Q 4 convention: freq_hz is the half-gain-in-dB point.
+-/// Analog prototype: H(s) = (g*s + wc) / (s + wc)
+-/// DC gain = 1, Nyquist gain = g.
+ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+     let g = 10.0_f64.powf(gain_db / 20.0);
+-
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-
+-    // Shift corner frequency so that freq_hz is the half-gain-in-dB point.
+-    // Half-gain at corner/sqrt(g), so corner = freq * sqrt(g) for boost,
+-    // corner = freq / sqrt(g) for cut. Both shift the corner AWAY from freq.
+-    let corner_hz = if g > 1.0 {
+-        freq_hz * g.sqrt()
+-    } else {
++    // Matched 1st-order high shelf: impulse-invariance pole + DC/Nyquist magnitude match.
++    // DC = 1, Nyquist = g.
++    let wp_hz = if g > 1.0 {
+         freq_hz / g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-
+-    // Bilinear transform 1st-order high shelf (prewarp with w0/2)
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        // Boost: H(s) = (g*s + wc) / (s + wc)
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        let b0 = (g + wc) * a0_inv;
+-        let b1 = (-g + wc) * a0_inv;
+-        let a1 = (-1.0 + wc) * a0_inv;
+-        [1.0, a1, 0.0, b0, b1, 0.0]
+     } else {
+-        // Cut: H(s) = (s + wc) / ((1/g)*s + wc)
+-        let g_inv = 1.0 / g;
+-        let a0_inv = 1.0 / (g_inv + wc);
+-        let b0 = (1.0 + wc) * a0_inv;
+-        let b1 = (-1.0 + wc) * a0_inv;
+-        let a1 = (-g_inv + wc) * a0_inv;
+-        [1.0, a1, 0.0, b0, b1, 0.0]
+-    }
++        freq_hz * g.sqrt()
++    };
++    let wp = 2.0 * PI * wp_hz;
++    let a1 = -(-wp / sample_rate).exp();
++    // Match: DC gain = 1, Nyquist gain = g
++    let b0 = ((1.0 + a1) + g * (1.0 - a1)) / 2.0;
++    let b1 = ((1.0 + a1) - g * (1.0 - a1)) / 2.0;
++    [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+-/// 1st-order allpass filter coefficients.
+ pub fn allpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+     let w0 = (2.0 * PI * freq_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+     let p = (-w0).exp();
+-    // Allpass: H(z) = (-p + z^-1) / (1 - p*z^-1)
+     [1.0, -p, 0.0, -p, 1.0, 0.0]
+ }
+ 
+-/// Compute alpha for shelving filters using the RBJ S (shelf slope) parameter.
+-///
+-/// `alpha = sin(w0)/2 * sqrt((A + 1/A) * (1/S - 1) + 2)`
+-///
+-/// When S = 1: Butterworth (maximally flat transition).
+-/// S < 1: gentler slope. S > 1: steeper, possibly resonant.
++// ── Shelf helpers ───────────────────────────────────────────────────
++
+ fn shelf_alpha(sin_w0: f64, a_amp: f64, s: f64) -> f64 {
+-    let s = s.max(0.01); // avoid division by zero
++    let s = s.max(0.01);
+     let val = (a_amp + 1.0 / a_amp) * (1.0 / s - 1.0) + 2.0;
+     sin_w0 / 2.0 * val.max(0.001).sqrt()
+ }
+ 
+-/// 2nd-order low shelf (RBJ cookbook / bilinear transform).
+-///
+-/// Uses the RBJ Audio EQ Cookbook shelf formulas with the S (shelf slope)
+-/// parameter. Pro-Q 4 convention: Q_internal = Q_display / sqrt(2),
+-/// and S = Q_display = Q_internal * sqrt(2).
+-/// When S=1 (Q_display=1): Butterworth slope.
+ fn low_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-
+-    let a_amp = g.sqrt(); // A = sqrt(g) = 10^(dBgain/40)
++    let a_amp = g.sqrt();
+     let sin_w0 = w0.sin();
+     let cos_w0 = w0.cos();
+-    // Convert internal Q to shelf slope S: S = Q * sqrt(2) = Q_display
+     let s = q * std::f64::consts::SQRT_2;
+     let alpha = shelf_alpha(sin_w0, a_amp, s);
+     let two_sqrt_a_alpha = 2.0 * a_amp.sqrt() * alpha;
+-
+     let a0 = (a_amp + 1.0) + (a_amp - 1.0) * cos_w0 + two_sqrt_a_alpha;
+     let a1 = -2.0 * ((a_amp - 1.0) + (a_amp + 1.0) * cos_w0);
+     let a2 = (a_amp + 1.0) + (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha;
+     let b0 = a_amp * ((a_amp + 1.0) - (a_amp - 1.0) * cos_w0 + two_sqrt_a_alpha);
+     let b1 = 2.0 * a_amp * ((a_amp - 1.0) - (a_amp + 1.0) * cos_w0);
+     let b2 = a_amp * ((a_amp + 1.0) - (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-
+     let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+-/// 2nd-order high shelf (RBJ cookbook / bilinear transform).
+-///
+-/// Uses the RBJ Audio EQ Cookbook shelf formulas with the S (shelf slope)
+-/// parameter, same convention as low_shelf_2.
+ fn high_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-
+-    let a_amp = g.sqrt(); // A = sqrt(g) = 10^(dBgain/40)
++    let a_amp = g.sqrt();
+     let sin_w0 = w0.sin();
+     let cos_w0 = w0.cos();
+     let s = q * std::f64::consts::SQRT_2;
+     let alpha = shelf_alpha(sin_w0, a_amp, s);
+     let two_sqrt_a_alpha = 2.0 * a_amp.sqrt() * alpha;
+-
+     let a0 = (a_amp + 1.0) - (a_amp - 1.0) * cos_w0 + two_sqrt_a_alpha;
+     let a1 = 2.0 * ((a_amp - 1.0) - (a_amp + 1.0) * cos_w0);
+     let a2 = (a_amp + 1.0) - (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha;
+     let b0 = a_amp * ((a_amp + 1.0) + (a_amp - 1.0) * cos_w0 + two_sqrt_a_alpha);
+     let b1 = -2.0 * a_amp * ((a_amp - 1.0) + (a_amp + 1.0) * cos_w0);
+     let b2 = a_amp * ((a_amp + 1.0) + (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-
+     let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+-/// First-order section for Julius Smith's spectral tilt filter.
+-///
+-/// Each section is a first-order pole-zero pair, digitized via bilinear transform
+-/// with prewarping to the pivot frequency.
+-///
+-/// `pole_hz` and `zero_hz`: analog pole/zero frequencies.
+-/// `pivot_hz`: the frequency around which the tilt pivots (0 dB crossing).
+-/// `sample_rate`: sample rate in Hz.
++// ── Flat tilt ───────────────────────────────────────────────────────
++
+ pub fn flat_tilt_section(pole_hz: f64, zero_hz: f64, pivot_hz: f64, sample_rate: f64) -> Coeffs {
+-    // Use bilinear transform with prewarping to the pivot frequency
+     let t = 1.0 / sample_rate;
+     let wp = 2.0 * PI * pivot_hz;
+     let wp_prewarp = (wp * t / 2.0).tan();
+-
+-    // Prewarp pole and zero frequencies
+     let pole_analog = 2.0 * PI * pole_hz;
+     let zero_analog = 2.0 * PI * zero_hz;
+-
+     let prewarp = |w: f64| -> f64 {
+         if wp_prewarp.abs() < 1e-30 || (wp * t / 2.0).tan().abs() < 1e-30 {
+             return w;
+         }
+         wp_prewarp * (w * t / 2.0).tan() / (wp * t / 2.0).tan()
+     };
+-
+     let p = prewarp(pole_analog);
+     let z = prewarp(zero_analog);
+-
+-    // Bilinear transform: s -> 2/T * (1 - z^-1)/(1 + z^-1)
+-    // H(s) = (s + z) / (s + p) → H(z) with bilinear
+     let c = 2.0 / t;
+-
+     let a0 = c + p;
+     let a1 = -c + p;
+     let b0 = c + z;
+     let b1 = -c + z;
+-
+-    // Normalize by a0
+     let a0_inv = 1.0 / a0;
+-
+     [1.0, a1 * a0_inv, 0.0, b0 * a0_inv, b1 * a0_inv, 0.0]
+ }
+ 
+@@ -542,7 +340,6 @@ pub fn flat_tilt_section(pole_hz: f64, zero_hz: f64, pivot_hz: f64, sample_rate:
+ mod tests {
+     use super::*;
+ 
+-    // r[verify dsp.biquad.coefficients]
+     #[test]
+     fn peak_unity_gain_is_passthrough() {
+         let c = calculate(FilterType::Peak, 1000.0, 0.707, 0.0, 44100.0);
+@@ -552,16 +349,13 @@ mod tests {
+         assert!(c[4].abs() < 1e-10);
+     }
+ 
+-    // r[verify dsp.biquad.coefficients]
+     #[test]
+     fn lowpass_has_unity_dc_gain() {
+         let c = lowpass_2(2.0 * PI * 1000.0 / 44100.0, 0.707);
+-        // DC gain = (b0+b1+b2)/(a0+a1+a2) should be ~1.0
+         let dc = (c[3] + c[4] + c[5]) / (c[0] + c[1] + c[2]);
+         assert!((dc - 1.0).abs() < 0.01, "DC gain = {dc}, expected ~1.0");
+     }
+ 
+-    // r[verify dsp.biquad.coefficients]
+     #[test]
+     fn highpass_has_zero_dc_gain() {
+         let c = highpass_2(2.0 * PI * 1000.0 / 44100.0, 0.707);
+@@ -569,18 +363,12 @@ mod tests {
+         assert!(dc.abs() < 0.01, "DC gain = {dc}, expected ~0.0");
+     }
+ 
+-    // r[verify dsp.biquad.coefficients]
+     #[test]
+     fn coefficients_are_finite() {
+         let types = [
+-            FilterType::Peak,
+-            FilterType::Lowpass,
+-            FilterType::Highpass,
+-            FilterType::Bandpass,
+-            FilterType::Notch,
+-            FilterType::LowShelf,
+-            FilterType::HighShelf,
+-            FilterType::TiltShelf,
++            FilterType::Peak, FilterType::Lowpass, FilterType::Highpass,
++            FilterType::Bandpass, FilterType::Notch, FilterType::LowShelf,
++            FilterType::HighShelf, FilterType::TiltShelf,
+         ];
+         for ft in types {
+             let c = calculate(ft, 1000.0, 0.707, 6.0, 44100.0);
+diff --git a/crates/fts-eq/eq-plugin/src/lib.rs b/crates/fts-eq/eq-plugin/src/lib.rs
+index 5dc44ef..f54e2e1 100644
+--- a/crates/fts-eq/eq-plugin/src/lib.rs
++++ b/crates/fts-eq/eq-plugin/src/lib.rs
+@@ -362,7 +362,7 @@ impl FtsEq {
+                 // Pro-Q 4 convention: display Q=1.0 = Butterworth (filter Q = 1/√2).
+                 let q = bp.q.value() as f64 * std::f64::consts::FRAC_1_SQRT_2;
+                 let order = match ft {
+-                    FilterType::Lowpass | FilterType::Highpass => {
++                    FilterType::Lowpass | FilterType::Highpass | FilterType::Bandpass => {
+                         lp_hp_slope_to_order(bp.slope.value())
+                     }
+                     _ => slope_to_order(bp.slope.value()),
+diff --git a/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs b/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
+index 70f3cf3..6a1f8df 100644
+--- a/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
++++ b/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
+@@ -105,10 +105,13 @@ impl AllpassShifter {
+         y
+     }
+ 
+-    /// Hann window value at phase [0, 1].
++    /// Crossfade window: sin²(π * phase).
++    /// Two windows offset by 0.5 sum to exactly 1.0:
++    ///   sin²(π*p) + sin²(π*(p+0.5)) = sin²(π*p) + cos²(π*p) = 1
+     #[inline]
+-    fn hann(phase: f64) -> f64 {
+-        0.5 * (1.0 - (PI * phase).cos())
++    fn crossfade(phase: f64) -> f64 {
++        let s = (PI * phase).sin();
++        s * s
+     }
+ 
+     /// Process one sample. Returns the mixed (dry/wet) output.
+@@ -156,9 +159,10 @@ impl AllpassShifter {
+         self.ap_prev_b = ap_prev_b;
+ 
+         // Crossfade envelope: head A uses phase_a, head B uses phase_a + 0.5.
+-        let win_a = Self::hann(self.phase_a);
++        // sin²(x) + sin²(x + π/2) = 1 ensures constant-power crossfade.
++        let win_a = Self::crossfade(self.phase_a);
+         let phase_b = (self.phase_a + 0.5).fract();
+-        let win_b = Self::hann(phase_b);
++        let win_b = Self::crossfade(phase_b);
+ 
+         let wet = a * win_a + b * win_b;
+ 
+diff --git a/crates/fts-pitch/pitch-dsp/src/granular.rs b/crates/fts-pitch/pitch-dsp/src/granular.rs
+index 42ccfed..f795af0 100644
+--- a/crates/fts-pitch/pitch-dsp/src/granular.rs
++++ b/crates/fts-pitch/pitch-dsp/src/granular.rs
+@@ -1,8 +1,9 @@
+ //! Granular pitch shifter — fixed-ratio time-domain grain overlap.
+ //!
+ //! Two read heads sweep through a circular buffer at `speed` rate relative
+-//! to the write head. Grains are crossfaded with a Hann window to prevent
+-//! clicks. No pitch detection required — works on any signal.
++//! to the write head. Grains are crossfaded with complementary Hann windows
++//! that sum to exactly 1.0 at all times. No pitch detection required — works
++//! on any signal.
+ //!
+ //! Latency: `grain_size` samples (default 1024).
+ //! Character: Natural, slight chorus-like artifacts at extreme shifts.
+@@ -23,7 +24,7 @@ pub struct GranularShifter {
+     offset_a: f64,
+     /// Read offset for grain B (offset by half a grain).
+     offset_b: f64,
+-    /// Phase within the current grain (0.0–1.0).
++    /// Phase within the current grain cycle (0.0–1.0).
+     grain_phase: f64,
+     /// Phase increment per sample.
+     phase_inc: f64,
+@@ -32,7 +33,6 @@ pub struct GranularShifter {
+ }
+ 
+ impl GranularShifter {
+-    /// Maximum buffer length in seconds.
+     const MAX_BUF_S: f64 = 1.0;
+ 
+     pub fn new() -> Self {
+@@ -68,13 +68,15 @@ impl GranularShifter {
+         self.grain_phase = 0.0;
+     }
+ 
+-    /// Hann window value at phase [0, 1].
++    /// Raised-cosine crossfade: `sin²(π * phase/2)` over [0, 1].
++    /// Two windows offset by 0.5 sum to exactly 1.0 everywhere:
++    ///   sin²(x) + sin²(x + π/2) = sin²(x) + cos²(x) = 1
+     #[inline]
+-    fn hann(phase: f64) -> f64 {
+-        0.5 * (1.0 - (std::f64::consts::TAU * phase).cos())
++    fn crossfade_window(phase: f64) -> f64 {
++        let s = (std::f64::consts::PI * phase).sin();
++        s * s
+     }
+ 
+-    /// Process one sample. Returns the pitch-shifted output.
+     #[inline]
+     pub fn tick(&mut self, input: f64) -> f64 {
+         self.delay.write(input);
+@@ -82,42 +84,42 @@ impl GranularShifter {
+         let max_offset = self.delay.len() as f64 - 4.0;
+         let drift = 1.0 - self.speed;
+ 
+-        // Advance read heads.
++        // Advance read heads by drift.
+         self.offset_a += drift;
+         self.offset_b += drift;
+ 
+-        // Wrap offsets back to target region when they drift too far.
+-        let target = self.grain_size as f64;
+-        if self.offset_a < 1.0 || self.offset_a > max_offset {
+-            self.offset_a = target;
++        // Advance grain phase.
++        let prev_phase = self.grain_phase;
++        self.grain_phase += self.phase_inc;
++
++        // Reset grain A at phase wrap (1.0 → 0.0).
++        if self.grain_phase >= 1.0 {
++            self.grain_phase -= 1.0;
++            // Smoothly reset: snap to the target offset so the next grain
++            // starts reading from a consistent position.
++            self.offset_a = self.grain_size as f64;
+         }
+-        if self.offset_b < 1.0 || self.offset_b > max_offset {
+-            self.offset_b = target + self.grain_size as f64 * 0.5;
++
++        // Reset grain B at half-phase boundary.
++        if prev_phase < 0.5 && self.grain_phase >= 0.5 {
++            self.offset_b = self.grain_size as f64;
+         }
+ 
++        // Clamp offsets to valid range (protect against runaway drift).
++        self.offset_a = self.offset_a.clamp(1.0, max_offset);
++        self.offset_b = self.offset_b.clamp(1.0, max_offset);
++
+         // Read grains with cubic interpolation.
+-        let a = self.delay.read_cubic(self.offset_a.clamp(1.0, max_offset));
+-        let b = self.delay.read_cubic(self.offset_b.clamp(1.0, max_offset));
++        let a = self.delay.read_cubic(self.offset_a);
++        let b = self.delay.read_cubic(self.offset_b);
+ 
+-        // Windowed crossfade: grain A uses phase, grain B uses phase + 0.5.
+-        let win_a = Self::hann(self.grain_phase);
+-        let phase_b = (self.grain_phase + 0.5).fract();
+-        let win_b = Self::hann(phase_b);
++        // Crossfade: grain A fades in over its first half, grain B is offset by 0.5.
++        // Using sin² ensures the two windows always sum to 1.0.
++        let win_a = Self::crossfade_window(self.grain_phase);
++        let win_b = Self::crossfade_window((self.grain_phase + 0.5).fract());
+ 
+         let wet = a * win_a + b * win_b;
+ 
+-        // Advance grain phase.
+-        self.grain_phase += self.phase_inc;
+-        if self.grain_phase >= 1.0 {
+-            self.grain_phase -= 1.0;
+-            // Reset grain A to target offset at grain boundary.
+-            self.offset_a = target;
+-        }
+-        // Reset grain B at half-grain boundary.
+-        if self.grain_phase >= 0.5 && (self.grain_phase - self.phase_inc) < 0.5 {
+-            self.offset_b = target + self.grain_size as f64 * 0.5;
+-        }
+-
+         input * (1.0 - self.mix) + wet * self.mix
+     }
+ 
+@@ -166,8 +168,6 @@ mod tests {
+     #[test]
+     fn produces_output() {
+         let mut g = make_granular();
+-
+-        // Feed sine, check that output has energy after latency.
+         let mut energy = 0.0;
+         for i in 0..9600 {
+             let input = (2.0 * PI * 440.0 * i as f64 / SR).sin() * 0.5;
+@@ -189,6 +189,21 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn crossfade_sums_to_one() {
++        // Verify that our crossfade windows sum to 1.0 at all phases.
++        for i in 0..1000 {
++            let phase = i as f64 / 1000.0;
++            let a = GranularShifter::crossfade_window(phase);
++            let b = GranularShifter::crossfade_window((phase + 0.5).fract());
++            let sum = a + b;
++            assert!(
++                (sum - 1.0).abs() < 1e-10,
++                "Crossfade should sum to 1.0 at phase {phase}, got {sum}"
++            );
++        }
++    }
++
+     #[test]
+     fn different_speeds_differ() {
+         let freq = 440.0;
+@@ -229,7 +244,6 @@ mod tests {
+ 
+         let freq = 440.0;
+         let n = 9600;
+-
+         let mut max_out = 0.0f64;
+         for i in 0..n {
+             let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
+@@ -239,7 +253,6 @@ mod tests {
+             }
+         }
+ 
+-        // At speed=1.0, output should still have signal.
+         assert!(
+             max_out > 0.1,
+             "Unity speed should pass signal: max={max_out}"
+@@ -257,4 +270,77 @@ mod tests {
+             assert!((out - input).abs() < 1e-10, "Mix=0 should pass dry");
+         }
+     }
++
++    /// Measure pitch using YIN CMND (finds first local minimum below threshold).
++    fn measure_pitch(signal: &[f64], sample_rate: f64) -> f64 {
++        let min_period = (sample_rate / 2000.0) as usize;
++        let max_period = (sample_rate / 30.0) as usize;
++        let window = signal.len().min(max_period * 10);
++        let max_lag = max_period.min(window / 2);
++        if max_lag <= min_period {
++            return 0.0;
++        }
++        let threshold = 0.2;
++        let mut cmnd = vec![1.0f64; max_lag + 1];
++        let mut running_sum = 0.0;
++        for lag in 1..=max_lag {
++            let mut diff = 0.0;
++            let n = window - lag;
++            for i in 0..n {
++                let d = signal[i] - signal[i + lag];
++                diff += d * d;
++            }
++            running_sum += diff;
++            cmnd[lag] = if running_sum > 1e-12 {
++                diff * lag as f64 / running_sum
++            } else {
++                0.0
++            };
++        }
++        for lag in min_period..max_lag {
++            if cmnd[lag] < threshold && cmnd[lag + 1] > cmnd[lag] {
++                return sample_rate / lag as f64;
++            }
++        }
++        let mut best_lag = min_period;
++        let mut best_val = f64::MAX;
++        for lag in min_period..=max_lag {
++            if cmnd[lag] < best_val {
++                best_val = cmnd[lag];
++                best_lag = lag;
++            }
++        }
++        if best_val < 0.5 {
++            sample_rate / best_lag as f64
++        } else {
++            0.0
++        }
++    }
++
++    #[test]
++    fn octave_down_pitch_accuracy() {
++        let mut g = make_granular();
++        g.speed = 0.5;
++        g.update(SR);
++
++        let freq = 440.0;
++        let n = 96000;
++        let mut output = Vec::with_capacity(n);
++
++        for i in 0..n {
++            let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
++            output.push(g.tick(input));
++        }
++
++        // Measure pitch using autocorrelation on the second half (after warmup).
++        let start = n / 2;
++        let measured_freq = measure_pitch(&output[start..], SR);
++        let expected = freq * 0.5;
++        let error_cents = 1200.0 * (measured_freq / expected).log2().abs();
++
++        assert!(
++            error_cents < 100.0,
++            "Octave down should be ~{expected}Hz, got {measured_freq:.1}Hz ({error_cents:.0} cents error)"
++        );
++    }
+ }
+diff --git a/crates/fts-pitch/pitch-dsp/src/psola.rs b/crates/fts-pitch/pitch-dsp/src/psola.rs
+index 39ba4e6..684fed2 100644
+--- a/crates/fts-pitch/pitch-dsp/src/psola.rs
++++ b/crates/fts-pitch/pitch-dsp/src/psola.rs
+@@ -1,77 +1,75 @@
+ //! PSOLA — Pitch-Synchronous Overlap-Add for monophonic pitch shifting.
+ //!
+-//! The highest-quality algorithm for monophonic sources (guitar DI, vocals).
+-//! Detects pitch via autocorrelation (simplified McLeod), then resynthesizes
+-//! at the target pitch using overlapping, windowed grains aligned to pitch
+-//! periods.
++//! Detects pitch via YIN, then uses dual crossfading read heads with
++//! cross-correlation alignment at grain boundaries. Similar to WSOLA
++//! but with adaptive grain sizing based on detected pitch.
+ //!
+-//! Latency: ~2 pitch periods + analysis window (typically 1024–2048 samples).
+-//! Character: Most natural, preserves formants.
++//! Latency: ~2 pitch periods (typically 512–2048 samples).
++//! Character: Most natural for monophonic sources, preserves formants.
+ 
+ use fts_dsp::delay_line::DelayLine;
+ 
+-/// PSOLA pitch shifter for monophonic audio.
+ pub struct PsolaShifter {
+-    /// Pitch ratio: 0.5 = octave down, 2.0 = octave up.
+     pub speed: f64,
+-    /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
+-    /// Base analysis window size. Default 2048; set to 512 for low-latency live mode.
+     pub base_window_size: usize,
+ 
+-    // Circular analysis buffer.
+     analysis_buf: DelayLine,
+-    // Circular output accumulator.
+-    output_buf: Vec<f64>,
+-    output_pos: usize,
+-
+-    // Pitch detection state.
+-    /// Detected period in samples (0 = unvoiced).
+-    detected_period: usize,
+-    /// Minimum period (samples) — corresponds to max frequency.
++
++    pub(crate) detected_period: usize,
+     min_period: usize,
+-    /// Maximum period (samples) — corresponds to min frequency.
+     max_period: usize,
+ 
+-    // PSOLA synthesis state.
+-    /// Samples until next output grain.
+-    synth_countdown: usize,
+-    /// Input write position counter (total samples written).
++    /// Read offset for grain A (samples behind write head).
++    offset_a: f64,
++    /// Read offset for grain B (offset by half a grain).
++    offset_b: f64,
++    /// Phase within the current grain cycle (0.0–1.0).
++    grain_phase: f64,
++    /// Phase increment per sample.
++    phase_inc: f64,
++    /// Effective grain size used for crossfade timing.
++    grain_size: usize,
++
++    /// Previous grain tail for cross-correlation matching.
++    prev_tail_a: Vec<f64>,
++    prev_tail_b: Vec<f64>,
++
+     write_count: usize,
+-    /// Samples since last pitch detection.
+     detect_countdown: usize,
+-    /// How often to run pitch detection (in samples).
+     detect_interval: usize,
+ 
+-    // Autocorrelation scratch buffer.
+-    autocorr_scratch: Vec<f64>,
+-
+     sample_rate: f64,
+-    /// Analysis window size.
+     window_size: usize,
+ }
+ 
+ impl PsolaShifter {
+-    /// Default analysis window for pitch detection.
+     const DEFAULT_WINDOW: usize = 2048;
++    const DEFAULT_GRAIN: usize = 1024;
++    const DEFAULT_TOLERANCE: usize = 128;
++    const BUF_SECONDS: f64 = 2.0;
+ 
+     pub fn new() -> Self {
+-        let buf_len = 48000; // 1 second at 48kHz
++        let grain_size = Self::DEFAULT_GRAIN;
++        let buf_len = 48000 * 2 + grain_size + Self::DEFAULT_TOLERANCE * 2;
+         Self {
+             speed: 0.5,
+             mix: 1.0,
+             base_window_size: Self::DEFAULT_WINDOW,
+             analysis_buf: DelayLine::new(buf_len),
+-            output_buf: vec![0.0; buf_len],
+-            output_pos: 0,
+             detected_period: 0,
+-            min_period: 24,   // ~2000 Hz at 48kHz
+-            max_period: 1200, // ~40 Hz at 48kHz
+-            synth_countdown: 0,
++            min_period: 24,
++            max_period: 1200,
++            offset_a: grain_size as f64,
++            offset_b: grain_size as f64 * 1.5,
++            grain_phase: 0.0,
++            phase_inc: 1.0 / grain_size as f64,
++            grain_size,
++            prev_tail_a: vec![0.0; grain_size / 4],
++            prev_tail_b: vec![0.0; grain_size / 4],
+             write_count: 0,
+             detect_countdown: 0,
+             detect_interval: 512,
+-            autocorr_scratch: vec![0.0; 1200],
+             sample_rate: 48000.0,
+             window_size: Self::DEFAULT_WINDOW,
+         }
+@@ -79,126 +77,179 @@ impl PsolaShifter {
+ 
+     pub fn update(&mut self, sample_rate: f64) {
+         self.sample_rate = sample_rate;
+-
+-        // Guitar range: ~40 Hz (low E drop) to ~2000 Hz (high harmonics).
+-        self.min_period = (sample_rate / 2000.0) as usize;
++        self.min_period = (sample_rate / 2000.0).max(2.0) as usize;
+         self.max_period = (sample_rate / 40.0) as usize;
+ 
+-        let buf_len = sample_rate as usize + 4096;
++        // Scale grain size to sample rate.
++        self.grain_size =
++            ((Self::DEFAULT_GRAIN as f64 * sample_rate) / 48000.0) as usize;
++        if self.grain_size % 2 != 0 {
++            self.grain_size += 1;
++        }
++
++        let tolerance =
++            ((Self::DEFAULT_TOLERANCE as f64 * sample_rate) / 48000.0).round() as usize;
++
++        let buf_len = (sample_rate * Self::BUF_SECONDS) as usize
++            + self.grain_size
++            + tolerance * 2
++            + 64;
+         if self.analysis_buf.len() < buf_len {
+             self.analysis_buf = DelayLine::new(buf_len);
+-            self.output_buf = vec![0.0; buf_len];
+         }
+ 
+-        self.autocorr_scratch.resize(self.max_period + 1, 0.0);
++        self.phase_inc = 1.0 / self.grain_size as f64;
++        self.offset_a = self.grain_size as f64;
++        self.offset_b = self.grain_size as f64 * 1.5;
+         self.detect_interval = 512.min(self.max_period);
+         self.window_size = self.base_window_size;
++
++        let tail_len = self.grain_size / 4;
++        self.prev_tail_a.resize(tail_len, 0.0);
++        self.prev_tail_b.resize(tail_len, 0.0);
+     }
+ 
+     pub fn reset(&mut self) {
+         self.analysis_buf.clear();
+-        self.output_buf.fill(0.0);
+-        self.output_pos = 0;
+         self.detected_period = 0;
+-        self.synth_countdown = 0;
++        self.offset_a = self.grain_size as f64;
++        self.offset_b = self.grain_size as f64 * 1.5;
++        self.grain_phase = 0.0;
++        self.prev_tail_a.fill(0.0);
++        self.prev_tail_b.fill(0.0);
+         self.write_count = 0;
+         self.detect_countdown = 0;
+     }
+ 
+-    /// Simplified autocorrelation pitch detection (McLeod-inspired).
+-    /// Returns period in samples, or 0 if unvoiced.
+-    fn detect_pitch(&mut self) -> usize {
+-        let window = self.window_size.min(self.max_period * 2 + self.min_period);
+-
+-        // Need at least window samples in the buffer.
+-        if self.write_count < window {
+-            return 0;
++    fn effective_period(&self) -> usize {
++        if self.detected_period > 0 {
++            self.detected_period
++        } else {
++            self.window_size / 4
+         }
++    }
+ 
+-        // Compute normalized autocorrelation for each lag.
+-        let mut best_lag = 0;
+-        let mut best_clarity: f64 = 0.0;
++    /// sin²(π * phase) crossfade.
++    #[inline]
++    fn crossfade(phase: f64) -> f64 {
++        let s = (std::f64::consts::PI * phase).sin();
++        s * s
++    }
+ 
+-        // Compute energy of the window.
+-        let mut energy = 0.0f64;
+-        for i in 0..window {
+-            let s = self.analysis_buf.read(i + 1);
+-            energy += s * s;
++    /// YIN pitch detection. Returns period in samples, or 0 if unvoiced.
++    fn detect_pitch(&self) -> usize {
++        let window = self.window_size.min(self.max_period * 2 + self.min_period);
++        if self.write_count < window {
++            return 0;
+         }
+ 
+-        if energy < 1e-10 {
+-            return 0; // Silence
+-        }
++        let max_lag = self.max_period.min(window / 2);
++        let threshold = 0.15;
+ 
+-        for lag in self.min_period..=self.max_period.min(window / 2) {
+-            let mut correlation = 0.0f64;
+-            let mut energy_lag = 0.0f64;
++        let mut cmnd_vals = vec![1.0f64; max_lag + 1];
++        let mut running_sum = 0.0f64;
+ 
++        for lag in 1..=max_lag {
++            let mut diff = 0.0f64;
+             let n = window - lag;
+             for i in 0..n {
+                 let a = self.analysis_buf.read(i + 1);
+                 let b = self.analysis_buf.read(i + lag + 1);
+-                correlation += a * b;
+-                energy_lag += b * b;
++                let d = a - b;
++                diff += d * d;
+             }
+-
+-            // Normalized correlation.
+-            let denom = (energy * energy_lag).sqrt();
+-            let clarity = if denom > 1e-10 {
+-                correlation / denom
++            running_sum += diff;
++            cmnd_vals[lag] = if running_sum > 1e-12 {
++                diff * lag as f64 / running_sum
+             } else {
+                 0.0
+             };
++        }
+ 
+-            if clarity > best_clarity {
+-                best_clarity = clarity;
++        let mut best_lag = 0usize;
++        let mut best_val = f64::MAX;
++
++        for lag in self.min_period..max_lag {
++            let val = cmnd_vals[lag];
++            if val < best_val {
++                best_val = val;
+                 best_lag = lag;
+             }
++            if val < threshold && cmnd_vals[lag + 1] > val {
++                return lag;
++            }
+         }
+ 
+-        // Require minimum clarity threshold for voiced detection.
+-        if best_clarity > 0.5 && best_lag >= self.min_period {
++        if best_val < 0.5 && best_lag >= self.min_period {
+             best_lag
+         } else {
+             0
+         }
+     }
+ 
+-    /// Place a Hann-windowed grain centered at `center_offset` samples behind
+-    /// the write head, into the output accumulator at the current position.
+-    fn place_grain(&mut self, center_offset: usize) {
+-        let period = if self.detected_period > 0 {
+-            self.detected_period
+-        } else {
+-            self.window_size / 4
+-        };
++    /// Find best read offset near `nominal` using cross-correlation with `tail`.
++    fn best_offset(&self, nominal: f64, tail: &[f64]) -> f64 {
++        let tolerance = Self::DEFAULT_TOLERANCE as isize;
++        let tail_len = tail.len();
++        let buf_len = self.analysis_buf.len();
+ 
+-        let grain_len = period * 2;
+-        let half = grain_len / 2;
+-        let buf_len = self.output_buf.len();
++        let mut energy_tail = 0.0f64;
++        for s in tail {
++            energy_tail += s * s;
++        }
++        if energy_tail < 1e-12 {
++            return nominal;
++        }
+ 
+-        for i in 0..grain_len {
+-            // Hann window.
+-            let phase = i as f64 / grain_len as f64;
+-            let win = 0.5 * (1.0 - (std::f64::consts::TAU * phase).cos());
++        let mut best_corr = f64::NEG_INFINITY;
++        let mut best_delta: isize = 0;
+ 
+-            // Read from analysis buffer.
+-            let read_offset = center_offset + half - i;
+-            if read_offset == 0 || read_offset >= self.analysis_buf.len() {
++        for delta in -tolerance..=tolerance {
++            let candidate = nominal + delta as f64;
++            if candidate < 1.0 || (candidate as usize + tail_len) >= buf_len {
+                 continue;
+             }
+-            let sample = self.analysis_buf.read(read_offset);
+ 
+-            // Write to output accumulator.
+-            let write_idx = (self.output_pos + i) % buf_len;
+-            self.output_buf[write_idx] += sample * win;
++            let mut correlation = 0.0f64;
++            let mut energy_cand = 0.0f64;
++
++            for i in 0..tail_len {
++                let s = self.analysis_buf.read(candidate as usize + i);
++                correlation += tail[i] * s;
++                energy_cand += s * s;
++            }
++
++            let denom = (energy_tail * energy_cand).sqrt();
++            let norm_corr = if denom > 1e-12 {
++                correlation / denom
++            } else {
++                0.0
++            };
++
++            if norm_corr > best_corr {
++                best_corr = norm_corr;
++                best_delta = delta;
++            }
++        }
++
++        nominal + best_delta as f64
++    }
++
++    /// Save a short tail of audio at `offset` for future cross-correlation.
++    fn save_tail(&self, offset: f64, tail: &mut [f64]) {
++        let buf_len = self.analysis_buf.len();
++        for (i, t) in tail.iter_mut().enumerate() {
++            let pos = offset as usize + i;
++            if pos > 0 && pos < buf_len {
++                *t = self.analysis_buf.read(pos);
++            } else {
++                *t = 0.0;
++            }
+         }
+     }
+ 
+-    /// Process one sample. Returns the pitch-shifted output.
+     #[inline]
+     pub fn tick(&mut self, input: f64) -> f64 {
+-        // Write input to analysis buffer.
+         self.analysis_buf.write(input);
+         self.write_count += 1;
+ 
+@@ -209,41 +260,57 @@ impl PsolaShifter {
+         }
+         self.detect_countdown -= 1;
+ 
+-        // PSOLA synthesis: place grains at synthesis rate.
+-        if self.synth_countdown == 0 {
+-            let synth_period = if self.detected_period > 0 {
+-                (self.detected_period as f64 / self.speed).round() as usize
+-            } else {
+-                512 // Fallback for unvoiced
+-            };
+-
+-            // Place a grain centered at the current analysis position.
+-            let center = if self.detected_period > 0 {
+-                self.detected_period
+-            } else {
+-                self.window_size / 4
+-            };
+-            self.place_grain(center);
++        let max_offset = self.analysis_buf.len() as f64 - 4.0;
++        let drift = 1.0 - self.speed;
++
++        // Advance read heads.
++        self.offset_a += drift;
++        self.offset_b += drift;
++
++        // Advance phase.
++        let prev_phase = self.grain_phase;
++        self.grain_phase += self.phase_inc;
++
++        // At grain boundary for A: find best alignment via cross-correlation.
++        if self.grain_phase >= 1.0 {
++            self.grain_phase -= 1.0;
++            let target = self.grain_size as f64;
++            let best = self.best_offset(target, &self.prev_tail_a);
++            self.offset_a = best.clamp(1.0, max_offset);
++            let mut tail = vec![0.0; self.prev_tail_a.len()];
++            self.save_tail(self.offset_a, &mut tail);
++            self.prev_tail_a = tail;
++        }
+ 
+-            self.synth_countdown = synth_period.max(self.min_period);
++        // At grain boundary for B.
++        if prev_phase < 0.5 && self.grain_phase >= 0.5 {
++            let target = self.grain_size as f64;
++            let best = self.best_offset(target, &self.prev_tail_b);
++            self.offset_b = best.clamp(1.0, max_offset);
++            let mut tail = vec![0.0; self.prev_tail_b.len()];
++            self.save_tail(self.offset_b, &mut tail);
++            self.prev_tail_b = tail;
+         }
+-        self.synth_countdown -= 1;
+ 
+-        // Read and clear from output accumulator.
+-        let wet = self.output_buf[self.output_pos];
+-        self.output_buf[self.output_pos] = 0.0;
+-        self.output_pos = (self.output_pos + 1) % self.output_buf.len();
++        // Clamp offsets.
++        self.offset_a = self.offset_a.clamp(1.0, max_offset);
++        self.offset_b = self.offset_b.clamp(1.0, max_offset);
++
++        // Read grains with cubic interpolation.
++        let a = self.analysis_buf.read_cubic(self.offset_a);
++        let b = self.analysis_buf.read_cubic(self.offset_b);
++
++        // Crossfade.
++        let win_a = Self::crossfade(self.grain_phase);
++        let win_b = Self::crossfade((self.grain_phase + 0.5).fract());
++
++        let wet = a * win_a + b * win_b;
+ 
+         input * (1.0 - self.mix) + wet * self.mix
+     }
+ 
+     pub fn latency(&self) -> usize {
+-        // Approximately 2 pitch periods + detection latency.
+-        if self.detected_period > 0 {
+-            self.detected_period * 2
+-        } else {
+-            self.window_size
+-        }
++        self.grain_size
+     }
+ }
+ 
+@@ -268,6 +335,72 @@ mod tests {
+         p
+     }
+ 
++    /// Measure pitch via FFT spectral peak (robust to FM modulation artifacts).
++    fn measure_pitch_fft(signal: &[f64], sample_rate: f64) -> f64 {
++        use std::f64::consts::PI;
++        // Use a large FFT for frequency resolution.
++        let fft_size = 8192;
++        if signal.len() < fft_size {
++            return 0.0;
++        }
++
++        // Hann window.
++        let windowed: Vec<f64> = (0..fft_size)
++            .map(|i| {
++                let w = 0.5 * (1.0 - (2.0 * PI * i as f64 / fft_size as f64).cos());
++                signal[i] * w
++            })
++            .collect();
++
++        // Compute magnitude spectrum via DFT (just the bins we care about).
++        let min_bin = (20.0 * fft_size as f64 / sample_rate) as usize;
++        let max_bin = (2000.0 * fft_size as f64 / sample_rate) as usize;
++
++        let mut best_bin = min_bin;
++        let mut best_mag = 0.0f64;
++
++        for bin in min_bin..=max_bin.min(fft_size / 2) {
++            let freq = bin as f64 * sample_rate / fft_size as f64;
++            let omega = 2.0 * PI * freq / sample_rate;
++            let mut re = 0.0f64;
++            let mut im = 0.0f64;
++            for (i, &s) in windowed.iter().enumerate() {
++                re += s * (omega * i as f64).cos();
++                im -= s * (omega * i as f64).sin();
++            }
++            let mag = (re * re + im * im).sqrt();
++            if mag > best_mag {
++                best_mag = mag;
++                best_bin = bin;
++            }
++        }
++
++        // Parabolic interpolation for sub-bin accuracy.
++        if best_bin > min_bin && best_bin < max_bin.min(fft_size / 2) {
++            let compute_mag = |bin: usize| -> f64 {
++                let freq = bin as f64 * sample_rate / fft_size as f64;
++                let omega = 2.0 * PI * freq / sample_rate;
++                let mut re = 0.0f64;
++                let mut im = 0.0f64;
++                for (i, &s) in windowed.iter().enumerate() {
++                    re += s * (omega * i as f64).cos();
++                    im -= s * (omega * i as f64).sin();
++                }
++                (re * re + im * im).sqrt()
++            };
++            let a = compute_mag(best_bin - 1).ln();
++            let b = compute_mag(best_bin).ln();
++            let c = compute_mag(best_bin + 1).ln();
++            let denom = a - 2.0 * b + c;
++            if denom.abs() > 1e-10 {
++                let delta = 0.5 * (a - c) / denom;
++                return (best_bin as f64 + delta) * sample_rate / fft_size as f64;
++            }
++        }
++
++        best_bin as f64 * sample_rate / fft_size as f64
++    }
++
+     #[test]
+     fn silence_in_silence_out() {
+         let mut p = make_psola();
+@@ -281,7 +414,6 @@ mod tests {
+     fn produces_output_on_sine() {
+         let mut p = make_psola();
+         let freq = 220.0;
+-
+         let mut energy = 0.0;
+         let n = 48000;
+         for i in 0..n {
+@@ -308,21 +440,14 @@ mod tests {
+     fn detects_pitch() {
+         let mut p = make_psola();
+         let freq = 440.0;
+-
+-        // Feed enough signal for detection.
+         for i in 0..4800 {
+             let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.8;
+             p.tick(input);
+         }
+-
+-        let expected_period = (SR / freq).round() as usize; // ~109
+-        assert!(
+-            p.detected_period > 0,
+-            "Should detect pitch, got period={}",
+-            p.detected_period
+-        );
++        let expected_period = (SR / freq).round() as usize;
++        assert!(p.detected_period > 0, "Should detect pitch");
+         assert!(
+-            (p.detected_period as f64 - expected_period as f64).abs() < 10.0,
++            (p.detected_period as f64 - expected_period as f64).abs() < 5.0,
+             "Period should be ~{expected_period}, got {}",
+             p.detected_period
+         );
+@@ -331,61 +456,71 @@ mod tests {
+     #[test]
+     fn unvoiced_detection_for_noise() {
+         let mut p = make_psola();
+-
+-        // Feed noise — should not detect a pitch.
+         let mut rng = 12345u64;
+         for _ in 0..9600 {
+-            // Simple LCG pseudo-random.
+             rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);
+             let noise = (rng as f64 / u64::MAX as f64) * 2.0 - 1.0;
+             p.tick(noise * 0.5);
+         }
+-
+-        // Period should be 0 (unvoiced) or very unstable.
+-        // Just check it doesn't crash.
+     }
+ 
+     #[test]
+     fn different_speeds_differ() {
+         let freq = 220.0;
+         let n = 9600;
+-
+         let collect = |speed: f64| -> Vec<f64> {
+             let mut p = make_psola();
+             p.speed = speed;
+-            let mut out = Vec::with_capacity(n);
+-            for i in 0..n {
+-                let s = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
+-                out.push(p.tick(s));
+-            }
+-            out
++            (0..n)
++                .map(|i| {
++                    let s = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
++                    p.tick(s)
++                })
++                .collect()
+         };
+-
+         let down = collect(0.5);
+         let up = collect(2.0);
+-
+         let diff: f64 = down
+             .iter()
+             .zip(up.iter())
+             .map(|(a, b)| (a - b).abs())
+             .sum::<f64>()
+             / n as f64;
+-
+-        assert!(
+-            diff > 0.001,
+-            "Different speeds should produce different output: {diff}"
+-        );
++        assert!(diff > 0.001, "Different speeds should differ: {diff}");
+     }
+ 
+     #[test]
+     fn dry_wet_mix() {
+         let mut p = make_psola();
+         p.mix = 0.0;
+-
+         for i in 0..4800 {
+             let input = (2.0 * PI * 440.0 * i as f64 / SR).sin() * 0.5;
+             let out = p.tick(input);
+             assert!((out - input).abs() < 1e-10, "Mix=0 should pass dry");
+         }
+     }
++
++    #[test]
++    fn octave_down_pitch_accuracy() {
++        let mut p = make_psola();
++        p.speed = 0.5;
++        p.update(SR);
++        let freq = 440.0;
++        let n = 96000;
++        let mut output = Vec::with_capacity(n);
++        for i in 0..n {
++            let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
++            output.push(p.tick(input));
++        }
++
++        // Measure pitch via FFT spectral peak (robust to granular FM artifacts).
++        let start = n / 2;
++        let measured_freq = measure_pitch_fft(&output[start..], SR);
++        let expected = freq * 0.5;
++        let error_cents = 1200.0 * (measured_freq / expected).log2().abs();
++        assert!(
++            error_cents < 100.0,
++            "Octave down should be ~{expected}Hz, got {measured_freq:.1}Hz ({error_cents:.0}c error)"
++        );
++    }
+ }
+diff --git a/crates/fts-pitch/pitch-dsp/src/wsola.rs b/crates/fts-pitch/pitch-dsp/src/wsola.rs
+index b8578e9..9c136b1 100644
+--- a/crates/fts-pitch/pitch-dsp/src/wsola.rs
++++ b/crates/fts-pitch/pitch-dsp/src/wsola.rs
+@@ -1,83 +1,62 @@
+ //! WSOLA — Waveform Similarity Overlap-Add pitch shifter.
+ //!
+-//! A time-domain algorithm that produces higher quality than basic granular
+-//! shifting by finding optimal grain alignment points using cross-correlation.
+-//! Works on any signal (monophonic or polyphonic) without pitch detection.
+-//!
+-//! For each output grain the algorithm searches a tolerance window around the
+-//! nominal read position to find the offset that maximises waveform similarity
+-//! with the tail of the previous grain. This eliminates the phase-jump
+-//! artefacts that plague naive granular approaches.
++//! Dual read heads sweep through a circular delay buffer like the granular
++//! shifter, but each grain boundary is aligned using cross-correlation to
++//! minimize phase discontinuities. This produces smoother transitions than
++//! naive granular shifting.
+ //!
+ //! Latency: `grain_size` samples (default 1024).
+ //! Character: Smooth, low-artefact, works well on complex material.
+ 
+ use fts_dsp::delay_line::DelayLine;
+ 
+-/// WSOLA pitch shifter with cross-correlation grain alignment.
+ pub struct WsolaShifter {
+-    /// Pitch ratio: 0.5 = octave down, 2.0 = octave up.
+     pub speed: f64,
+-    /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
+-    /// Base grain size at 48kHz (scaled by sample rate in update()).
+-    /// Default 1024; set to 256 for low-latency live mode.
+     pub base_grain_size: usize,
+ 
+-    // Circular analysis buffer (input history).
+     analysis_buf: DelayLine,
+ 
+-    // Output accumulator (overlap-add target).
+-    output_buf: Vec<f64>,
+-    output_pos: usize,
+-
+-    // Grain parameters.
+     grain_size: usize,
+-    hop_size: usize,
+     tolerance: usize,
+ 
+-    // Fractional read pointer: distance behind the write head (in samples).
+-    read_offset: f64,
+-
+-    // Samples until next grain is placed.
+-    hop_countdown: usize,
++    // Dual read heads (like granular, but with cross-correlation alignment).
++    offset_a: f64,
++    offset_b: f64,
++    grain_phase: f64,
++    phase_inc: f64,
+ 
+     // Previous grain tail for cross-correlation matching.
+-    prev_tail: Vec<f64>,
++    prev_tail_a: Vec<f64>,
++    prev_tail_b: Vec<f64>,
+ 
+-    // Total samples written (for startup gating).
+     write_count: usize,
+-
+     sample_rate: f64,
+ }
+ 
+ impl WsolaShifter {
+-    /// Default grain size at 48 kHz.
+     const DEFAULT_GRAIN: usize = 1024;
+-    /// Tolerance (half-width) for the similarity search.
+-    const DEFAULT_TOLERANCE: usize = 64;
+-    /// Analysis buffer length in seconds.
++    const DEFAULT_TOLERANCE: usize = 128;
+     const BUF_SECONDS: f64 = 2.0;
+ 
+     pub fn new() -> Self {
+         let grain_size = Self::DEFAULT_GRAIN;
+-        let hop_size = grain_size / 2;
+         let tolerance = Self::DEFAULT_TOLERANCE;
+-        let buf_len = 48000 * 2 + grain_size + tolerance;
++        let buf_len = 48000 * 2 + grain_size + tolerance * 2;
+ 
+         Self {
+             speed: 0.5,
+             mix: 1.0,
+             base_grain_size: Self::DEFAULT_GRAIN,
+             analysis_buf: DelayLine::new(buf_len),
+-            output_buf: vec![0.0; buf_len],
+-            output_pos: 0,
+             grain_size,
+-            hop_size,
+             tolerance,
+-            read_offset: grain_size as f64 + tolerance as f64,
+-            hop_countdown: 0,
+-            prev_tail: vec![0.0; hop_size],
++            offset_a: grain_size as f64,
++            offset_b: grain_size as f64 + grain_size as f64 * 0.5,
++            grain_phase: 0.0,
++            phase_inc: 1.0 / grain_size as f64,
++            prev_tail_a: vec![0.0; grain_size / 4],
++            prev_tail_b: vec![0.0; grain_size / 4],
+             write_count: 0,
+             sample_rate: 48000.0,
+         }
+@@ -85,76 +64,78 @@ impl WsolaShifter {
+ 
+     pub fn update(&mut self, sample_rate: f64) {
+         self.sample_rate = sample_rate;
+-
+-        // Scale grain size proportionally to sample rate.
+         self.grain_size = ((self.base_grain_size as f64 * sample_rate) / 48000.0) as usize;
+-        // Keep grain size even for symmetric windowing.
+         if self.grain_size % 2 != 0 {
+             self.grain_size += 1;
+         }
+-        self.hop_size = self.grain_size / 2;
+-        self.tolerance = Self::DEFAULT_TOLERANCE;
++        self.tolerance =
++            ((Self::DEFAULT_TOLERANCE as f64 * sample_rate) / 48000.0).round() as usize;
+ 
+         let buf_len =
+-            (sample_rate * Self::BUF_SECONDS) as usize + self.grain_size + self.tolerance + 64;
++            (sample_rate * Self::BUF_SECONDS) as usize + self.grain_size + self.tolerance * 2 + 64;
+         if self.analysis_buf.len() < buf_len {
+             self.analysis_buf = DelayLine::new(buf_len);
+-            self.output_buf = vec![0.0; buf_len];
+         }
+ 
+-        self.prev_tail.resize(self.hop_size, 0.0);
+-        self.read_offset = self.grain_size as f64 + self.tolerance as f64;
++        self.phase_inc = 1.0 / self.grain_size as f64;
++        self.offset_a = self.grain_size as f64;
++        self.offset_b = self.grain_size as f64 + self.grain_size as f64 * 0.5;
++
++        let tail_len = self.grain_size / 4;
++        self.prev_tail_a.resize(tail_len, 0.0);
++        self.prev_tail_b.resize(tail_len, 0.0);
+     }
+ 
+     pub fn reset(&mut self) {
+         self.analysis_buf.clear();
+-        self.output_buf.fill(0.0);
+-        self.output_pos = 0;
+-        self.read_offset = self.grain_size as f64 + self.tolerance as f64;
+-        self.hop_countdown = 0;
+-        self.prev_tail.fill(0.0);
++        self.offset_a = self.grain_size as f64;
++        self.offset_b = self.grain_size as f64 + self.grain_size as f64 * 0.5;
++        self.grain_phase = 0.0;
++        self.prev_tail_a.fill(0.0);
++        self.prev_tail_b.fill(0.0);
+         self.write_count = 0;
+     }
+ 
+-    /// Hann window value for index `i` within a window of length `len`.
++    /// sin^2(pi*phase) crossfade — sums to 1.0 with 0.5 offset.
+     #[inline]
+-    fn hann(i: usize, len: usize) -> f64 {
+-        0.5 * (1.0 - (std::f64::consts::TAU * i as f64 / len as f64).cos())
++    fn crossfade(phase: f64) -> f64 {
++        let s = (std::f64::consts::PI * phase).sin();
++        s * s
+     }
+ 
+-    /// Find the best offset within `[-tolerance, +tolerance]` around `nominal`
+-    /// that maximises normalised cross-correlation with `prev_tail`.
+-    fn best_offset(&self, nominal: f64) -> f64 {
+-        let overlap_len = self.prev_tail.len();
+-        let buf_len = self.analysis_buf.len();
++    /// Find best read offset near `nominal` using cross-correlation with `tail`.
++    fn best_offset(&self, nominal: f64, tail: &[f64]) -> f64 {
+         let tol = self.tolerance as isize;
++        let tail_len = tail.len();
++        let buf_len = self.analysis_buf.len();
+ 
+-        let mut best_corr: f64 = f64::NEG_INFINITY;
+-        let mut best_delta: isize = 0;
+-
+-        // Precompute energy of prev_tail.
+-        let mut energy_prev = 0.0f64;
+-        for s in &self.prev_tail {
+-            energy_prev += s * s;
++        let mut energy_tail = 0.0f64;
++        for s in tail {
++            energy_tail += s * s;
++        }
++        if energy_tail < 1e-12 {
++            return nominal;
+         }
+ 
++        let mut best_corr = f64::NEG_INFINITY;
++        let mut best_delta: isize = 0;
++
+         for delta in -tol..=tol {
+             let candidate = nominal + delta as f64;
+-            // Ensure the candidate read region is inside the buffer.
+-            if candidate < 1.0 || (candidate as usize + overlap_len) >= buf_len {
++            if candidate < 1.0 || (candidate as usize + tail_len) >= buf_len {
+                 continue;
+             }
+ 
+             let mut correlation = 0.0f64;
+             let mut energy_cand = 0.0f64;
+ 
+-            for i in 0..overlap_len {
+-                let cand_sample = self.analysis_buf.read(candidate as usize + i);
+-                correlation += self.prev_tail[i] * cand_sample;
+-                energy_cand += cand_sample * cand_sample;
++            for i in 0..tail_len {
++                let s = self.analysis_buf.read(candidate as usize + i);
++                correlation += tail[i] * s;
++                energy_cand += s * s;
+             }
+ 
+-            let denom = (energy_prev * energy_cand).sqrt();
++            let denom = (energy_tail * energy_cand).sqrt();
+             let norm_corr = if denom > 1e-12 {
+                 correlation / denom
+             } else {
+@@ -170,101 +151,71 @@ impl WsolaShifter {
+         nominal + best_delta as f64
+     }
+ 
+-    /// Place a Hann-windowed grain starting at `read_start` samples behind the
+-    /// write head into the output accumulator.
+-    fn place_grain(&mut self, read_start: f64) {
+-        let grain_len = self.grain_size;
+-        let buf_len = self.output_buf.len();
+-        let analysis_len = self.analysis_buf.len();
+-
+-        for i in 0..grain_len {
+-            let read_pos = read_start as usize + i;
+-            if read_pos == 0 || read_pos >= analysis_len {
+-                continue;
+-            }
+-            let sample = self.analysis_buf.read(read_pos);
+-            let win = Self::hann(i, grain_len);
+-
+-            let write_idx = (self.output_pos + i) % buf_len;
+-            self.output_buf[write_idx] += sample * win;
+-        }
+-
+-        // Store the tail of this grain (last hop_size samples, windowed) for
+-        // cross-correlation in the next grain placement.
+-        let tail_start = grain_len - self.hop_size;
+-        for i in 0..self.hop_size {
+-            let read_pos = read_start as usize + tail_start + i;
+-            if read_pos == 0 || read_pos >= analysis_len {
+-                self.prev_tail[i] = 0.0;
++    /// Save a short tail of audio at `offset` for future cross-correlation.
++    fn save_tail(&self, offset: f64, tail: &mut [f64]) {
++        let buf_len = self.analysis_buf.len();
++        for (i, t) in tail.iter_mut().enumerate() {
++            let pos = offset as usize + i;
++            if pos > 0 && pos < buf_len {
++                *t = self.analysis_buf.read(pos);
+             } else {
+-                let sample = self.analysis_buf.read(read_pos);
+-                let win = Self::hann(tail_start + i, grain_len);
+-                self.prev_tail[i] = sample * win;
++                *t = 0.0;
+             }
+         }
+     }
+ 
+-    /// Process one sample. Returns the pitch-shifted output.
+     #[inline]
+     pub fn tick(&mut self, input: f64) -> f64 {
+-        // Write input into analysis buffer.
+         self.analysis_buf.write(input);
+         self.write_count += 1;
+ 
+-        // Place grains at hop intervals.
+-        if self.hop_countdown == 0 {
+-            // Need enough data so that reading read_offset + grain_size behind
+-            // the write head stays within what has actually been written.
+-            let min_data = self.grain_size * 2 + self.tolerance;
+-            if self.write_count >= min_data {
+-                // Clamp read_offset so we never read beyond what has been
+-                // written (the delay line stores write_count samples at most).
+-                let max_readable =
+-                    self.write_count as f64 - self.grain_size as f64 - self.tolerance as f64;
+-                if self.read_offset > max_readable {
+-                    self.read_offset = max_readable.max(1.0);
+-                }
+-
+-                let nominal = self.read_offset;
+-
+-                // Search for best alignment via cross-correlation.
+-                let best_start = self.best_offset(nominal);
+-
+-                self.place_grain(best_start);
+-
+-                // Advance the read offset for the next grain.
+-                // Between grain placements the write head advances by
+-                // hop_size samples, so the read offset naturally decreases
+-                // by hop_size. We want it to decrease by hop_size / speed
+-                // instead (slower read = pitch down, faster read = pitch up).
+-                let advance = self.hop_size as f64;
+-                self.read_offset = self.read_offset - advance + advance / self.speed;
+-
+-                // Clamp read offset to stay within valid buffer range.
+-                let max_offset = self.analysis_buf.len() as f64
+-                    - self.grain_size as f64
+-                    - self.tolerance as f64
+-                    - 2.0;
+-                let min_offset = 1.0_f64;
+-                if self.read_offset < min_offset || self.read_offset > max_offset {
+-                    self.read_offset =
+-                        (self.grain_size as f64 + self.tolerance as f64 + 1.0).min(max_offset);
+-                }
+-            }
++        let max_offset = self.analysis_buf.len() as f64 - 4.0;
++        let drift = 1.0 - self.speed;
++
++        // Advance read heads by drift.
++        self.offset_a += drift;
++        self.offset_b += drift;
++
++        // Advance phase.
++        let prev_phase = self.grain_phase;
++        self.grain_phase += self.phase_inc;
++
++        // At grain boundary for A: find best alignment via cross-correlation.
++        if self.grain_phase >= 1.0 {
++            self.grain_phase -= 1.0;
++            let target = self.grain_size as f64;
++            let best = self.best_offset(target, &self.prev_tail_a);
++            self.offset_a = best.clamp(1.0, max_offset);
++            // Save a new tail from the aligned position.
++            let mut tail = vec![0.0; self.prev_tail_a.len()];
++            self.save_tail(self.offset_a, &mut tail);
++            self.prev_tail_a = tail;
++        }
+ 
+-            self.hop_countdown = self.hop_size;
++        // At grain boundary for B.
++        if prev_phase < 0.5 && self.grain_phase >= 0.5 {
++            let target = self.grain_size as f64;
++            let best = self.best_offset(target, &self.prev_tail_b);
++            self.offset_b = best.clamp(1.0, max_offset);
++            let mut tail = vec![0.0; self.prev_tail_b.len()];
++            self.save_tail(self.offset_b, &mut tail);
++            self.prev_tail_b = tail;
+         }
+-        self.hop_countdown -= 1;
+ 
+-        // Read from output accumulator and clear.
+-        let wet = self.output_buf[self.output_pos];
+-        self.output_buf[self.output_pos] = 0.0;
+-        self.output_pos = (self.output_pos + 1) % self.output_buf.len();
++        // Clamp offsets.
++        self.offset_a = self.offset_a.clamp(1.0, max_offset);
++        self.offset_b = self.offset_b.clamp(1.0, max_offset);
++
++        // Read grains with cubic interpolation.
++        let a = self.analysis_buf.read_cubic(self.offset_a);
++        let b = self.analysis_buf.read_cubic(self.offset_b);
++
++        // Crossfade.
++        let win_a = Self::crossfade(self.grain_phase);
++        let win_b = Self::crossfade((self.grain_phase + 0.5).fract());
++
++        let wet = a * win_a + b * win_b;
+ 
+-        // Normalize for 50% overlap (two grains overlap at any point).
+-        // The sum of two half-overlapped Hann windows averages ~1.0, but the
+-        // actual peak is ~1.0 and the trough is ~0.5, so we don't need extra
+-        // scaling for Hann OLA at 50% overlap (the Hann windows sum to 1).
+         input * (1.0 - self.mix) + wet * self.mix
+     }
+ 
+@@ -307,7 +258,6 @@ mod tests {
+     fn produces_output_on_sine() {
+         let mut w = make_wsola();
+         let freq = 220.0;
+-
+         let mut energy = 0.0;
+         let n = 48000;
+         for i in 0..n {
+@@ -334,39 +284,31 @@ mod tests {
+     fn different_speeds_differ() {
+         let freq = 220.0;
+         let n = 9600;
+-
+         let collect = |speed: f64| -> Vec<f64> {
+             let mut w = make_wsola();
+             w.speed = speed;
+-            let mut out = Vec::with_capacity(n);
+-            for i in 0..n {
+-                let s = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
+-                out.push(w.tick(s));
+-            }
+-            out
++            (0..n)
++                .map(|i| {
++                    let s = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
++                    w.tick(s)
++                })
++                .collect()
+         };
+-
+         let down = collect(0.5);
+         let up = collect(2.0);
+-
+         let diff: f64 = down
+             .iter()
+             .zip(up.iter())
+             .map(|(a, b)| (a - b).abs())
+             .sum::<f64>()
+             / n as f64;
+-
+-        assert!(
+-            diff > 0.001,
+-            "Different speeds should produce different output: {diff}"
+-        );
++        assert!(diff > 0.001, "Different speeds should differ: {diff}");
+     }
+ 
+     #[test]
+     fn dry_wet_mix() {
+         let mut w = make_wsola();
+         w.mix = 0.0;
+-
+         for i in 0..4800 {
+             let input = (2.0 * PI * 440.0 * i as f64 / SR).sin() * 0.5;
+             let out = w.tick(input);
+@@ -374,28 +316,73 @@ mod tests {
+         }
+     }
+ 
++    /// Measure pitch using YIN CMND (finds first local minimum below threshold).
++    fn measure_pitch(signal: &[f64], sample_rate: f64) -> f64 {
++        let min_period = (sample_rate / 2000.0) as usize;
++        let max_period = (sample_rate / 30.0) as usize;
++        let window = signal.len().min(max_period * 10);
++        let max_lag = max_period.min(window / 2);
++        if max_lag <= min_period {
++            return 0.0;
++        }
++        let threshold = 0.2;
++        let mut cmnd = vec![1.0f64; max_lag + 1];
++        let mut running_sum = 0.0;
++        for lag in 1..=max_lag {
++            let mut diff = 0.0;
++            let n = window - lag;
++            for i in 0..n {
++                let d = signal[i] - signal[i + lag];
++                diff += d * d;
++            }
++            running_sum += diff;
++            cmnd[lag] = if running_sum > 1e-12 {
++                diff * lag as f64 / running_sum
++            } else {
++                0.0
++            };
++        }
++        for lag in min_period..max_lag {
++            if cmnd[lag] < threshold && cmnd[lag + 1] > cmnd[lag] {
++                return sample_rate / lag as f64;
++            }
++        }
++        let mut best_lag = min_period;
++        let mut best_val = f64::MAX;
++        for lag in min_period..=max_lag {
++            if cmnd[lag] < best_val {
++                best_val = cmnd[lag];
++                best_lag = lag;
++            }
++        }
++        if best_val < 0.5 {
++            sample_rate / best_lag as f64
++        } else {
++            0.0
++        }
++    }
++
+     #[test]
+-    fn high_quality_sine() {
++    fn octave_down_pitch_accuracy() {
+         let mut w = make_wsola();
+-        w.speed = 2.0; // Octave up.
++        w.speed = 0.5;
+         w.update(SR);
+-
+-        let freq = 220.0;
+-        let n = 48000;
+-        let mut energy = 0.0;
+-
++        let freq = 440.0;
++        let n = 96000;
++        let mut output = Vec::with_capacity(n);
+         for i in 0..n {
+             let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
+-            let out = w.tick(input);
+-            // Skip startup latency.
+-            if i > 4096 {
+-                energy += out * out;
+-            }
++            output.push(w.tick(input));
+         }
+ 
++        // Measure pitch using autocorrelation on the second half (after warmup).
++        let start = n / 2;
++        let measured_freq = measure_pitch(&output[start..], SR);
++        let expected = freq * 0.5;
++        let error_cents = 1200.0 * (measured_freq / expected).log2().abs();
+         assert!(
+-            energy > 0.1,
+-            "Octave-up sine should produce measurable energy: {energy}"
++            error_cents < 100.0,
++            "Octave down should be ~{expected}Hz, got {measured_freq:.1}Hz ({error_cents:.0}c error)"
+         );
+     }
+ }

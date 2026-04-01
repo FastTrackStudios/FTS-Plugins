@@ -1,0 +1,15 @@
+diff --git a/flake.nix b/flake.nix
+index a14fb05..c904059 100644
+--- a/flake.nix
++++ b/flake.nix
+@@ -119,6 +119,10 @@
+                     # Audio libs
+                     alsa-lib
+                     pipewire.jack
++                    rubberband
++
++                    # C/C++ bindgen (signalsmith-stretch build)
++                    llvmPackages.libclang
+ 
+                     # Misc system libs
+                     dbus

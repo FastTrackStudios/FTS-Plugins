@@ -1,0 +1,23 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 6a75305..a377816 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -3781,10 +3781,7 @@ checksum = "f9e2d4c0a8296178d8802098410ca05d86b17a10bb5ab559b3fb404c1f948220"
+ name = "gui-test"
+ version = "0.1.0"
+ dependencies = [
+- "atomic_float 1.1.0",
+- "comp-plugin",
+  "nih_plug_dioxus",
+- "png",
+  "x11rb",
+ ]
+ 
+@@ -6220,6 +6217,7 @@ dependencies = [
+  "criterion",
+  "fts-dsp",
+  "hound",
++ "realfft",
+  "rustfft",
+  "serde",
+  "signalsmith-stretch",

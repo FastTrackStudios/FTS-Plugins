@@ -1,0 +1,68 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..787e063 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5752,6 +5752,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..822350b 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -86,6 +86,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 0428b91..a3546c4 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -449,6 +449,8 @@ pub fn high_shelf_resonant(freq_hz: f64, q: f64, gain_db: f64, sample_rate: f64)
+     ]
+ }
+ 
++// ── Anti-cramping correction ────────────────────────────────────────
++
+ // ── Flat tilt ───────────────────────────────────────────────────────
+ 
+ pub fn flat_tilt_section(pole_hz: f64, zero_hz: f64, pivot_hz: f64, sample_rate: f64) -> Coeffs {

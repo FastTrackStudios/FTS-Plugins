@@ -1,0 +1,378 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..9db8ebe 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5752,6 +5752,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+@@ -6006,6 +6034,31 @@ dependencies = [
+  "serde_json",
+ ]
+ 
++[[package]]
++name = "nam-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "crossbeam-channel",
++ "fts-dsp",
++ "fts-plugin-core",
++ "fts-sample",
++ "nam-dsp",
++ "nam-ui",
++ "nih_plug",
++ "serde",
++]
++
++[[package]]
++name = "nam-ui"
++version = "0.1.0"
++dependencies = [
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-plugin-core",
++ "nam-dsp",
++]
++
+ [[package]]
+ name = "native-tls"
+ version = "0.2.18"
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..4e4d8b0 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -74,6 +74,8 @@ members = [
+ 
+     # NAM plugin (Neural Amp Modeler)
+     "crates/fts-nam/nam-dsp",
++    "crates/fts-nam/nam-ui",
++    "crates/fts-nam/nam-plugin",
+ 
+     # Shared sample loading
+     "crates/fts-sample",
+@@ -86,6 +88,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+diff --git a/Justfile b/Justfile
+index 5365dc3..85df7fd 100644
+--- a/Justfile
++++ b/Justfile
+@@ -39,38 +39,47 @@ build-debug plugin=PLUGIN_NAME: (bundle-debug plugin)
+ 
+ # ── Install Commands ──────────────────────────────────────────────────
+ 
+-# Install a bundled CLAP plugin to REAPER's FX directory
++# Install a bundled CLAP plugin via symlink to REAPER FX directories
+ install plugin=PLUGIN_NAME: (bundle plugin)
+     #!/usr/bin/env bash
+     set -euo pipefail
+ 
+-    # Determine FX directory (Linux vs macOS)
+-    if [ "$(uname)" = "Darwin" ]; then
+-        FX_DIR="{{FX_DIR_MAC}}"
+-    else
+-        # Use REAPER config from env if set (nix shell), else default
+-        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
+-    fi
+-
+     CLAP_FILE="{{plugin}}.clap"
++    BUNDLED="$(realpath ./target/bundled/$CLAP_FILE)"
+ 
+-    mkdir -p "$FX_DIR"
+-
+-    # Remove old plugin
+-    if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -d "$FX_DIR/$CLAP_FILE" ]; then
+-        rm -rf "$FX_DIR/$CLAP_FILE"
+-        echo "Removed old $CLAP_FILE"
+-    fi
+-
+-    # Copy new plugin
+-    BUNDLED="./target/bundled/$CLAP_FILE"
+     if [ ! -e "$BUNDLED" ]; then
+         echo "ERROR: $BUNDLED not found. Did the build succeed?"
+         exit 1
+     fi
+ 
+-    cp -r "$BUNDLED" "$FX_DIR/"
+-    echo "Installed: $FX_DIR/$CLAP_FILE"
++    # Symlink into both REAPER FX directories
++    if [ "$(uname)" = "Darwin" ]; then
++        FX_DIRS=("{{FX_DIR_MAC}}")
++    else
++        FX_DIRS=(
++            "{{REAPER_CONFIG}}/UserPlugins/FX"
++            "{{FX_DIR_LINUX}}"
++        )
++    fi
++
++    # Deduplicate (in case REAPER_CONFIG points to ~/.config/REAPER)
++    declare -A SEEN
++    for FX_DIR in "${FX_DIRS[@]}"; do
++        REAL_DIR="$(mkdir -p "$FX_DIR" && realpath "$FX_DIR")"
++        if [ -n "${SEEN[$REAL_DIR]+x}" ]; then
++            continue
++        fi
++        SEEN[$REAL_DIR]=1
++
++        # Remove old plugin (file, dir, or symlink)
++        DEST="$FX_DIR/$CLAP_FILE"
++        if [ -e "$DEST" ] || [ -L "$DEST" ]; then
++            rm -rf "$DEST"
++        fi
++
++        ln -s "$BUNDLED" "$DEST"
++        echo "Symlinked: $DEST -> $BUNDLED"
++    done
+ 
+ # Install and show REAPER reload instructions
+ install-reload plugin=PLUGIN_NAME: (install plugin)
+@@ -79,21 +88,39 @@ install-reload plugin=PLUGIN_NAME: (install plugin)
+     echo "Restart REAPER or rescan plugins to pick up the new build."
+     echo "  REAPER → Options → Preferences → Plug-ins → Re-scan"
+ 
+-# Uninstall a plugin from FX directory
++# Uninstall a plugin from all FX directories
+ uninstall plugin=PLUGIN_NAME:
+     #!/usr/bin/env bash
+     set -euo pipefail
++    CLAP_FILE="{{plugin}}.clap"
++
+     if [ "$(uname)" = "Darwin" ]; then
+-        FX_DIR="{{FX_DIR_MAC}}"
++        FX_DIRS=("{{FX_DIR_MAC}}")
+     else
+-        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
++        FX_DIRS=(
++            "{{REAPER_CONFIG}}/UserPlugins/FX"
++            "{{FX_DIR_LINUX}}"
++        )
+     fi
+-    CLAP_FILE="{{plugin}}.clap"
+-    if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -d "$FX_DIR/$CLAP_FILE" ]; then
+-        rm -rf "$FX_DIR/$CLAP_FILE"
+-        echo "Removed: $FX_DIR/$CLAP_FILE"
+-    else
+-        echo "Not found: $FX_DIR/$CLAP_FILE"
++
++    FOUND=0
++    declare -A SEEN
++    for FX_DIR in "${FX_DIRS[@]}"; do
++        [ -d "$FX_DIR" ] || continue
++        REAL_DIR="$(realpath "$FX_DIR")"
++        [ -n "${SEEN[$REAL_DIR]+x}" ] && continue
++        SEEN[$REAL_DIR]=1
++
++        DEST="$FX_DIR/$CLAP_FILE"
++        if [ -e "$DEST" ] || [ -L "$DEST" ]; then
++            rm -rf "$DEST"
++            echo "Removed: $DEST"
++            FOUND=1
++        fi
++    done
++
++    if [ "$FOUND" = "0" ]; then
++        echo "Not found: $CLAP_FILE"
+     fi
+ 
+ # ── REAPER Commands ───────────────────────────────────────────────────
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 0428b91..4ec002e 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -1,7 +1,7 @@
+ //! Filter coefficient calculation — hybrid matched/RBJ approach.
+ //!
+-//! Peak, notch, allpass, and tilt shelf use Vicanek matched design (no Nyquist cramping).
+-//! LP, HP, bandpass, and shelves use RBJ cookbook (bilinear transform) to match Pro-Q 4.
++//! Peak, notch, allpass, and 1st-order shelves use Vicanek matched design (no Nyquist cramping).
++//! LP, HP, bandpass, 2nd-order shelves, and tilt shelf use RBJ cookbook (bilinear transform).
+ 
+ use std::f64::consts::PI;
+ 
+@@ -250,40 +250,15 @@ pub fn highpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+ }
+ 
+ pub fn low_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
++    // Vicanek matched 1-pole low shelf (no Nyquist cramping).
++    // Low shelf = high shelf with 1/G, then scale b coefficients by G.
+     let g = 10.0_f64.powf(gain_db / 20.0);
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz / g.sqrt()
+-    } else {
+-        freq_hz * g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let gwc = g * wc;
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (1.0 + gwc) * a0_inv,
+-            (-1.0 + gwc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let wc_g = wc / g;
+-        let a0_inv = 1.0 / (1.0 + wc_g);
+-        [
+-            1.0,
+-            (-1.0 + wc_g) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    let c = high_shelf_1_matched(freq_hz, 1.0 / g, sample_rate);
++    // Scale numerator by gain to get low-shelf DC=G, Nyquist=1
++    [c[0], c[1], c[2], c[3] * g, c[4] * g, c[5]]
+ }
+ 
+ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+@@ -291,35 +266,31 @@ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz * g.sqrt()
+-    } else {
+-        freq_hz / g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (g + wc) * a0_inv,
+-            (-g + wc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let g_inv = 1.0 / g;
+-        let a0_inv = 1.0 / (g_inv + wc);
+-        [
+-            1.0,
+-            (-g_inv + wc) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    high_shelf_1_matched(freq_hz, g, sample_rate)
++}
++
++/// Vicanek matched 1-pole high shelf filter.
++/// fc is in Hz, g is linear gain (>1 boost, <1 cut).
++fn high_shelf_1_matched(freq_hz: f64, g: f64, sample_rate: f64) -> Coeffs {
++    let fc = freq_hz / (sample_rate / 2.0); // normalize to Nyquist
++    let fc = fc.max(1e-6);
++    let fc_sq = fc * fc;
++    let fm = 0.9_f64; // matching point slightly below Nyquist
++    let phi_m = 1.0 - (PI * fm).cos();
++
++    // Use eq. 12 with matching point fm = 0.9
++    let alpha = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + 1.0 / (g * fc_sq)) - 1.0 / phi_m;
++    let beta = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + g / fc_sq) - 1.0 / phi_m;
++
++    // Recover a1 and b ratio from α and β (eq. 10)
++    let a1 = -alpha / (1.0 + alpha + (1.0 + 2.0 * alpha).max(0.0).sqrt());
++    let b_ratio = -beta / (1.0 + beta + (1.0 + 2.0 * beta).max(0.0).sqrt());
++
++    // High shelf normalization: DC gain = 1, so b0 + b1 = 1 + a1 (eq. 6/11)
++    let b0 = (1.0 + a1) / (1.0 + b_ratio);
++    let b1 = b_ratio * b0;
++
++    [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+ pub fn allpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+diff --git a/xtask/src/main.rs b/xtask/src/main.rs
+index b7e1cf0..e8cdbed 100644
+--- a/xtask/src/main.rs
++++ b/xtask/src/main.rs
+@@ -105,22 +105,27 @@ fn reaper_test(
+         return Err(format!("Failed to bundle {package}").into());
+     }
+ 
+-    // Install the CLAP to FX dir
++    // Symlink the CLAP to FX dir
+     let clap_file = format!("{package}.clap");
+     let bundled = workspace_root.join("target/bundled").join(&clap_file);
+     let fx_dir = user_plugins_dir.join("FX");
+     std::fs::create_dir_all(&fx_dir)?;
+     if bundled.exists() {
+         let dest = fx_dir.join(&clap_file);
+-        if dest.exists() {
++        if dest.exists() || dest.is_symlink() {
+             let _ = std::fs::remove_file(&dest).or_else(|_| std::fs::remove_dir_all(&dest));
+         }
+-        if bundled.is_dir() {
+-            copy_dir_recursive(&bundled, &dest)?;
+-        } else {
+-            std::fs::copy(&bundled, &dest)?;
++        #[cfg(unix)]
++        std::os::unix::fs::symlink(&bundled, &dest)?;
++        #[cfg(not(unix))]
++        {
++            if bundled.is_dir() {
++                copy_dir_recursive(&bundled, &dest)?;
++            } else {
++                std::fs::copy(&bundled, &dest)?;
++            }
+         }
+-        println!("  Installed {clap_file} -> {}", fx_dir.display());
++        println!("  Symlinked {clap_file} -> {}", bundled.display());
+     } else {
+         println!("  WARNING: {clap_file} not found at {}", bundled.display());
+     }

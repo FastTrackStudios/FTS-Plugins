@@ -1,0 +1,667 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..1b500ee 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5752,6 +5752,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+@@ -6006,6 +6034,28 @@ dependencies = [
+  "serde_json",
+ ]
+ 
++[[package]]
++name = "nam-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "nam-dsp",
++ "nam-ui",
++ "nih_plug",
++]
++
++[[package]]
++name = "nam-ui"
++version = "0.1.0"
++dependencies = [
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-plugin-core",
++ "nam-dsp",
++]
++
+ [[package]]
+ name = "native-tls"
+ version = "0.2.18"
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..4e4d8b0 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -74,6 +74,8 @@ members = [
+ 
+     # NAM plugin (Neural Amp Modeler)
+     "crates/fts-nam/nam-dsp",
++    "crates/fts-nam/nam-ui",
++    "crates/fts-nam/nam-plugin",
+ 
+     # Shared sample loading
+     "crates/fts-sample",
+@@ -86,6 +88,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 0082794..4849e95 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -1,8 +1,9 @@
+ //! Linear-domain envelope detector with scaled time constants.
+ //!
+ //! Single-stage asymmetric 1-pole filter operating on |input| in the linear
+-//! domain, then converting to dB. This avoids zero-crossing artifacts inherent
+-//! in dB-domain detection while preserving natural signal dynamics.
++//! domain, then converting to dB. A minimum attack time prevents the
++//! coefficient from reaching zero, ensuring frequency-independent detection
++//! by averaging over high-frequency cycles.
+ 
+ use fts_dsp::db::{linear_to_db, DB_FLOOR};
+ 
+@@ -10,12 +11,17 @@ use fts_dsp::db::{linear_to_db, DB_FLOOR};
+ const MAX_CH: usize = 2;
+ 
+ /// Scaling factor for attack time constant.
+-/// Converts from user-facing "attack time" to 1-pole coefficient.
+ const ATTACK_SCALE: f64 = 1.8;
+ 
+ /// Scaling factor for release time constant.
+ const RELEASE_SCALE: f64 = 1.3;
+ 
++/// Minimum attack time in seconds.
++/// Prevents coefficient from going to zero at very fast attack settings,
++/// ensuring the detector averages over high-frequency cycles rather than
++/// tracking individual sample peaks.
++const MIN_ATTACK_S: f64 = 0.0005;
++
+ /// Minimum release time in seconds to prevent zero-crossing collapse.
+ const MIN_RELEASE_S: f64 = 0.009;
+ 
+@@ -23,16 +29,13 @@ const MIN_RELEASE_S: f64 = 0.009;
+ /// Linear-domain envelope detector.
+ ///
+ /// Operates directly on |input| in the linear domain with user-controlled
+-/// attack/release, then converts the smoothed envelope to dB. The linear
+-/// domain gives frequency-independent detection since the 1-pole filter
+-/// averages over zero crossings naturally.
++/// attack/release, then converts the smoothed envelope to dB.
+ pub struct Detector {
+     /// Smoothed envelope (linear) per channel.
+     env: [f64; MAX_CH],
+     /// Previous output sample per channel (for feedback detection).
+     prev_output: [f64; MAX_CH],
+ 
+-    // Coefficients (user-controlled, with scaling)
+     attack_coeff: f64,
+     release_coeff: f64,
+     sample_rate: f64,
+@@ -50,11 +53,9 @@ impl Detector {
+     }
+ 
+     /// Update coefficients for new attack/release times or sample rate.
+-    ///
+-    /// `attack_s` and `release_s` are in seconds.
+     pub fn set_params(&mut self, attack_s: f64, release_s: f64, sample_rate: f64) {
+         self.sample_rate = sample_rate;
+-        self.attack_coeff = Self::coeff(attack_s, sample_rate, ATTACK_SCALE);
++        self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, ATTACK_SCALE);
+         self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, RELEASE_SCALE);
+     }
+ 
+@@ -69,10 +70,6 @@ impl Detector {
+     }
+ 
+     /// Feed a sample into the detector and return the smoothed level in dB.
+-    ///
+-    /// `input_abs` is the absolute value of the input sample.
+-    /// `feedback` is the feedback amount (0.0 = pure feedforward, 1.0 = full feedback).
+-    /// `ch` is the channel index (0 or 1).
+     #[inline]
+     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
+         let combined = input_abs + self.prev_output[ch].abs() * feedback;
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 0428b91..c185b19 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -250,40 +250,15 @@ pub fn highpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+ }
+ 
+ pub fn low_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
++    // Vicanek matched 1-pole low shelf (no Nyquist cramping).
++    // Low shelf = high shelf with 1/G, then scale b coefficients by G.
+     let g = 10.0_f64.powf(gain_db / 20.0);
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz / g.sqrt()
+-    } else {
+-        freq_hz * g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let gwc = g * wc;
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (1.0 + gwc) * a0_inv,
+-            (-1.0 + gwc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let wc_g = wc / g;
+-        let a0_inv = 1.0 / (1.0 + wc_g);
+-        [
+-            1.0,
+-            (-1.0 + wc_g) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    let c = high_shelf_1_matched(freq_hz, 1.0 / g, sample_rate);
++    // Scale numerator by gain to get low-shelf DC=G, Nyquist=1
++    [c[0], c[1], c[2], c[3] * g, c[4] * g, c[5]]
+ }
+ 
+ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+@@ -291,35 +266,31 @@ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz * g.sqrt()
+-    } else {
+-        freq_hz / g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (g + wc) * a0_inv,
+-            (-g + wc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let g_inv = 1.0 / g;
+-        let a0_inv = 1.0 / (g_inv + wc);
+-        [
+-            1.0,
+-            (-g_inv + wc) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    high_shelf_1_matched(freq_hz, g, sample_rate)
++}
++
++/// Vicanek matched 1-pole high shelf filter.
++/// fc is in Hz, g is linear gain (>1 boost, <1 cut).
++fn high_shelf_1_matched(freq_hz: f64, g: f64, sample_rate: f64) -> Coeffs {
++    let fc = freq_hz / (sample_rate / 2.0); // normalize to Nyquist
++    let fc = fc.max(1e-6);
++    let fc_sq = fc * fc;
++    let fm = 0.9_f64; // matching point slightly below Nyquist
++    let phi_m = 1.0 - (PI * fm).cos();
++
++    // Use eq. 12 with matching point fm = 0.9
++    let alpha = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + 1.0 / (g * fc_sq)) - 1.0 / phi_m;
++    let beta = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + g / fc_sq) - 1.0 / phi_m;
++
++    // Recover a1 and b ratio from α and β (eq. 10)
++    let a1 = -alpha / (1.0 + alpha + (1.0 + 2.0 * alpha).max(0.0).sqrt());
++    let b_ratio = -beta / (1.0 + beta + (1.0 + 2.0 * beta).max(0.0).sqrt());
++
++    // High shelf normalization: DC gain = 1, so b0 + b1 = 1 + a1 (eq. 6/11)
++    let b0 = (1.0 + a1) / (1.0 + b_ratio);
++    let b1 = b_ratio * b0;
++
++    [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+ pub fn allpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+@@ -340,6 +311,7 @@ fn low_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
++    // RBJ cookbook low shelf — used in gain-split cascades where parametric Q matters.
+     let a_amp = g.sqrt();
+     let sin_w0 = w0.sin();
+     let cos_w0 = w0.cos();
+@@ -353,14 +325,7 @@ fn low_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     let b1 = 2.0 * a_amp * ((a_amp - 1.0) - (a_amp + 1.0) * cos_w0);
+     let b2 = a_amp * ((a_amp + 1.0) - (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha);
+     let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+ fn high_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+@@ -380,14 +345,7 @@ fn high_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     let b1 = -2.0 * a_amp * ((a_amp - 1.0) + (a_amp + 1.0) * cos_w0);
+     let b2 = a_amp * ((a_amp + 1.0) + (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha);
+     let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+ /// Zoelzer parametric low shelf with resonance support.
+@@ -449,6 +407,8 @@ pub fn high_shelf_resonant(freq_hz: f64, q: f64, gain_db: f64, sample_rate: f64)
+     ]
+ }
+ 
++// ── Anti-cramping correction ────────────────────────────────────────
++
+ // ── Flat tilt ───────────────────────────────────────────────────────
+ 
+ pub fn flat_tilt_section(pole_hz: f64, zero_hz: f64, pivot_hz: f64, sample_rate: f64) -> Coeffs {
+diff --git a/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs b/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
+index f13d87f..8ec9e0d 100644
+--- a/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
++++ b/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
+@@ -1,14 +1,15 @@
+ //! Barberpole pitch shifter — Dattorro/Schroeder style with cubic interpolation.
+ //!
+ //! Two read heads sweep through a circular delay buffer at a rate determined
+-//! by the pitch ratio. When one head nears the end of its sweep, a sin²
+-//! crossfade transitions to the other head. Cubic (Catmull-Rom) interpolation
+-//! provides sub-sample accuracy without the clicking artifacts of allpass
+-//! interpolation (no recursive state to "fly back").
++//! by the pitch ratio. Each head's crossfade envelope is derived directly from
++//! its sweep phase, guaranteeing that resets happen ONLY at zero crossfade
++//! weight — eliminating rollover stutters entirely.
+ //!
+-//! At splice points, a short cross-correlation search finds the best
+-//! phase-aligned position for the incoming head (H949-style de-glitching),
+-//! minimizing audible discontinuities during crossfade.
++//! At reset points, a cross-correlation search (H949-style) finds the best
++//! phase-aligned position for the incoming head.
++//!
++//! Cubic (Catmull-Rom) interpolation provides sub-sample accuracy without
++//! the clicking artifacts of allpass interpolation.
+ //!
+ //! Latency: **0 samples** — output is produced immediately.
+ //! Character: Classic hardware pitch shifter (Eventide H3000, Boss PS-series).
+@@ -16,7 +17,12 @@
+ use fts_dsp::delay_line::DelayLine;
+ use std::f64::consts::PI;
+ 
+-const BUFFER_SIZE: usize = 8192;
++const BUFFER_SIZE: usize = 16384;
++/// Each head sweeps half the buffer before resetting. Longer sweep = slower
++/// crossfade cycling = less comb filtering / metallic coloration.
++const SWEEP_LEN: f64 = (BUFFER_SIZE / 2) as f64;
++/// Minimum read offset (margin for cubic interpolation).
++const BASE_OFFSET: f64 = 4.0;
+ /// Tolerance (in samples) for cross-correlation splice search.
+ const SPLICE_TOLERANCE: usize = 128;
+ /// Length of the comparison window for splice cross-correlation.
+@@ -30,14 +36,18 @@ pub struct AllpassShifter {
+ 
+     delay: DelayLine,
+ 
+-    /// Fractional read offset for head A (samples behind write head).
++    /// Sweep phase for head A [0.0, 1.0). Drives both position and crossfade.
++    /// At phase=0: weight=sin²(0)=0, head resets (silent).
++    /// At phase=0.5: weight=sin²(π/2)=1, head at full volume.
++    sweep_a: f64,
++    /// Sweep phase for head B [0.0, 1.0). Offset by 0.5 from head A.
++    sweep_b: f64,
++
++    /// Read offset for head A (samples behind write head).
+     head_a: f64,
+-    /// Fractional read offset for head B.
++    /// Read offset for head B.
+     head_b: f64,
+ 
+-    /// Phase of head A within its sweep (0.0–1.0). Drives the crossfade.
+-    phase_a: f64,
+-
+     sample_rate: f64,
+ }
+ 
+@@ -47,9 +57,10 @@ impl AllpassShifter {
+             speed: 0.5,
+             mix: 1.0,
+             delay: DelayLine::new(BUFFER_SIZE),
+-            head_a: 1.0,
+-            head_b: (BUFFER_SIZE / 2) as f64,
+-            phase_a: 0.0,
++            sweep_a: 0.0,
++            sweep_b: 0.5,
++            head_a: BASE_OFFSET,
++            head_b: BASE_OFFSET + SWEEP_LEN * 0.5,
+             sample_rate: 48000.0,
+         }
+     }
+@@ -60,13 +71,13 @@ impl AllpassShifter {
+ 
+     pub fn reset(&mut self) {
+         self.delay.clear();
+-        self.head_a = 1.0;
+-        self.head_b = (BUFFER_SIZE / 2) as f64;
+-        self.phase_a = 0.0;
++        self.sweep_a = 0.0;
++        self.sweep_b = 0.5;
++        self.head_a = BASE_OFFSET;
++        self.head_b = BASE_OFFSET + SWEEP_LEN * 0.5;
+     }
+ 
+     /// Crossfade window: sin²(π * phase).
+-    /// Two windows offset by 0.5 sum to exactly 1.0.
+     #[inline]
+     fn crossfade(phase: f64) -> f64 {
+         let s = (PI * phase).sin();
+@@ -74,15 +85,12 @@ impl AllpassShifter {
+     }
+ 
+     /// Find the best splice offset near `nominal` using cross-correlation
+-    /// with a short tail read from `reference_offset`. This is the H949
+-    /// de-glitching technique: align the incoming head's audio with the
+-    /// outgoing head's audio to minimize phase discontinuity.
++    /// with audio at `reference_offset` (the other head's current position).
+     fn find_splice_offset(&self, nominal: f64, reference_offset: f64) -> f64 {
+         let buf_len = self.delay.len();
+         let tail_len = SPLICE_TAIL_LEN.min(buf_len / 4);
+         let tolerance = SPLICE_TOLERANCE as isize;
+ 
+-        // Read reference tail from the outgoing head position.
+         let mut ref_energy = 0.0f64;
+         let mut ref_tail = [0.0f64; SPLICE_TAIL_LEN];
+         for i in 0..tail_len {
+@@ -93,7 +101,6 @@ impl AllpassShifter {
+             }
+         }
+ 
+-        // If the reference is silent, just use the nominal position.
+         if ref_energy < 1e-12 {
+             return nominal;
+         }
+@@ -132,50 +139,63 @@ impl AllpassShifter {
+         nominal + best_delta as f64
+     }
+ 
++    /// Compute the reset offset for a head. For pitch-down (drift > 0), heads
++    /// sweep away from the write head, so reset to close. For pitch-up
++    /// (drift < 0), heads sweep toward the write head, so reset to far.
++    #[inline]
++    fn reset_offset(&self, drift: f64) -> f64 {
++        if drift >= 0.0 {
++            BASE_OFFSET
++        } else {
++            BASE_OFFSET + SWEEP_LEN
++        }
++    }
++
+     /// Process one sample. Returns the mixed (dry/wet) output.
+     #[inline]
+     pub fn tick(&mut self, input: f64) -> f64 {
+         self.delay.write(input);
+ 
+         let drift = 1.0 - self.speed;
+-        let half_buf = (BUFFER_SIZE / 2) as f64;
+-        let max_offset = (BUFFER_SIZE - 4) as f64; // leave room for cubic interp
++        let abs_drift = drift.abs().max(0.0001);
++        let phase_inc = abs_drift / SWEEP_LEN;
++
++        // Advance sweep phases.
++        self.sweep_a += phase_inc;
++        self.sweep_b += phase_inc;
+ 
+-        // Advance read heads.
++        // Advance read head offsets by drift.
+         self.head_a += drift;
+         self.head_b += drift;
+ 
+-        // Wrap heads: when a head drifts out of range, find a phase-aligned
+-        // splice point near half-buffer offset from the other head.
+-        if self.head_a < 1.0 || self.head_a > max_offset {
+-            let nominal = ((self.head_b + half_buf - 1.0) % max_offset) + 1.0;
++        // Reset head A at phase wrap — crossfade weight is sin²(0) = 0 here,
++        // so the head is completely silent. No audible discontinuity.
++        if self.sweep_a >= 1.0 {
++            self.sweep_a -= 1.0;
++            let nominal = self.reset_offset(drift);
+             self.head_a = self.find_splice_offset(nominal, self.head_b);
+-            self.head_a = self.head_a.clamp(1.0, max_offset);
+-            self.phase_a = 0.0;
++            self.head_a = self.head_a.clamp(BASE_OFFSET, BASE_OFFSET + SWEEP_LEN);
+         }
+-        if self.head_b < 1.0 || self.head_b > max_offset {
+-            let nominal = ((self.head_a + half_buf - 1.0) % max_offset) + 1.0;
++
++        // Reset head B at phase wrap.
++        if self.sweep_b >= 1.0 {
++            self.sweep_b -= 1.0;
++            let nominal = self.reset_offset(drift);
+             self.head_b = self.find_splice_offset(nominal, self.head_a);
+-            self.head_b = self.head_b.clamp(1.0, max_offset);
+-            self.phase_a = 0.5;
++            self.head_b = self.head_b.clamp(BASE_OFFSET, BASE_OFFSET + SWEEP_LEN);
+         }
+ 
+-        // Read from each head with cubic (Catmull-Rom) interpolation.
+-        // No recursive state — no coefficient flyback clicks.
++        // Read from each head with cubic interpolation.
+         let a = self.delay.read_cubic(self.head_a);
+         let b = self.delay.read_cubic(self.head_b);
+ 
+-        // Crossfade envelope: head A uses phase_a, head B uses phase_a + 0.5.
+-        let win_a = Self::crossfade(self.phase_a);
+-        let phase_b = (self.phase_a + 0.5).fract();
+-        let win_b = Self::crossfade(phase_b);
++        // Crossfade derived directly from sweep phase.
++        // sin²(π * sweep) = 0 at sweep=0 (reset point), 1 at sweep=0.5 (peak).
++        let win_a = Self::crossfade(self.sweep_a);
++        let win_b = Self::crossfade(self.sweep_b);
+ 
+         let wet = a * win_a + b * win_b;
+ 
+-        // Advance the crossfade phase.
+-        let phase_inc = drift.abs().max(0.001) / BUFFER_SIZE as f64;
+-        self.phase_a = (self.phase_a + phase_inc) % 1.0;
+-
+         input * (1.0 - self.mix) + wet * self.mix
+     }
+ 
+@@ -240,8 +260,6 @@ mod tests {
+ 
+     #[test]
+     fn no_large_spikes() {
+-        // Verify no crackling/clicking: output should never exceed input amplitude
+-        // by more than a small margin (cubic overshoot).
+         let mut s = make_shifter();
+         let amplitude = 0.5;
+         let mut max_out = 0.0f64;
+@@ -252,14 +270,45 @@ mod tests {
+                 max_out = max_out.max(out.abs());
+             }
+         }
+-        // Cubic interpolation can overshoot slightly, but clicks would produce
+-        // spikes well above the input amplitude.
+         assert!(
+             max_out < amplitude * 1.5,
+             "Output spikes too high (crackling?): max={max_out}, input_amp={amplitude}"
+         );
+     }
+ 
++    #[test]
++    fn crossfade_sums_to_one() {
++        // Verify that the two sweep phases always produce crossfade weights
++        // summing to 1.0 (constant-power guarantee).
++        let mut s = make_shifter();
++        for i in 0..48000 {
++            let input = (2.0 * PI * 440.0 * i as f64 / SR).sin() * 0.5;
++            s.tick(input);
++
++            let win_a = AllpassShifter::crossfade(s.sweep_a);
++            let win_b = AllpassShifter::crossfade(s.sweep_b);
++            let sum = win_a + win_b;
++            assert!(
++                (sum - 1.0).abs() < 0.01,
++                "Crossfade should sum to ~1.0 at sample {i}: sweep_a={:.3}, sweep_b={:.3}, sum={sum:.4}",
++                s.sweep_a, s.sweep_b
++            );
++        }
++    }
++
++    #[test]
++    fn sweep_phases_offset_by_half() {
++        // After initialization, sweep_b should be ~0.5 ahead of sweep_a.
++        let s = make_shifter();
++        let diff = (s.sweep_b - s.sweep_a - 0.5).abs();
++        assert!(
++            diff < 0.01,
++            "Sweep phases should be offset by 0.5: a={}, b={}",
++            s.sweep_a,
++            s.sweep_b
++        );
++    }
++
+     #[test]
+     fn different_speeds_differ() {
+         let freq = 440.0;
+@@ -314,30 +363,50 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn splice_reduces_discontinuity() {
+-        // Compare output with and without splice cross-correlation.
+-        // The spliced version should have lower peak-to-peak jumps at wrap points.
+-        let freq = 440.0;
+-        let n = 48000;
+-
++    fn no_rollover_stutter() {
++        // Run long enough for multiple head resets and verify smooth output.
++        // A stutter would show up as a sudden amplitude dip at reset points.
+         let mut s = make_shifter();
+-        let mut max_jump = 0.0f64;
+-        let mut prev = 0.0;
++        let freq = 220.0;
++        let n = 96000; // ~2 seconds, multiple resets
++
++        let mut output = Vec::with_capacity(n);
+         for i in 0..n {
+             let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
+-            let out = s.tick(input);
+-            if i > BUFFER_SIZE {
+-                let jump = (out - prev).abs();
+-                max_jump = max_jump.max(jump);
+-            }
+-            prev = out;
++            output.push(s.tick(input));
+         }
+ 
+-        // A well-spliced pitch shifter should have no sample-to-sample jumps
+-        // larger than ~2x the input amplitude (generous margin).
+-        assert!(
+-            max_jump < 1.0,
+-            "Max sample-to-sample jump too large (clicking?): {max_jump}"
+-        );
++        // Measure RMS in 512-sample windows after warmup.
++        // All windows should have similar energy (no sudden dips/spikes).
++        let start = BUFFER_SIZE * 2;
++        let window = 512;
++        let mut rms_values = Vec::new();
++        let mut i = start;
++        while i + window <= n {
++            let rms: f64 = (output[i..i + window]
++                .iter()
++                .map(|s| s * s)
++                .sum::<f64>()
++                / window as f64)
++                .sqrt();
++            rms_values.push(rms);
++            i += window;
++        }
++
++        if rms_values.len() > 2 {
++            let median = {
++                let mut sorted = rms_values.clone();
++                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
++                sorted[sorted.len() / 2]
++            };
++
++            for (idx, &rms) in rms_values.iter().enumerate() {
++                assert!(
++                    rms > median * 0.3,
++                    "RMS dip at window {idx} ({:.4} vs median {:.4}) — possible rollover stutter",
++                    rms, median
++                );
++            }
++        }
+     }
+ }

@@ -1,0 +1,54 @@
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index 137c6c5..b11d874 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -11,6 +11,8 @@ use crate::divider::{DivideRatio, FreqDivider};
+ use crate::granular::GranularShifter;
+ use crate::pll::{PllOctave, PllTracker, SubWaveform};
+ use crate::psola::PsolaShifter;
++use crate::rubberband::RubberbandShifter;
++use crate::signalsmith::SignalsmithShifter;
+ use crate::wsola::WsolaShifter;
+ 
+ /// Which pitch shifting algorithm to use.
+@@ -33,6 +35,12 @@ pub enum Algorithm {
+     /// WSOLA waveform-similarity overlap-add. ~1024 sample latency.
+     /// Works on any signal (monophonic or polyphonic) without pitch detection.
+     Wsola,
++    /// Signalsmith Stretch — high-quality FFT-based spectral pitch shifter.
++    /// Clean, polyphonic-capable. ~256+ sample latency.
++    Signalsmith,
++    /// Rubber Band Library — professional pitch shifter with formant preservation.
++    /// High quality, ~512+ sample latency.
++    Rubberband,
+ }
+ 
+ /// Convert semitones to pitch ratio: `2^(semitones / 12)`.
+diff --git a/flake.nix b/flake.nix
+index a14fb05..ef0a0b9 100644
+--- a/flake.nix
++++ b/flake.nix
+@@ -119,6 +119,10 @@
+                     # Audio libs
+                     alsa-lib
+                     pipewire.jack
++                    rubberband
++
++                    # C/C++ bindgen (signalsmith-stretch build)
++                    llvmPackages.libclang
+ 
+                     # Misc system libs
+                     dbus
+@@ -138,6 +142,12 @@
+                     FTS_REAPER_EXECUTABLE = "${ftsDev.reaper}/bin/reaper";
+                     FTS_REAPER_RESOURCES = "${ftsDev.reaper}/opt/REAPER";
+                     FTS_REAPER_CONFIG = ftsReaperConfig;
++                    # bindgen needs libclang (signalsmith-stretch C++ wrapper)
++                    LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
++                    # Linker needs librubberband for FFI
++                    LIBRARY_PATH = pkgs.lib.makeLibraryPath [
++                      pkgs.rubberband
++                    ];
+                     # Help wgpu find Vulkan
+                     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+                       pkgs.vulkan-loader

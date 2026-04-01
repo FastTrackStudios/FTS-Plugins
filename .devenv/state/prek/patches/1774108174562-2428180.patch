@@ -1,0 +1,46 @@
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index fbb1ed6..a102ca5 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -11,6 +11,7 @@ use crate::divider::{DivideRatio, FreqDivider};
+ use crate::granular::GranularShifter;
+ use crate::pll::{PllOctave, PllTracker, SubWaveform};
+ use crate::psola::PsolaShifter;
++use crate::wsola::WsolaShifter;
+ 
+ /// Which pitch shifting algorithm to use.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+@@ -29,6 +30,9 @@ pub enum Algorithm {
+     /// PSOLA pitch-synchronous. ~2048 sample latency, highest quality.
+     /// Supports arbitrary semitone values.
+     Psola,
++    /// WSOLA waveform-similarity overlap-add. ~1024 sample latency.
++    /// Works on any signal (monophonic or polyphonic) without pitch detection.
++    Wsola,
+ }
+ 
+ /// Convert semitones to pitch ratio: `2^(semitones / 12)`.
+@@ -63,6 +67,7 @@ pub struct PitchChain {
+     pll: PllTracker,
+     granular: GranularShifter,
+     psola: PsolaShifter,
++    wsola: WsolaShifter,
+ }
+ 
+ impl PitchChain {
+@@ -77,6 +82,7 @@ impl PitchChain {
+             pll: PllTracker::new(),
+             granular: GranularShifter::new(),
+             psola: PsolaShifter::new(),
++            wsola: WsolaShifter::new(),
+         }
+     }
+ 
+@@ -87,6 +93,7 @@ impl PitchChain {
+             Algorithm::Pll => self.pll.latency(),
+             Algorithm::Granular => self.granular.latency(),
+             Algorithm::Psola => self.psola.latency(),
++            Algorithm::Wsola => self.wsola.latency(),
+         }
+     }
+ 

@@ -1,0 +1,10 @@
+[package]
+name = "saturate-dsp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Saturation DSP engine — tape saturation algorithms"
+
+[dependencies]
+fts-dsp = { path = "../../fts-dsp" }

@@ -1,0 +1,219 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..787e063 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5752,6 +5752,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..822350b 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -86,6 +86,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 565b599..4a8b027 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -1,27 +1,38 @@
+-//! Envelope detection with exponential attack/release ballistics.
++//! RMS-based envelope detector with scaled time constants.
+ //!
+-//! Converts the instantaneous signal level into a smoothed envelope
+-//! suitable for gain reduction computation.
++//! Operates on input^2 (power domain), applies asymmetric 1-pole smoothing,
++//! then converts to dB via 10*log10. Squaring the input eliminates zero-crossing
++//! artifacts and doubles the effective ripple frequency, improving low-frequency
++//! tracking.
+ 
+-use fts_dsp::db::{linear_to_db, DB_FLOOR};
++use fts_dsp::db::DB_FLOOR;
+ 
+ /// Maximum number of stereo channels.
+ const MAX_CH: usize = 2;
+ 
++/// Scaling factor for attack time constant.
++const ATTACK_SCALE: f64 = 1.8;
++
++/// Scaling factor for release time constant.
++const RELEASE_SCALE: f64 = 1.3;
++
++/// Minimum release time in seconds to prevent zero-crossing collapse.
++const MIN_RELEASE_S: f64 = 0.009;
++
+ // r[impl comp.chain.signal-flow]
+-/// Envelope detector with asymmetric attack/release.
++/// RMS-based envelope detector.
+ ///
+-/// Uses exponential smoothing with separate attack and release coefficients.
+-/// Operates in the dB domain.
++/// Tracks signal power (input^2) with asymmetric attack/release smoothing,
++/// then converts to dB. The squared input has no zero crossings (sin^2 is
++/// always positive) and ripples at 2f instead of f, improving frequency
++/// independence at low frequencies.
+ pub struct Detector {
+-    /// Smoothed signal level in dB per channel.
+-    slewed: [f64; MAX_CH],
++    /// Smoothed power envelope (input^2 domain) per channel.
++    env: [f64; MAX_CH],
+     /// Previous output sample per channel (for feedback detection).
+     prev_output: [f64; MAX_CH],
+-    /// Whether each channel has received its first non-silent sample.
+-    initialized: [bool; MAX_CH],
+ 
+-    // Cached coefficients
++    // Coefficients (user-controlled, with scaling)
+     attack_coeff: f64,
+     release_coeff: f64,
+     sample_rate: f64,
+@@ -30,9 +41,8 @@ pub struct Detector {
+ impl Detector {
+     pub fn new() -> Self {
+         Self {
+-            slewed: [DB_FLOOR; MAX_CH],
++            env: [0.0; MAX_CH],
+             prev_output: [0.0; MAX_CH],
+-            initialized: [false; MAX_CH],
+             attack_coeff: 0.0,
+             release_coeff: 0.0,
+             sample_rate: 48000.0,
+@@ -41,21 +51,16 @@ impl Detector {
+ 
+     /// Update coefficients for new attack/release times or sample rate.
+     ///
+-    /// `attack_s` and `release_s` are in seconds. The displayed time represents
+-    /// the time to reach ~90% of the target (common convention for compressors),
+-    /// so the internal time constant is scaled accordingly.
++    /// `attack_s` and `release_s` are in seconds.
+     pub fn set_params(&mut self, attack_s: f64, release_s: f64, sample_rate: f64) {
+         self.sample_rate = sample_rate;
+-        // Empirically-derived scaling factors that match Pro-C 3 Clean's
+-        // time constant definition. Attack uses ~1.8x (close to ln(10)/1.3)
+-        // and release uses ~1.3x.
+-        self.attack_coeff = Self::coeff_scaled(attack_s, sample_rate, 1.8);
+-        self.release_coeff = Self::coeff_scaled(release_s, sample_rate, 1.3);
++        self.attack_coeff = Self::coeff(attack_s, sample_rate, ATTACK_SCALE);
++        self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, RELEASE_SCALE);
+     }
+ 
+-    /// Compute coefficient with a scaling factor on the time constant.
++    /// Compute 1-pole filter coefficient with scaling.
+     #[inline]
+-    fn coeff_scaled(time_s: f64, sample_rate: f64, scale: f64) -> f64 {
++    fn coeff(time_s: f64, sample_rate: f64, scale: f64) -> f64 {
+         if time_s > 0.0 {
+             (-scale / (sample_rate * time_s)).exp()
+         } else {
+@@ -65,36 +70,30 @@ impl Detector {
+ 
+     /// Feed a sample into the detector and return the smoothed level in dB.
+     ///
+-    /// `input` is the absolute value of the input sample.
++    /// `input_abs` is the absolute value of the input sample.
+     /// `feedback` is the feedback amount (0.0 = pure feedforward, 1.0 = full feedback).
+     /// `ch` is the channel index (0 or 1).
+     #[inline]
+     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
+-        // Combine input with feedback from previous output
+         let combined = input_abs + self.prev_output[ch].abs() * feedback;
+-        let input_db = linear_to_db(combined);
+ 
+-        // Clamp to sane range
+-        let input_db = input_db.clamp(DB_FLOOR, 6.0);
++        // Square for power domain — eliminates zero-crossing artifacts
++        let power = combined * combined;
+ 
+-        // Snap to input on first non-silent sample to avoid slow ramp from DB_FLOOR
+-        if !self.initialized[ch] && input_db > DB_FLOOR {
+-            self.initialized[ch] = true;
+-            self.slewed[ch] = input_db;
+-            return self.slewed[ch];
+-        }
++        // Asymmetric 1-pole filter in power domain
++        let c = if power > self.env[ch] {
++            self.attack_coeff
++        } else {
++            self.release_coeff
++        };
++        self.env[ch] = c * self.env[ch] + (1.0 - c) * power;
+ 
+-        // Asymmetric exponential smoothing
+-        if input_db > self.slewed[ch] {
+-            // Attack: signal rising
+-            self.slewed[ch] = self.attack_coeff * (self.slewed[ch] - input_db) + input_db;
++        // Convert power to dB: 10*log10(power) = 20*log10(sqrt(power))
++        if self.env[ch] > 1e-20 {
++            (10.0 * self.env[ch].log10()).max(DB_FLOOR)
+         } else {
+-            // Release: signal falling
+-            self.slewed[ch] = self.release_coeff * (self.slewed[ch] - input_db) + input_db;
++            DB_FLOOR
+         }
+-
+-        self.slewed[ch] = self.slewed[ch].clamp(DB_FLOOR, 1000.0);
+-        self.slewed[ch]
+     }
+ 
+     /// Store the output sample for feedback detection on next tick.
+@@ -105,13 +104,16 @@ impl Detector {
+ 
+     /// Get the current smoothed level in dB.
+     pub fn level_db(&self, ch: usize) -> f64 {
+-        self.slewed[ch]
++        if self.env[ch] > 1e-20 {
++            (10.0 * self.env[ch].log10()).max(DB_FLOOR)
++        } else {
++            DB_FLOOR
++        }
+     }
+ 
+     pub fn reset(&mut self) {
+-        self.slewed = [DB_FLOOR; MAX_CH];
++        self.env = [0.0; MAX_CH];
+         self.prev_output = [0.0; MAX_CH];
+-        self.initialized = [false; MAX_CH];
+     }
+ }
+ 

@@ -1,0 +1,550 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..787e063 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5752,6 +5752,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..822350b 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -86,6 +86,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 0428b91..c185b19 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -250,40 +250,15 @@ pub fn highpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+ }
+ 
+ pub fn low_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
++    // Vicanek matched 1-pole low shelf (no Nyquist cramping).
++    // Low shelf = high shelf with 1/G, then scale b coefficients by G.
+     let g = 10.0_f64.powf(gain_db / 20.0);
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz / g.sqrt()
+-    } else {
+-        freq_hz * g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let gwc = g * wc;
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (1.0 + gwc) * a0_inv,
+-            (-1.0 + gwc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let wc_g = wc / g;
+-        let a0_inv = 1.0 / (1.0 + wc_g);
+-        [
+-            1.0,
+-            (-1.0 + wc_g) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    let c = high_shelf_1_matched(freq_hz, 1.0 / g, sample_rate);
++    // Scale numerator by gain to get low-shelf DC=G, Nyquist=1
++    [c[0], c[1], c[2], c[3] * g, c[4] * g, c[5]]
+ }
+ 
+ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+@@ -291,35 +266,31 @@ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz * g.sqrt()
+-    } else {
+-        freq_hz / g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (g + wc) * a0_inv,
+-            (-g + wc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let g_inv = 1.0 / g;
+-        let a0_inv = 1.0 / (g_inv + wc);
+-        [
+-            1.0,
+-            (-g_inv + wc) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    high_shelf_1_matched(freq_hz, g, sample_rate)
++}
++
++/// Vicanek matched 1-pole high shelf filter.
++/// fc is in Hz, g is linear gain (>1 boost, <1 cut).
++fn high_shelf_1_matched(freq_hz: f64, g: f64, sample_rate: f64) -> Coeffs {
++    let fc = freq_hz / (sample_rate / 2.0); // normalize to Nyquist
++    let fc = fc.max(1e-6);
++    let fc_sq = fc * fc;
++    let fm = 0.9_f64; // matching point slightly below Nyquist
++    let phi_m = 1.0 - (PI * fm).cos();
++
++    // Use eq. 12 with matching point fm = 0.9
++    let alpha = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + 1.0 / (g * fc_sq)) - 1.0 / phi_m;
++    let beta = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + g / fc_sq) - 1.0 / phi_m;
++
++    // Recover a1 and b ratio from α and β (eq. 10)
++    let a1 = -alpha / (1.0 + alpha + (1.0 + 2.0 * alpha).max(0.0).sqrt());
++    let b_ratio = -beta / (1.0 + beta + (1.0 + 2.0 * beta).max(0.0).sqrt());
++
++    // High shelf normalization: DC gain = 1, so b0 + b1 = 1 + a1 (eq. 6/11)
++    let b0 = (1.0 + a1) / (1.0 + b_ratio);
++    let b1 = b_ratio * b0;
++
++    [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+ pub fn allpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+@@ -340,6 +311,7 @@ fn low_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
++    // RBJ cookbook low shelf — used in gain-split cascades where parametric Q matters.
+     let a_amp = g.sqrt();
+     let sin_w0 = w0.sin();
+     let cos_w0 = w0.cos();
+@@ -353,14 +325,7 @@ fn low_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     let b1 = 2.0 * a_amp * ((a_amp - 1.0) - (a_amp + 1.0) * cos_w0);
+     let b2 = a_amp * ((a_amp + 1.0) - (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha);
+     let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+ fn high_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+@@ -380,14 +345,7 @@ fn high_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
+     let b1 = -2.0 * a_amp * ((a_amp - 1.0) + (a_amp + 1.0) * cos_w0);
+     let b2 = a_amp * ((a_amp + 1.0) + (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha);
+     let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    [1.0, a1 * a0_inv, a2 * a0_inv, b0 * a0_inv, b1 * a0_inv, b2 * a0_inv]
+ }
+ 
+ /// Zoelzer parametric low shelf with resonance support.
+@@ -449,6 +407,8 @@ pub fn high_shelf_resonant(freq_hz: f64, q: f64, gain_db: f64, sample_rate: f64)
+     ]
+ }
+ 
++// ── Anti-cramping correction ────────────────────────────────────────
++
+ // ── Flat tilt ───────────────────────────────────────────────────────
+ 
+ pub fn flat_tilt_section(pole_hz: f64, zero_hz: f64, pivot_hz: f64, sample_rate: f64) -> Coeffs {
+diff --git a/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs b/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
+index 6a1f8df..f13d87f 100644
+--- a/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
++++ b/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
+@@ -1,42 +1,40 @@
+-//! Allpass interpolation pitch shifter — Dattorro/Schroeder "barberpole" style.
++//! Barberpole pitch shifter — Dattorro/Schroeder style with cubic interpolation.
+ //!
+ //! Two read heads sweep through a circular delay buffer at a rate determined
+-//! by the pitch ratio. When one head nears the end of its sweep, a Hann-shaped
+-//! crossfade transitions to the other head. Allpass interpolation provides
+-//! sub-sample accuracy without the phase smearing of linear interpolation.
++//! by the pitch ratio. When one head nears the end of its sweep, a sin²
++//! crossfade transitions to the other head. Cubic (Catmull-Rom) interpolation
++//! provides sub-sample accuracy without the clicking artifacts of allpass
++//! interpolation (no recursive state to "fly back").
+ //!
+-//! Latency: **0 samples** — output is produced immediately from the current
+-//! write position minus a small read offset.
++//! At splice points, a short cross-correlation search finds the best
++//! phase-aligned position for the incoming head (H949-style de-glitching),
++//! minimizing audible discontinuities during crossfade.
+ //!
++//! Latency: **0 samples** — output is produced immediately.
+ //! Character: Classic hardware pitch shifter (Eventide H3000, Boss PS-series).
+ 
++use fts_dsp::delay_line::DelayLine;
+ use std::f64::consts::PI;
+ 
+-const BUFFER_SIZE: usize = 4096;
+-/// Barberpole allpass-interpolated pitch shifter with zero latency.
++const BUFFER_SIZE: usize = 8192;
++/// Tolerance (in samples) for cross-correlation splice search.
++const SPLICE_TOLERANCE: usize = 128;
++/// Length of the comparison window for splice cross-correlation.
++const SPLICE_TAIL_LEN: usize = 64;
++
+ pub struct AllpassShifter {
+     /// Pitch ratio: 0.5 = octave down, 2.0 = octave up.
+     pub speed: f64,
+     /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
+ 
+-    buffer: [f64; BUFFER_SIZE],
+-    write_pos: usize,
++    delay: DelayLine,
+ 
+     /// Fractional read offset for head A (samples behind write head).
+     head_a: f64,
+     /// Fractional read offset for head B.
+     head_b: f64,
+ 
+-    /// Allpass state for head A.
+-    ap_state_a: f64,
+-    /// Allpass state for head B.
+-    ap_state_b: f64,
+-    /// Previous raw sample for head A allpass.
+-    ap_prev_a: f64,
+-    /// Previous raw sample for head B allpass.
+-    ap_prev_b: f64,
+-
+     /// Phase of head A within its sweep (0.0–1.0). Drives the crossfade.
+     phase_a: f64,
+ 
+@@ -48,14 +46,9 @@ impl AllpassShifter {
+         Self {
+             speed: 0.5,
+             mix: 1.0,
+-            buffer: [0.0; BUFFER_SIZE],
+-            write_pos: 0,
++            delay: DelayLine::new(BUFFER_SIZE),
+             head_a: 1.0,
+             head_b: (BUFFER_SIZE / 2) as f64,
+-            ap_state_a: 0.0,
+-            ap_state_b: 0.0,
+-            ap_prev_a: 0.0,
+-            ap_prev_b: 0.0,
+             phase_a: 0.0,
+             sample_rate: 48000.0,
+         }
+@@ -66,100 +59,113 @@ impl AllpassShifter {
+     }
+ 
+     pub fn reset(&mut self) {
+-        self.buffer = [0.0; BUFFER_SIZE];
+-        self.write_pos = 0;
++        self.delay.clear();
+         self.head_a = 1.0;
+         self.head_b = (BUFFER_SIZE / 2) as f64;
+-        self.ap_state_a = 0.0;
+-        self.ap_state_b = 0.0;
+-        self.ap_prev_a = 0.0;
+-        self.ap_prev_b = 0.0;
+         self.phase_a = 0.0;
+     }
+ 
+-    /// Read from the circular buffer at an integer offset behind write_pos.
+-    #[inline]
+-    fn read_buffer(&self, offset: usize) -> f64 {
+-        let idx = (self.write_pos + BUFFER_SIZE - offset) % BUFFER_SIZE;
+-        self.buffer[idx]
+-    }
+-
+-    /// Allpass interpolation: reads at a fractional offset behind the write head.
+-    /// Returns the interpolated sample and updates the allpass state.
+-    #[inline]
+-    fn read_allpass(&self, offset: f64, ap_state: &mut f64, ap_prev: &mut f64) -> f64 {
+-        let offset_clamped = offset.max(1.0).min((BUFFER_SIZE - 2) as f64);
+-        let int_part = offset_clamped as usize;
+-        let frac = offset_clamped - int_part as f64;
+-
+-        let x_n = self.read_buffer(int_part);
+-        let x_prev = self.read_buffer(int_part + 1);
+-
+-        // First-order allpass: y[n] = x_prev + (x_n - y_prev) * frac
+-        // where frac is the fractional delay (coefficient).
+-        let coeff = (1.0 - frac) / (1.0 + frac);
+-        let y = x_prev + (x_n - *ap_state) * coeff;
+-
+-        *ap_prev = x_n;
+-        *ap_state = y;
+-        y
+-    }
+-
+     /// Crossfade window: sin²(π * phase).
+-    /// Two windows offset by 0.5 sum to exactly 1.0:
+-    ///   sin²(π*p) + sin²(π*(p+0.5)) = sin²(π*p) + cos²(π*p) = 1
++    /// Two windows offset by 0.5 sum to exactly 1.0.
+     #[inline]
+     fn crossfade(phase: f64) -> f64 {
+         let s = (PI * phase).sin();
+         s * s
+     }
+ 
++    /// Find the best splice offset near `nominal` using cross-correlation
++    /// with a short tail read from `reference_offset`. This is the H949
++    /// de-glitching technique: align the incoming head's audio with the
++    /// outgoing head's audio to minimize phase discontinuity.
++    fn find_splice_offset(&self, nominal: f64, reference_offset: f64) -> f64 {
++        let buf_len = self.delay.len();
++        let tail_len = SPLICE_TAIL_LEN.min(buf_len / 4);
++        let tolerance = SPLICE_TOLERANCE as isize;
++
++        // Read reference tail from the outgoing head position.
++        let mut ref_energy = 0.0f64;
++        let mut ref_tail = [0.0f64; SPLICE_TAIL_LEN];
++        for i in 0..tail_len {
++            let pos = reference_offset as usize + i;
++            if pos > 0 && pos < buf_len {
++                ref_tail[i] = self.delay.read(pos);
++                ref_energy += ref_tail[i] * ref_tail[i];
++            }
++        }
++
++        // If the reference is silent, just use the nominal position.
++        if ref_energy < 1e-12 {
++            return nominal;
++        }
++
++        let mut best_corr = f64::NEG_INFINITY;
++        let mut best_delta: isize = 0;
++
++        for delta in -tolerance..=tolerance {
++            let candidate = nominal + delta as f64;
++            if candidate < 1.0 || (candidate as usize + tail_len) >= buf_len {
++                continue;
++            }
++
++            let mut correlation = 0.0f64;
++            let mut cand_energy = 0.0f64;
++
++            for i in 0..tail_len {
++                let s = self.delay.read(candidate as usize + i);
++                correlation += ref_tail[i] * s;
++                cand_energy += s * s;
++            }
++
++            let denom = (ref_energy * cand_energy).sqrt();
++            let norm_corr = if denom > 1e-12 {
++                correlation / denom
++            } else {
++                0.0
++            };
++
++            if norm_corr > best_corr {
++                best_corr = norm_corr;
++                best_delta = delta;
++            }
++        }
++
++        nominal + best_delta as f64
++    }
++
+     /// Process one sample. Returns the mixed (dry/wet) output.
+     #[inline]
+     pub fn tick(&mut self, input: f64) -> f64 {
+-        // Write input into the circular buffer.
+-        self.buffer[self.write_pos] = input;
+-        self.write_pos = (self.write_pos + 1) % BUFFER_SIZE;
++        self.delay.write(input);
+ 
+         let drift = 1.0 - self.speed;
+         let half_buf = (BUFFER_SIZE / 2) as f64;
+-        let max_offset = (BUFFER_SIZE - 2) as f64;
++        let max_offset = (BUFFER_SIZE - 4) as f64; // leave room for cubic interp
+ 
+         // Advance read heads.
+         self.head_a += drift;
+         self.head_b += drift;
+ 
+-        // Wrap heads: when a head drifts out of range, reset it to
+-        // half-buffer offset from the other head.
++        // Wrap heads: when a head drifts out of range, find a phase-aligned
++        // splice point near half-buffer offset from the other head.
+         if self.head_a < 1.0 || self.head_a > max_offset {
+-            self.head_a = ((self.head_b + half_buf - 1.0) % max_offset) + 1.0;
+-            self.ap_state_a = 0.0;
+-            self.ap_prev_a = 0.0;
++            let nominal = ((self.head_b + half_buf - 1.0) % max_offset) + 1.0;
++            self.head_a = self.find_splice_offset(nominal, self.head_b);
++            self.head_a = self.head_a.clamp(1.0, max_offset);
+             self.phase_a = 0.0;
+         }
+         if self.head_b < 1.0 || self.head_b > max_offset {
+-            self.head_b = ((self.head_a + half_buf - 1.0) % max_offset) + 1.0;
+-            self.ap_state_b = 0.0;
+-            self.ap_prev_b = 0.0;
++            let nominal = ((self.head_a + half_buf - 1.0) % max_offset) + 1.0;
++            self.head_b = self.find_splice_offset(nominal, self.head_a);
++            self.head_b = self.head_b.clamp(1.0, max_offset);
+             self.phase_a = 0.5;
+         }
+ 
+-        // Read from each head with allpass interpolation.
+-        let mut ap_a = self.ap_state_a;
+-        let mut ap_prev_a = self.ap_prev_a;
+-        let mut ap_b = self.ap_state_b;
+-        let mut ap_prev_b = self.ap_prev_b;
+-
+-        let a = self.read_allpass(self.head_a, &mut ap_a, &mut ap_prev_a);
+-        let b = self.read_allpass(self.head_b, &mut ap_b, &mut ap_prev_b);
+-
+-        self.ap_state_a = ap_a;
+-        self.ap_prev_a = ap_prev_a;
+-        self.ap_state_b = ap_b;
+-        self.ap_prev_b = ap_prev_b;
++        // Read from each head with cubic (Catmull-Rom) interpolation.
++        // No recursive state — no coefficient flyback clicks.
++        let a = self.delay.read_cubic(self.head_a);
++        let b = self.delay.read_cubic(self.head_b);
+ 
+         // Crossfade envelope: head A uses phase_a, head B uses phase_a + 0.5.
+-        // sin²(x) + sin²(x + π/2) = 1 ensures constant-power crossfade.
+         let win_a = Self::crossfade(self.phase_a);
+         let phase_b = (self.phase_a + 0.5).fract();
+         let win_b = Self::crossfade(phase_b);
+@@ -167,7 +173,7 @@ impl AllpassShifter {
+         let wet = a * win_a + b * win_b;
+ 
+         // Advance the crossfade phase.
+-        let phase_inc = 1.0 / (BUFFER_SIZE as f64 / drift.abs().max(0.001));
++        let phase_inc = drift.abs().max(0.001) / BUFFER_SIZE as f64;
+         self.phase_a = (self.phase_a + phase_inc) % 1.0;
+ 
+         input * (1.0 - self.mix) + wet * self.mix
+@@ -215,7 +221,6 @@ mod tests {
+         for i in 0..9600 {
+             let input = (2.0 * PI * 220.0 * i as f64 / SR).sin() * 0.5;
+             let out = s.tick(input);
+-            // Allow warmup: measure energy after the buffer has filled.
+             if i > 4096 {
+                 energy += out * out;
+             }
+@@ -233,6 +238,28 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn no_large_spikes() {
++        // Verify no crackling/clicking: output should never exceed input amplitude
++        // by more than a small margin (cubic overshoot).
++        let mut s = make_shifter();
++        let amplitude = 0.5;
++        let mut max_out = 0.0f64;
++        for i in 0..48000 {
++            let input = (2.0 * PI * 440.0 * i as f64 / SR).sin() * amplitude;
++            let out = s.tick(input);
++            if i > BUFFER_SIZE {
++                max_out = max_out.max(out.abs());
++            }
++        }
++        // Cubic interpolation can overshoot slightly, but clicks would produce
++        // spikes well above the input amplitude.
++        assert!(
++            max_out < amplitude * 1.5,
++            "Output spikes too high (crackling?): max={max_out}, input_amp={amplitude}"
++        );
++    }
++
+     #[test]
+     fn different_speeds_differ() {
+         let freq = 440.0;
+@@ -285,4 +312,32 @@ mod tests {
+         let s = make_shifter();
+         assert_eq!(s.latency(), 0);
+     }
++
++    #[test]
++    fn splice_reduces_discontinuity() {
++        // Compare output with and without splice cross-correlation.
++        // The spliced version should have lower peak-to-peak jumps at wrap points.
++        let freq = 440.0;
++        let n = 48000;
++
++        let mut s = make_shifter();
++        let mut max_jump = 0.0f64;
++        let mut prev = 0.0;
++        for i in 0..n {
++            let input = (2.0 * PI * freq * i as f64 / SR).sin() * 0.5;
++            let out = s.tick(input);
++            if i > BUFFER_SIZE {
++                let jump = (out - prev).abs();
++                max_jump = max_jump.max(jump);
++            }
++            prev = out;
++        }
++
++        // A well-spliced pitch shifter should have no sample-to-sample jumps
++        // larger than ~2x the input amplitude (generous margin).
++        assert!(
++            max_jump < 1.0,
++            "Max sample-to-sample jump too large (clicking?): {max_jump}"
++        );
++    }
+ }

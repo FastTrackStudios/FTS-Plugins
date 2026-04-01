@@ -1,0 +1,23 @@
+diff --git a/crates/fts-livetune/livetune-dsp/Cargo.toml b/crates/fts-livetune/livetune-dsp/Cargo.toml
+index 5883d75..8259f51 100644
+--- a/crates/fts-livetune/livetune-dsp/Cargo.toml
++++ b/crates/fts-livetune/livetune-dsp/Cargo.toml
+@@ -9,3 +9,6 @@ license.workspace = true
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ pitch-dsp = { path = "../../fts-pitch/pitch-dsp" }
+ serde = { workspace = true }
++
++# ONNX Runtime for neural pitch detection models
++ort = { version = "2.0.0-rc.12", default-features = false }
+diff --git a/crates/fts-pitch/pitch-dsp/Cargo.toml b/crates/fts-pitch/pitch-dsp/Cargo.toml
+index 2313aca..4256c66 100644
+--- a/crates/fts-pitch/pitch-dsp/Cargo.toml
++++ b/crates/fts-pitch/pitch-dsp/Cargo.toml
+@@ -8,3 +8,7 @@ license.workspace = true
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ serde = { workspace = true }
++
++# External pitch/time-stretch libraries
++signalsmith-stretch = "0.1"
++rubberband = { git = "https://github.com/KBone12/rubberband.git" }

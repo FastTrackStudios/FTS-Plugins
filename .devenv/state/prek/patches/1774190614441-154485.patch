@@ -1,0 +1,568 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..1b500ee 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5752,6 +5752,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+@@ -6006,6 +6034,28 @@ dependencies = [
+  "serde_json",
+ ]
+ 
++[[package]]
++name = "nam-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-dsp",
++ "fts-plugin-core",
++ "nam-dsp",
++ "nam-ui",
++ "nih_plug",
++]
++
++[[package]]
++name = "nam-ui"
++version = "0.1.0"
++dependencies = [
++ "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "fts-plugin-core",
++ "nam-dsp",
++]
++
+ [[package]]
+ name = "native-tls"
+ version = "0.2.18"
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..4e4d8b0 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -74,6 +74,8 @@ members = [
+ 
+     # NAM plugin (Neural Amp Modeler)
+     "crates/fts-nam/nam-dsp",
++    "crates/fts-nam/nam-ui",
++    "crates/fts-nam/nam-plugin",
+ 
+     # Shared sample loading
+     "crates/fts-sample",
+@@ -86,6 +88,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+diff --git a/crates/fts-comp/comp-dsp/src/chain.rs b/crates/fts-comp/comp-dsp/src/chain.rs
+index 3acd6bd..c73a12b 100644
+--- a/crates/fts-comp/comp-dsp/src/chain.rs
++++ b/crates/fts-comp/comp-dsp/src/chain.rs
+@@ -54,16 +54,16 @@ impl CompChain {
+             let sc_l = self.sidechain_hpf.tick(*left, 0);
+             let sc_r = self.sidechain_hpf.tick(*right, 1);
+ 
+-            // Detect from filtered sidechain
+-            let level_l = self.comp.detector.tick(sc_l.abs(), self.comp.feedback, 0);
+-            let level_r = self.comp.detector.tick(sc_r.abs(), self.comp.feedback, 1);
++            // Detect from filtered sidechain (raw signal, not rectified)
++            let level_l = self.comp.detector.tick(sc_l, self.comp.feedback, 0);
++            let level_r = self.comp.detector.tick(sc_r, self.comp.feedback, 1);
+ 
+-            // Compute gain reduction from filtered levels
++            // Compute target gain reduction from levels
+             let inertia_decay = 0.99 + (self.comp.inertia_decay * 0.01);
+             let mut gr_db = [0.0_f64; 2];
+             for ch in 0..2 {
+                 let level = if ch == 0 { level_l } else { level_r };
+-                gr_db[ch] = self.comp.gain_computer.compute(
++                let target_gr = self.comp.gain_computer.compute(
+                     level,
+                     self.comp.threshold_db,
+                     self.comp.ratio,
+@@ -72,6 +72,8 @@ impl CompChain {
+                     inertia_decay,
+                     ch,
+                 );
++                // Apply attack/release dynamics to GR
++                gr_db[ch] = self.comp.gr_smoother.tick(target_gr, ch);
+             }
+ 
+             // Channel linking
+@@ -154,25 +156,20 @@ impl Processor for CompChain {
+         let use_sc_hpf = self.sidechain_hpf.enabled;
+ 
+         for i in 0..left.len() {
+-            // If sidechain HPF is active, filter the detection signal
+-            // The compressor's detector will use the filtered version
+             if use_sc_hpf {
+-                // We apply the HPF to copies for detection only.
+-                // The compressor internally uses the raw input for audio path,
+-                // and we override the detector level with the filtered version.
+                 let sc_l = self.sidechain_hpf.tick(left[i], 0);
+                 let sc_r = self.sidechain_hpf.tick(right[i], 1);
+ 
+                 // Detect from filtered sidechain
+-                let level_l = self.comp.detector.tick(sc_l.abs(), self.comp.feedback, 0);
+-                let level_r = self.comp.detector.tick(sc_r.abs(), self.comp.feedback, 1);
++                let level_l = self.comp.detector.tick(sc_l, self.comp.feedback, 0);
++                let level_r = self.comp.detector.tick(sc_r, self.comp.feedback, 1);
+ 
+-                // Compute gain reduction from filtered levels
++                // Compute target GR and smooth with attack/release
+                 let inertia_decay = 0.99 + (self.comp.inertia_decay * 0.01);
+                 let mut gr_db = [0.0_f64; 2];
+                 for ch in 0..2 {
+                     let level = if ch == 0 { level_l } else { level_r };
+-                    gr_db[ch] = self.comp.gain_computer.compute(
++                    let target_gr = self.comp.gain_computer.compute(
+                         level,
+                         self.comp.threshold_db,
+                         self.comp.ratio,
+@@ -181,6 +178,7 @@ impl Processor for CompChain {
+                         inertia_decay,
+                         ch,
+                     );
++                    gr_db[ch] = self.comp.gr_smoother.tick(target_gr, ch);
+                 }
+ 
+                 // Channel linking
+@@ -226,7 +224,6 @@ impl Processor for CompChain {
+                     self.comp.last_gr_db[ch] = gr_db[ch];
+                 }
+             } else {
+-                // No sidechain HPF — use the compressor's built-in processing
+                 self.comp.process_sample(&mut left[i], &mut right[i]);
+             }
+         }
+diff --git a/crates/fts-comp/comp-dsp/src/compressor.rs b/crates/fts-comp/comp-dsp/src/compressor.rs
+index 32ac854..02eec4a 100644
+--- a/crates/fts-comp/comp-dsp/src/compressor.rs
++++ b/crates/fts-comp/comp-dsp/src/compressor.rs
+@@ -1,31 +1,32 @@
+ //! Complete compressor — the core processing unit.
+ //!
+-//! Combines envelope detection, gain reduction computation, channel linking,
+-//! output saturation, and parallel mix into a single stereo compressor.
+-//! Based on APComp's versatile architecture.
++//! Combines RMS level detection, gain reduction computation, GR dynamics
++//! smoothing, channel linking, output saturation, and parallel mix.
+ 
+ use fts_dsp::db::{db_to_linear, linear_to_db};
+ 
+-use crate::detector::Detector;
++use crate::detector::{Detector, GrSmoother};
+ use crate::gain::GainComputer;
+ 
+ /// Maximum number of stereo channels.
+ const MAX_CH: usize = 2;
+ 
+ // r[impl comp.chain.signal-flow]
+-/// Complete stereo compressor with all APComp features.
++/// Complete stereo compressor.
+ ///
+ /// Signal flow per sample:
+ /// 1. Input gain
+-/// 2. Level detection (feedforward + optional feedback)
+-/// 3. Gain reduction computation (threshold/ratio/knee/inertia)
+-/// 4. Channel linking
+-/// 5. Apply gain reduction
+-/// 6. Output saturation (tanh soft clip)
+-/// 7. Parallel mix (fold)
+-/// 8. Output gain
++/// 2. RMS level detection (symmetric, frequency-independent)
++/// 3. Gain curve → target GR
++/// 4. GR dynamics smoothing (attack/release)
++/// 5. Channel linking
++/// 6. Apply gain reduction
++/// 7. Output saturation (tanh soft clip)
++/// 8. Parallel mix (fold)
++/// 9. Output gain
+ pub struct Compressor {
+     pub detector: Detector,
++    pub gr_smoother: GrSmoother,
+     pub gain_computer: GainComputer,
+ 
+     // Parameters
+@@ -54,6 +55,7 @@ impl Compressor {
+     pub fn new() -> Self {
+         Self {
+             detector: Detector::new(),
++            gr_smoother: GrSmoother::new(),
+             gain_computer: GainComputer::new(),
+ 
+             threshold_db: 0.0,
+@@ -79,15 +81,14 @@ impl Compressor {
+     /// Update internal coefficients after parameter changes.
+     pub fn update(&mut self, sample_rate: f64) {
+         self.sample_rate = sample_rate;
++        self.detector.set_params(sample_rate);
+         let attack_s = self.attack_ms / 1000.0;
+         let release_s = self.release_ms / 1000.0;
+-        self.detector.set_params(attack_s, release_s, sample_rate);
++        self.gr_smoother.set_params(attack_s, release_s, sample_rate);
+     }
+ 
+     // r[impl comp.chain.signal-flow]
+     /// Process a stereo pair of samples in-place.
+-    ///
+-    /// This is the per-sample inner loop matching APComp's `doCompressionDSP`.
+     #[inline]
+     pub fn process_sample(&mut self, left: &mut f64, right: &mut f64) {
+         let input_gain = db_to_linear(self.input_gain_db);
+@@ -105,15 +106,15 @@ impl Compressor {
+         // Apply input gain
+         let samples = [*left * input_gain, *right * input_gain];
+ 
+-        // Per-channel detection and gain reduction
++        // Per-channel: detect level → gain curve → GR dynamics
+         let mut gr_db = [0.0_f64; MAX_CH];
+ 
+         for ch in 0..MAX_CH {
+-            // Detect envelope level
+-            let level_db = self.detector.tick(samples[ch].abs(), self.feedback, ch);
++            // RMS level detection (frequency-independent)
++            let level_db = self.detector.tick(samples[ch], self.feedback, ch);
+ 
+-            // Compute gain reduction
+-            gr_db[ch] = self.gain_computer.compute(
++            // Gain curve: level → target GR
++            let target_gr = self.gain_computer.compute(
+                 level_db,
+                 self.threshold_db,
+                 self.ratio,
+@@ -122,6 +123,9 @@ impl Compressor {
+                 inertia_decay,
+                 ch,
+             );
++
++            // Attack/release dynamics on GR
++            gr_db[ch] = self.gr_smoother.tick(target_gr, ch);
+         }
+ 
+         // Channel linking: blend individual GR with max GR
+@@ -181,6 +185,7 @@ impl Compressor {
+ 
+     pub fn reset(&mut self) {
+         self.detector.reset();
++        self.gr_smoother.reset();
+         self.gain_computer.reset();
+         self.last_gr_db = [0.0; MAX_CH];
+     }
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 0428b91..cf46157 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -1,7 +1,7 @@
+ //! Filter coefficient calculation — hybrid matched/RBJ approach.
+ //!
+-//! Peak, notch, allpass, and tilt shelf use Vicanek matched design (no Nyquist cramping).
+-//! LP, HP, bandpass, and shelves use RBJ cookbook (bilinear transform) to match Pro-Q 4.
++//! Peak, notch, allpass, shelves use Vicanek matched design (no Nyquist cramping).
++//! LP, HP, bandpass, and tilt shelf use RBJ cookbook (bilinear transform).
+ 
+ use std::f64::consts::PI;
+ 
+@@ -250,40 +250,15 @@ pub fn highpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+ }
+ 
+ pub fn low_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
++    // Vicanek matched 1-pole low shelf (no Nyquist cramping).
++    // Low shelf = high shelf with 1/G, then scale b coefficients by G.
+     let g = 10.0_f64.powf(gain_db / 20.0);
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz / g.sqrt()
+-    } else {
+-        freq_hz * g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let gwc = g * wc;
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (1.0 + gwc) * a0_inv,
+-            (-1.0 + gwc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let wc_g = wc / g;
+-        let a0_inv = 1.0 / (1.0 + wc_g);
+-        [
+-            1.0,
+-            (-1.0 + wc_g) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    let c = high_shelf_1_matched(freq_hz, 1.0 / g, sample_rate);
++    // Scale numerator by gain to get low-shelf DC=G, Nyquist=1
++    [c[0], c[1], c[2], c[3] * g, c[4] * g, c[5]]
+ }
+ 
+ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+@@ -291,35 +266,31 @@ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let corner_hz = if g > 1.0 {
+-        freq_hz * g.sqrt()
+-    } else {
+-        freq_hz / g.sqrt()
+-    };
+-    let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+-    let wc = (w0 / 2.0).tan();
+-    if g > 1.0 {
+-        let a0_inv = 1.0 / (1.0 + wc);
+-        [
+-            1.0,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-            (g + wc) * a0_inv,
+-            (-g + wc) * a0_inv,
+-            0.0,
+-        ]
+-    } else {
+-        let g_inv = 1.0 / g;
+-        let a0_inv = 1.0 / (g_inv + wc);
+-        [
+-            1.0,
+-            (-g_inv + wc) * a0_inv,
+-            0.0,
+-            (1.0 + wc) * a0_inv,
+-            (-1.0 + wc) * a0_inv,
+-            0.0,
+-        ]
+-    }
++    high_shelf_1_matched(freq_hz, g, sample_rate)
++}
++
++/// Vicanek matched 1-pole high shelf filter.
++/// fc is in Hz, g is linear gain (>1 boost, <1 cut).
++fn high_shelf_1_matched(freq_hz: f64, g: f64, sample_rate: f64) -> Coeffs {
++    let fc = freq_hz / (sample_rate / 2.0); // normalize to Nyquist
++    let fc = fc.max(1e-6);
++    let fc_sq = fc * fc;
++    let fm = 0.9_f64; // matching point slightly below Nyquist
++    let phi_m = 1.0 - (PI * fm).cos();
++
++    // Use eq. 12 with matching point fm = 0.9
++    let alpha = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + 1.0 / (g * fc_sq)) - 1.0 / phi_m;
++    let beta = (2.0 / (PI * PI)) * (1.0 / (fm * fm) + g / fc_sq) - 1.0 / phi_m;
++
++    // Recover a1 and b ratio from α and β (eq. 10)
++    let a1 = -alpha / (1.0 + alpha + (1.0 + 2.0 * alpha).max(0.0).sqrt());
++    let b_ratio = -beta / (1.0 + beta + (1.0 + 2.0 * beta).max(0.0).sqrt());
++
++    // High shelf normalization: DC gain = 1, so b0 + b1 = 1 + a1 (eq. 6/11)
++    let b0 = (1.0 + a1) / (1.0 + b_ratio);
++    let b1 = b_ratio * b0;
++
++    [1.0, a1, 0.0, b0, b1, 0.0]
+ }
+ 
+ pub fn allpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+@@ -328,7 +299,7 @@ pub fn allpass_1(freq_hz: f64, sample_rate: f64) -> Coeffs {
+     [1.0, -p, 0.0, -p, 1.0, 0.0]
+ }
+ 
+-// ── RBJ cookbook shelves ──────────────────────────────────────────────
++// ── Vicanek matched 2-pole shelves ───────────────────────────────────
+ 
+ fn shelf_alpha(sin_w0: f64, a_amp: f64, s: f64) -> f64 {
+     let s = s.max(0.01);
+@@ -336,58 +307,96 @@ fn shelf_alpha(sin_w0: f64, a_amp: f64, s: f64) -> f64 {
+     sin_w0 / 2.0 * val.max(0.001).sqrt()
+ }
+ 
+-fn low_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
++fn low_shelf_2(w0: f64, _q: f64, g: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let a_amp = g.sqrt();
+-    let sin_w0 = w0.sin();
+-    let cos_w0 = w0.cos();
+-    let s = q * std::f64::consts::SQRT_2;
+-    let alpha = shelf_alpha(sin_w0, a_amp, s);
+-    let two_sqrt_a_alpha = 2.0 * a_amp.sqrt() * alpha;
+-    let a0 = (a_amp + 1.0) + (a_amp - 1.0) * cos_w0 + two_sqrt_a_alpha;
+-    let a1 = -2.0 * ((a_amp - 1.0) + (a_amp + 1.0) * cos_w0);
+-    let a2 = (a_amp + 1.0) + (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha;
+-    let b0 = a_amp * ((a_amp + 1.0) - (a_amp - 1.0) * cos_w0 + two_sqrt_a_alpha);
+-    let b1 = 2.0 * a_amp * ((a_amp - 1.0) - (a_amp + 1.0) * cos_w0);
+-    let b2 = a_amp * ((a_amp + 1.0) - (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-    let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    // Vicanek matched 2-pole low shelf (no Nyquist cramping).
++    // Low shelf = high shelf with 1/G, then scale b coefficients by G.
++    let fc = w0 / PI;
++    let c = high_shelf_2_matched(fc, 1.0 / g);
++    [c[0], c[1], c[2], c[3] * g, c[4] * g, c[5] * g]
+ }
+ 
+-fn high_shelf_2(w0: f64, q: f64, g: f64) -> Coeffs {
++fn high_shelf_2(w0: f64, _q: f64, g: f64) -> Coeffs {
+     if (g - 1.0).abs() < 1e-6 {
+         return PASSTHROUGH;
+     }
+-    let a_amp = g.sqrt();
+-    let sin_w0 = w0.sin();
+-    let cos_w0 = w0.cos();
+-    let s = q * std::f64::consts::SQRT_2;
+-    let alpha = shelf_alpha(sin_w0, a_amp, s);
+-    let two_sqrt_a_alpha = 2.0 * a_amp.sqrt() * alpha;
+-    let a0 = (a_amp + 1.0) - (a_amp - 1.0) * cos_w0 + two_sqrt_a_alpha;
+-    let a1 = 2.0 * ((a_amp - 1.0) - (a_amp + 1.0) * cos_w0);
+-    let a2 = (a_amp + 1.0) - (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha;
+-    let b0 = a_amp * ((a_amp + 1.0) + (a_amp - 1.0) * cos_w0 + two_sqrt_a_alpha);
+-    let b1 = -2.0 * a_amp * ((a_amp - 1.0) + (a_amp + 1.0) * cos_w0);
+-    let b2 = a_amp * ((a_amp + 1.0) + (a_amp - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-    let a0_inv = 1.0 / a0;
+-    [
+-        1.0,
+-        a1 * a0_inv,
+-        a2 * a0_inv,
+-        b0 * a0_inv,
+-        b1 * a0_inv,
+-        b2 * a0_inv,
+-    ]
++    // Vicanek matched 2-pole high shelf (no Nyquist cramping).
++    high_shelf_2_matched(w0 / PI, g)
++}
++
++/// Vicanek matched 2nd-order Butterworth high shelf.
++/// fc is normalized frequency (freq_hz / nyquist).
++/// Five constraints: DC=1, Butterworth flatness at DC, Nyquist matches analog,
++/// match magnitude at two carefully chosen frequencies f1/f2.
++fn high_shelf_2_matched(fc: f64, g: f64) -> Coeffs {
++    let fc = fc.max(1e-6);
++    let inv_g = 1.0 / g;
++    let fc4 = fc.powi(4);
++    let pihalf = PI / 2.0;
++
++    // Nyquist magnitude squared from analog prototype
++    let h_ny = (fc4 + g) / (fc4 + inv_g);
++
++    // Two matching frequencies from Vicanek's optimized formula
++    let fc_sq = fc * fc;
++    let f1 = fc / (0.160 + 1.543 * fc_sq).sqrt();
++    let f2 = fc / (0.947 + 3.806 * fc_sq).sqrt();
++
++    // Analog magnitude squared at f1, f2
++    let f14 = f1.powi(4);
++    let h1 = (fc4 + f14 * g) / (fc4 + f14 * inv_g);
++    let phi1 = (pihalf * f1).sin().powi(2);
++
++    let f24 = f2.powi(4);
++    let h2 = (fc4 + f24 * g) / (fc4 + f24 * inv_g);
++    let phi2 = (pihalf * f2).sin().powi(2);
++
++    // Solve 2x2 linear system for α1 and α2
++    let d1 = (h1 - 1.0) * (1.0 - phi1);
++    let c11 = -phi1 * d1;
++    let c12 = phi1 * phi1 * (h_ny - h1);
++
++    let d2 = (h2 - 1.0) * (1.0 - phi2);
++    let c21 = -phi2 * d2;
++    let c22 = phi2 * phi2 * (h_ny - h2);
++
++    let det = c11 * c22 - c12 * c21;
++    if det.abs() < 1e-30 {
++        return PASSTHROUGH;
++    }
++
++    let alfa1 = (c22 * d1 - c12 * d2) / det;
++    let aa1 = (d1 - c11 * alfa1) / c12;
++    let bb1 = h_ny * aa1;
++
++    let aa2 = 0.25 * (alfa1 - aa1);
++    let bb2 = 0.25 * (alfa1 - bb1);
++
++    // Recover transfer function coefficients from magnitude-squared parameters
++    let v = 0.5 * (1.0 + aa1.max(0.0).sqrt());
++    let w = 0.5 * (1.0 + bb1.max(0.0).sqrt());
++
++    let a0 = 0.5 * (v + (v * v + aa2).max(0.0).sqrt());
++    if a0.abs() < 1e-30 {
++        return PASSTHROUGH;
++    }
++    let inv_a0 = 1.0 / a0;
++    let a1 = (1.0 - v) * inv_a0;
++    let a2 = -0.25 * aa2 * inv_a0 * inv_a0;
++
++    let b0_raw = 0.5 * (w + (w * w + bb2).max(0.0).sqrt());
++    let b0 = b0_raw * inv_a0;
++    let b1 = (1.0 - w) * inv_a0;
++    // b2: divide by b0_raw (unscaled), then ONE power of inv_a0
++    let b2 = if b0_raw.abs() > 1e-30 {
++        -0.25 * bb2 / b0_raw * inv_a0
++    } else {
++        0.0
++    };
++
++    [1.0, a1, a2, b0, b1, b2]
+ }
+ 
+ /// Zoelzer parametric low shelf with resonance support.
+@@ -449,6 +458,8 @@ pub fn high_shelf_resonant(freq_hz: f64, q: f64, gain_db: f64, sample_rate: f64)
+     ]
+ }
+ 
++// ── Anti-cramping correction ────────────────────────────────────────
++
+ // ── Flat tilt ───────────────────────────────────────────────────────
+ 
+ pub fn flat_tilt_section(pole_hz: f64, zero_hz: f64, pivot_hz: f64, sample_rate: f64) -> Coeffs {

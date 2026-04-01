@@ -1,0 +1,30 @@
+[package]
+name = "midi-guitar-analysis"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Offline accuracy analysis for FTS MIDI Guitar against GuitarSet and Guitar-TECHS datasets"
+
+[dependencies]
+midi-guitar-dsp = { path = "../midi-guitar-dsp" }
+hound = "3.5"
+serde = { workspace = true }
+serde_json = "1.0"
+midly = "0.5"
+
+[[bin]]
+name = "guitarset-eval"
+path = "src/guitarset_eval.rs"
+
+[[bin]]
+name = "guitar-techs-eval"
+path = "src/guitar_techs_eval.rs"
+
+[[test]]
+name = "guitarset_accuracy"
+path = "tests/guitarset_accuracy.rs"
+
+[[test]]
+name = "guitar_techs_accuracy"
+path = "tests/guitar_techs_accuracy.rs"

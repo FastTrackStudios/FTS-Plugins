@@ -1,0 +1,222 @@
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index 137c6c5..a45377a 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -11,6 +11,8 @@ use crate::divider::{DivideRatio, FreqDivider};
+ use crate::granular::GranularShifter;
+ use crate::pll::{PllOctave, PllTracker, SubWaveform};
+ use crate::psola::PsolaShifter;
++use crate::rubberband::RubberbandShifter;
++use crate::signalsmith::SignalsmithShifter;
+ use crate::wsola::WsolaShifter;
+ 
+ /// Which pitch shifting algorithm to use.
+@@ -33,6 +35,12 @@ pub enum Algorithm {
+     /// WSOLA waveform-similarity overlap-add. ~1024 sample latency.
+     /// Works on any signal (monophonic or polyphonic) without pitch detection.
+     Wsola,
++    /// Signalsmith Stretch — high-quality FFT-based spectral pitch shifter.
++    /// Clean, polyphonic-capable. ~256+ sample latency.
++    Signalsmith,
++    /// Rubber Band Library — professional pitch shifter with formant preservation.
++    /// High quality, ~512+ sample latency.
++    Rubberband,
+ }
+ 
+ /// Convert semitones to pitch ratio: `2^(semitones / 12)`.
+@@ -68,6 +76,8 @@ pub struct PitchChain {
+     granular: GranularShifter,
+     psola: PsolaShifter,
+     wsola: WsolaShifter,
++    signalsmith: SignalsmithShifter,
++    rubberband: RubberbandShifter,
+ }
+ 
+ impl PitchChain {
+@@ -83,6 +93,8 @@ impl PitchChain {
+             granular: GranularShifter::new(),
+             psola: PsolaShifter::new(),
+             wsola: WsolaShifter::new(),
++            signalsmith: SignalsmithShifter::new(),
++            rubberband: RubberbandShifter::new(),
+         }
+     }
+ 
+@@ -94,6 +106,8 @@ impl PitchChain {
+             Algorithm::Granular => self.granular.latency(),
+             Algorithm::Psola => self.psola.latency(),
+             Algorithm::Wsola => self.wsola.latency(),
++            Algorithm::Signalsmith => self.signalsmith.latency(),
++            Algorithm::Rubberband => self.rubberband.latency(),
+         }
+     }
+ 
+@@ -142,6 +156,14 @@ impl PitchChain {
+         // WSOLA: arbitrary ratio.
+         self.wsola.speed = ratio;
+         self.wsola.mix = self.mix;
++
++        // Signalsmith: arbitrary ratio.
++        self.signalsmith.speed = ratio;
++        self.signalsmith.mix = self.mix;
++
++        // Rubberband: arbitrary ratio.
++        self.rubberband.speed = ratio;
++        self.rubberband.mix = self.mix;
+     }
+ }
+ 
+@@ -158,6 +180,8 @@ impl Processor for PitchChain {
+         self.granular.reset();
+         self.psola.reset();
+         self.wsola.reset();
++        self.signalsmith.reset();
++        self.rubberband.reset();
+     }
+ 
+     fn update(&mut self, config: AudioConfig) {
+@@ -166,6 +190,8 @@ impl Processor for PitchChain {
+         self.granular.update(config.sample_rate);
+         self.psola.update(config.sample_rate);
+         self.wsola.update(config.sample_rate);
++        self.signalsmith.update(config.sample_rate);
++        self.rubberband.update(config.sample_rate);
+     }
+ 
+     fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
+@@ -197,6 +223,16 @@ impl Processor for PitchChain {
+                     *s = self.wsola.tick(*s);
+                 }
+             }
++            Algorithm::Signalsmith => {
++                for s in left.iter_mut() {
++                    *s = self.signalsmith.tick(*s);
++                }
++            }
++            Algorithm::Rubberband => {
++                for s in left.iter_mut() {
++                    *s = self.rubberband.tick(*s);
++                }
++            }
+         }
+ 
+         // Copy mono result to right channel.
+@@ -256,6 +292,8 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -410,6 +448,8 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -438,6 +478,8 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -478,6 +520,8 @@ mod tests {
+             Algorithm::Granular,
+             Algorithm::Psola,
+             Algorithm::Wsola,
++            Algorithm::Signalsmith,
++            Algorithm::Rubberband,
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+diff --git a/crates/fts-pitch/pitch-plugin/src/editor.rs b/crates/fts-pitch/pitch-plugin/src/editor.rs
+index db99eda..ca9aedc 100644
+--- a/crates/fts-pitch/pitch-plugin/src/editor.rs
++++ b/crates/fts-pitch/pitch-plugin/src/editor.rs
+@@ -125,6 +125,8 @@ pub fn App() -> Element {
+                     SegmentButton { label: "Granular", selected: algo == 2, on_click: algo_setter(2) }
+                     SegmentButton { label: "PSOLA", selected: algo == 3, on_click: algo_setter(3) }
+                     SegmentButton { label: "WSOLA", selected: algo == 4, on_click: algo_setter(4) }
++                    SegmentButton { label: "Signalsmith", selected: algo == 5, on_click: algo_setter(5) }
++                    SegmentButton { label: "Rubberband", selected: algo == 6, on_click: algo_setter(6) }
+                 }
+             }
+ 
+diff --git a/crates/fts-pitch/pitch-plugin/src/lib.rs b/crates/fts-pitch/pitch-plugin/src/lib.rs
+index 3a3330e..3140f70 100644
+--- a/crates/fts-pitch/pitch-plugin/src/lib.rs
++++ b/crates/fts-pitch/pitch-plugin/src/lib.rs
+@@ -67,7 +67,7 @@ pub struct FtsPitchParams {
+ impl Default for FtsPitchParams {
+     fn default() -> Self {
+         Self {
+-            algorithm: IntParam::new("Algorithm", 0, IntRange::Linear { min: 0, max: 4 })
++            algorithm: IntParam::new("Algorithm", 5, IntRange::Linear { min: 0, max: 6 })
+                 .with_value_to_string(Arc::new(|v| {
+                     match v {
+                         0 => "Divider".to_string(),
+@@ -75,6 +75,8 @@ impl Default for FtsPitchParams {
+                         2 => "Granular".to_string(),
+                         3 => "PSOLA".to_string(),
+                         4 => "WSOLA".to_string(),
++                        5 => "Signalsmith".to_string(),
++                        6 => "Rubberband".to_string(),
+                         _ => format!("{v}"),
+                     }
+                 }))
+@@ -85,6 +87,8 @@ impl Default for FtsPitchParams {
+                         "granular" | "grain" | "2" => Some(2),
+                         "psola" | "3" => Some(3),
+                         "wsola" | "4" => Some(4),
++                        "signalsmith" | "5" => Some(5),
++                        "rubberband" | "rubber" | "6" => Some(6),
+                         _ => s.parse().ok(),
+                     }
+                 })),
+@@ -181,7 +185,9 @@ impl FtsPitch {
+             2 => Algorithm::Granular,
+             3 => Algorithm::Psola,
+             4 => Algorithm::Wsola,
+-            _ => Algorithm::Granular,
++            5 => Algorithm::Signalsmith,
++            6 => Algorithm::Rubberband,
++            _ => Algorithm::Signalsmith,
+         };
+         self.chain.semitones = self.params.semitones.value() as f64;
+         self.chain.mix = self.params.mix.value() as f64;
+diff --git a/flake.nix b/flake.nix
+index a14fb05..ef0a0b9 100644
+--- a/flake.nix
++++ b/flake.nix
+@@ -119,6 +119,10 @@
+                     # Audio libs
+                     alsa-lib
+                     pipewire.jack
++                    rubberband
++
++                    # C/C++ bindgen (signalsmith-stretch build)
++                    llvmPackages.libclang
+ 
+                     # Misc system libs
+                     dbus
+@@ -138,6 +142,12 @@
+                     FTS_REAPER_EXECUTABLE = "${ftsDev.reaper}/bin/reaper";
+                     FTS_REAPER_RESOURCES = "${ftsDev.reaper}/opt/REAPER";
+                     FTS_REAPER_CONFIG = ftsReaperConfig;
++                    # bindgen needs libclang (signalsmith-stretch C++ wrapper)
++                    LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
++                    # Linker needs librubberband for FFI
++                    LIBRARY_PATH = pkgs.lib.makeLibraryPath [
++                      pkgs.rubberband
++                    ];
+                     # Help wgpu find Vulkan
+                     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+                       pkgs.vulkan-loader

@@ -1,0 +1,146 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index cc8c0e2..6d9e7fa 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1327,6 +1327,7 @@ dependencies = [
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
++ "nih_plug_dioxus",
+  "reaper-test",
+  "tokio",
+ ]
+@@ -4980,6 +4981,20 @@ dependencies = [
+  "realfft",
+ ]
+ 
++[[package]]
++name = "meter-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "fts-plugin-core",
++ "meter-dsp",
++ "meter-ui",
++ "nih_plug",
++ "nih_plug_dioxus",
++ "parking_lot",
++]
++
+ [[package]]
+ name = "meter-ui"
+ version = "0.1.0"
+diff --git a/Cargo.toml b/Cargo.toml
+index 63a9ff0..4bbdc44 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -85,6 +85,7 @@ members = [
+     # Metering library
+     "crates/fts-meter/meter-dsp",
+     "crates/fts-meter/meter-ui",
++    "crates/fts-meter/meter-plugin",
+ 
+     # Pitch plugin (octave shifter)
+     "crates/fts-pitch/pitch-dsp",
+diff --git a/Justfile b/Justfile
+index 315cc7b..63a7904 100644
+--- a/Justfile
++++ b/Justfile
+@@ -96,6 +96,7 @@ install-all:
+     just install trem-plugin
+     just install nam-plugin
+     just install midi-guitar-plugin
++    just install meter-plugin
+ 
+ # Install and show REAPER reload instructions
+ install-reload plugin=PLUGIN_NAME: (install plugin)
+@@ -245,4 +246,5 @@ help:
+     echo ""
+     echo "Plugins: comp-plugin, eq-plugin, gate-plugin, limiter-plugin,"
+     echo "         tape-plugin, delay-plugin, reverb-plugin, trigger-plugin,"
+-    echo "         rider-plugin, fts-macros"
++    echo "         rider-plugin, chorus-plugin, pitch-plugin, saturate-plugin,"
++    echo "         trem-plugin, nam-plugin, midi-guitar-plugin, meter-plugin"
+diff --git a/crates/audio-gui/src/controls/mod.rs b/crates/audio-gui/src/controls/mod.rs
+index 39f8a1f..bc13502 100644
+--- a/crates/audio-gui/src/controls/mod.rs
++++ b/crates/audio-gui/src/controls/mod.rs
+@@ -1,11 +1,13 @@
+ //! Audio control widgets — knobs, sliders, toggles, segment buttons, XY pads.
+ 
++pub mod dropdown;
+ pub mod knob;
+ pub mod segment;
+ pub mod slider;
+ pub mod toggle;
+ pub mod xy_pad;
+ 
++pub use dropdown::Dropdown;
+ pub use knob::{Knob, KnobSize, RawKnob};
+ pub use segment::SegmentButton;
+ pub use slider::{ParamSlider, Slider, SliderOrientation};
+diff --git a/crates/fts-comp/comp-plugin/Cargo.toml b/crates/fts-comp/comp-plugin/Cargo.toml
+index 999564b..76a3f5d 100644
+--- a/crates/fts-comp/comp-plugin/Cargo.toml
++++ b/crates/fts-comp/comp-plugin/Cargo.toml
+@@ -9,6 +9,10 @@ description = "FTS Compressor — CLAP/VST3 audio plugin entry point"
+ [lib]
+ crate-type = ["cdylib", "lib"]
+ 
++[[bin]]
++name = "comp-desktop"
++path = "src/main.rs"
++
+ [dependencies]
+ audio-gui = { workspace = true }
+ fts-plugin-core = { path = "../../fts-plugin-core" }
+@@ -17,6 +21,7 @@ comp-dsp = { path = "../comp-dsp" }
+ comp-profiles = { path = "../comp-profiles" }
+ comp-ui = { path = "../comp-ui" }
+ nih_plug = { workspace = true }
++nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
+ atomic_float = { workspace = true }
+ 
+ [dev-dependencies]
+diff --git a/crates/fts-comp/comp-plugin/src/editor.rs b/crates/fts-comp/comp-plugin/src/editor.rs
+index 2dc576a..05afccd 100644
+--- a/crates/fts-comp/comp-plugin/src/editor.rs
++++ b/crates/fts-comp/comp-plugin/src/editor.rs
+@@ -26,6 +26,12 @@ pub fn App() -> Element {
+     let t = use_init_theme();
+     let t = *t.read();
+ 
++    // In plugin mode the Vello Background layer paints the dark background.
++    // In dx-serve / standalone mode there is no OverlayRegistry so we fall
++    // back to a CSS background on the root div.
++    let in_plugin_mode = try_consume_context::<OverlayRegistry>().is_some();
++    let root_bg = if in_plugin_mode { "transparent" } else { t.bg };
++
+     let shared = use_context::<SharedState>();
+     let ui = shared.get::<CompUiState>().expect("CompUiState missing");
+     let params = &ui.params;
+diff --git a/crates/fts-eq/eq-plugin/src/editor.rs b/crates/fts-eq/eq-plugin/src/editor.rs
+index afb66da..fcf82d8 100644
+--- a/crates/fts-eq/eq-plugin/src/editor.rs
++++ b/crates/fts-eq/eq-plugin/src/editor.rs
+@@ -131,7 +131,6 @@ pub fn App() -> Element {
+     let text_bright = t.text_bright;
+     let _text_dim = t.text_dim;
+     let style_label = t.style_label();
+-    let style_inset = t.style_inset();
+     let style_card = t.style_card();
+     let _style_value = t.style_value();
+ 
+@@ -171,7 +170,10 @@ pub fn App() -> Element {
+             // ── Main EQ graph ────────────────────────────────────
+             div {
+                 style: format!(
+-                    "{style_inset} flex:1; min-height:0; position:relative; margin:4px 6px; background:transparent;",
++                    "flex:1; min-height:0; position:relative; margin:4px 6px; \
++                     border:1px solid {border_subtle}; border-radius:{radius_button}; overflow:hidden;",
++                    border_subtle = t.border_subtle,
++                    radius_button = t.radius_button,
+                 ),
+                 EqGraph {
+                     bands: bands_signal,

@@ -1,0 +1,938 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index df1fd84..aa8661c 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -692,6 +692,7 @@ version = "0.1.0"
+ dependencies = [
+  "nih_plug",
+  "nih_plug_dioxus",
++ "parking_lot",
+ ]
+ 
+ [[package]]
+@@ -854,6 +855,12 @@ version = "0.8.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
+ 
++[[package]]
++name = "bit_mask_ring_buf"
++version = "0.6.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ac85b1322307fc253c24060df1e8b4e8ea681e13d2d02d14f59dbdf9f64b0e13"
++
+ [[package]]
+ name = "bitflags"
+ version = "1.3.2"
+@@ -989,7 +996,7 @@ dependencies = [
+  "blitz-traits",
+  "futures-util",
+  "keyboard-types 0.7.0",
+- "rfd 0.15.4",
++ "rfd",
+  "winit",
+ ]
+ 
+@@ -1283,7 +1290,6 @@ name = "chorus-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui",
+  "chorus-dsp",
+  "fts-dsp",
+  "fts-plugin-core",
+@@ -1984,12 +1990,6 @@ dependencies = [
+  "syn 2.0.117",
+ ]
+ 
+-[[package]]
+-name = "ctor-lite"
+-version = "0.1.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e162d0c2e2068eb736b71e5597eff0b9944e6b973cd9f37b6a288ab9bf20e300"
+-
+ [[package]]
+ name = "cursor-icon"
+ version = "1.2.0"
+@@ -2938,46 +2938,6 @@ version = "0.1.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
+ 
+-[[package]]
+-name = "drm"
+-version = "0.14.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "80bc8c5c6c2941f70a55c15f8d9f00f9710ebda3ffda98075f996a0e6c92756f"
+-dependencies = [
+- "bitflags 2.11.0",
+- "bytemuck",
+- "drm-ffi",
+- "drm-fourcc",
+- "libc",
+- "rustix 0.38.44",
+-]
+-
+-[[package]]
+-name = "drm-ffi"
+-version = "0.9.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "51a91c9b32ac4e8105dec255e849e0d66e27d7c34d184364fb93e469db08f690"
+-dependencies = [
+- "drm-sys",
+- "rustix 1.1.4",
+-]
+-
+-[[package]]
+-name = "drm-fourcc"
+-version = "2.2.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0aafbcdb8afc29c1a7ee5fbe53b5d62f4565b35a042a662ca9fecd0b54dae6f4"
+-
+-[[package]]
+-name = "drm-sys"
+-version = "0.8.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ecc8e1361066d91f5ffccff060a3c3be9c3ecde15be2959c1937595f7a82a9f8"
+-dependencies = [
+- "libc",
+- "linux-raw-sys 0.9.4",
+-]
+-
+ [[package]]
+ name = "dtoa"
+ version = "1.0.11"
+@@ -3136,6 +3096,7 @@ dependencies = [
+  "criterion",
+  "eq-dsp",
+  "fts-dsp",
++ "halfband",
+  "hound",
+  "rustfft",
+ ]
+@@ -3794,7 +3755,6 @@ name = "fts-sample"
+ version = "0.1.0"
+ dependencies = [
+  "crossbeam-channel",
+- "rfd 0.17.2",
+  "symphonium",
+  "tracing",
+ ]
+@@ -4284,7 +4244,11 @@ checksum = "f9e2d4c0a8296178d8802098410ca05d86b17a10bb5ab559b3fb404c1f948220"
+ name = "gui-test"
+ version = "0.1.0"
+ dependencies = [
++ "atomic_float 1.1.0",
++ "comp-plugin",
+  "nih_plug_dioxus",
++ "png",
++ "x11rb",
+ ]
+ 
+ [[package]]
+@@ -4328,6 +4292,17 @@ dependencies = [
+  "zerocopy",
+ ]
+ 
++[[package]]
++name = "halfband"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c21ea2524c2b1a846750d6c68b85f6cbe292d6eb847b5a7bea86e18c999870d5"
++dependencies = [
++ "bit_mask_ring_buf",
++ "paste",
++ "windowfunctions",
++]
++
+ [[package]]
+ name = "harfrust"
+ version = "0.3.2"
+@@ -5369,12 +5344,6 @@ version = "0.4.15"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
+ 
+-[[package]]
+-name = "linux-raw-sys"
+-version = "0.9.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
+-
+ [[package]]
+ name = "linux-raw-sys"
+ version = "0.12.1"
+@@ -6244,7 +6213,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug"
+ version = "0.0.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "anyhow",
+  "anymap3",
+@@ -6274,7 +6242,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug_derive"
+ version = "0.1.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "proc-macro2",
+  "quote",
+@@ -6284,7 +6251,6 @@ dependencies = [
+ [[package]]
+ name = "nih_plug_dioxus"
+ version = "0.0.0"
+-source = "git+https://github.com/FastTrackStudios/nih-plug.git?branch=reaper-embed-ui#1ca24ac82079c95063c4c5a5ea31f38dea34c133"
+ dependencies = [
+  "anyrender_vello",
+  "baseview",
+@@ -6301,7 +6267,6 @@ dependencies = [
+  "pollster 0.4.0",
+  "raw-window-handle 0.6.2",
+  "serde",
+- "softbuffer",
+  "vello 0.6.0",
+  "wgpu 26.0.1",
+  "wgpu_context",
+@@ -6577,7 +6542,7 @@ dependencies = [
+  "objc2-core-data",
+  "objc2-core-image",
+  "objc2-foundation 0.2.2",
+- "objc2-quartz-core 0.2.2",
++ "objc2-quartz-core",
+ ]
+ 
+ [[package]]
+@@ -6765,18 +6730,6 @@ dependencies = [
+  "objc2-metal",
+ ]
+ 
+-[[package]]
+-name = "objc2-quartz-core"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "96c1358452b371bf9f104e21ec536d37a650eb10f7ee379fff67d2e08d537f1f"
+-dependencies = [
+- "bitflags 2.11.0",
+- "objc2 0.6.4",
+- "objc2-core-foundation",
+- "objc2-foundation 0.3.2",
+-]
+-
+ [[package]]
+ name = "objc2-symbols"
+ version = "0.2.2"
+@@ -6802,7 +6755,7 @@ dependencies = [
+  "objc2-core-location",
+  "objc2-foundation 0.2.2",
+  "objc2-link-presentation",
+- "objc2-quartz-core 0.2.2",
++ "objc2-quartz-core",
+  "objc2-symbols",
+  "objc2-uniform-type-identifiers",
+  "objc2-user-notifications",
+@@ -8145,8 +8098,6 @@ dependencies = [
+ name = "reverb-plugin"
+ version = "0.1.0"
+ dependencies = [
+- "atomic_float 1.1.0",
+- "audio-gui",
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+@@ -8197,33 +8148,6 @@ dependencies = [
+  "windows-sys 0.59.0",
+ ]
+ 
+-[[package]]
+-name = "rfd"
+-version = "0.17.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "20dafead71c16a34e1ff357ddefc8afc11e7d51d6d2b9fbd07eaa48e3e540220"
+-dependencies = [
+- "block2 0.6.2",
+- "dispatch2",
+- "js-sys",
+- "libc",
+- "log",
+- "objc2 0.6.4",
+- "objc2-app-kit 0.3.2",
+- "objc2-core-foundation",
+- "objc2-foundation 0.3.2",
+- "percent-encoding",
+- "pollster 0.4.0",
+- "raw-window-handle 0.6.2",
+- "wasm-bindgen",
+- "wasm-bindgen-futures",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-protocols",
+- "web-sys",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "rgb"
+ version = "0.8.53"
+@@ -9030,38 +8954,6 @@ dependencies = [
+  "winapi",
+ ]
+ 
+-[[package]]
+-name = "softbuffer"
+-version = "0.4.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "aac18da81ebbf05109ab275b157c22a653bb3c12cf884450179942f81bcbf6c3"
+-dependencies = [
+- "as-raw-xcb-connection",
+- "bytemuck",
+- "drm",
+- "fastrand",
+- "js-sys",
+- "memmap2",
+- "ndk",
+- "objc2 0.6.4",
+- "objc2-core-foundation",
+- "objc2-core-graphics",
+- "objc2-foundation 0.3.2",
+- "objc2-quartz-core 0.3.2",
+- "raw-window-handle 0.6.2",
+- "redox_syscall 0.5.18",
+- "rustix 1.1.4",
+- "tiny-xlib",
+- "tracing",
+- "wasm-bindgen",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-sys",
+- "web-sys",
+- "windows-sys 0.61.2",
+- "x11rb",
+-]
+-
+ [[package]]
+ name = "spirv"
+ version = "0.3.0+sdk-1.3.268.0"
+@@ -9851,19 +9743,6 @@ dependencies = [
+  "strict-num",
+ ]
+ 
+-[[package]]
+-name = "tiny-xlib"
+-version = "0.2.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0324504befd01cab6e0c994f34b2ffa257849ee019d3fb3b64fb2c858887d89e"
+-dependencies = [
+- "as-raw-xcb-connection",
+- "ctor-lite",
+- "libloading 0.8.9",
+- "pkg-config",
+- "tracing",
+-]
+-
+ [[package]]
+ name = "tinystr"
+ version = "0.7.6"
+@@ -11752,6 +11631,15 @@ version = "0.4.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+ 
++[[package]]
++name = "windowfunctions"
++version = "0.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "90628d739333b7c5d2ee0b70210b97b8cddc38440c682c96fd9e2c24c2db5f3a"
++dependencies = [
++ "num-traits",
++]
++
+ [[package]]
+ name = "windows"
+ version = "0.44.0"
+diff --git a/apps/gui-test/Cargo.toml b/apps/gui-test/Cargo.toml
+index c0b0a40..0ad933e 100644
+--- a/apps/gui-test/Cargo.toml
++++ b/apps/gui-test/Cargo.toml
+@@ -16,8 +16,20 @@ path = "src/main_softbuffer.rs"
+ name = "gui-test-parented"
+ path = "src/main_parented.rs"
+ 
++[[bin]]
++name = "gui-test-screenshot"
++path = "src/main_screenshot.rs"
++
+ [dependencies]
+ nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
++png = "0.17"
++atomic_float = "1"
++
++# Only one plugin at a time to avoid duplicate CLAP/VST3 entry point symbols.
++# Switch to a different plugin crate to screenshot it.
++comp-plugin = { path = "../../crates/fts-comp/comp-plugin" }
++# delay-plugin = { path = "../../crates/fts-delay/delay-plugin" }
++# eq-plugin = { path = "../../crates/fts-eq/eq-plugin" }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
+ x11rb = { version = "0.13", features = ["allow-unsafe-code"] }
+diff --git a/apps/gui-test/src/main_screenshot.rs b/apps/gui-test/src/main_screenshot.rs
+index bf6e371..1c81ca0 100644
+--- a/apps/gui-test/src/main_screenshot.rs
++++ b/apps/gui-test/src/main_screenshot.rs
+@@ -1,181 +1,68 @@
+-//! Headless screenshot tool for GUI testing.
++//! Headless screenshot tool for plugin GUI testing.
+ //!
+-//! Renders a Dioxus component offscreen via wgpu and saves as PNG.
+-//! This lets you visually verify rendering without opening a window.
++//! Renders actual plugin editor GUIs offscreen via wgpu and saves as PNG.
++//! This lets you visually verify rendering without a DAW.
+ //!
+ //! Run with:
+-//!   cargo run -p gui-test --bin gui-test-screenshot [output.png]
++//!   cargo run -p gui-test --bin gui-test-screenshot [plugin] [output.png]
++//!
++//! Examples:
++//!   cargo run -p gui-test --bin gui-test-screenshot comp /tmp/comp.png
++//!
++//! To screenshot other plugins, uncomment the corresponding dependency in
++//! Cargo.toml (only one plugin at a time to avoid duplicate CLAP/VST3 symbols).
+ 
+-use nih_plug_dioxus::dioxus_native::prelude::*;
+-use nih_plug_dioxus::TAILWIND_CSS;
++use nih_plug_dioxus::SharedState;
+ use std::path::PathBuf;
++use std::sync::Arc;
+ 
+ fn main() {
+-    let output_path = std::env::args()
+-        .nth(1)
+-        .map(PathBuf::from)
+-        .unwrap_or_else(|| PathBuf::from("screenshot.png"));
++    let args: Vec<String> = std::env::args().collect();
+ 
+-    let width = 800;
+-    let height = 600;
+-
+-    eprintln!("Rendering {}x{} screenshot...", width, height);
+-
+-    let pixels = nih_plug_dioxus::render_screenshot(App, width, height, None);
++    let plugin_name = args.get(1).map(|s| s.as_str()).unwrap_or("comp");
++    let output_path = args
++        .get(2)
++        .map(PathBuf::from)
++        .unwrap_or_else(|| PathBuf::from(format!("/tmp/fts-{}.png", plugin_name)));
++
++    match plugin_name {
++        "comp" => screenshot_comp(&output_path),
++        // Uncomment in Cargo.toml to enable:
++        // "delay" => screenshot_delay(&output_path),
++        // "eq" => screenshot_eq(&output_path),
++        _ => {
++            eprintln!("Unknown plugin: {}", plugin_name);
++            eprintln!("Available: comp");
++            eprintln!("(Uncomment delay-plugin or eq-plugin in Cargo.toml to enable others)");
++            std::process::exit(1);
++        }
++    }
++}
+ 
+-    // Save as PNG
+-    let file = std::fs::File::create(&output_path).expect("Failed to create output file");
++fn save_png(pixels: &[u8], width: u32, height: u32, path: &std::path::Path) {
++    let file = std::fs::File::create(path).expect("Failed to create output file");
+     let mut encoder = png::Encoder::new(file, width, height);
+     encoder.set_color(png::ColorType::Rgba);
+     encoder.set_depth(png::BitDepth::Eight);
+     let mut writer = encoder.write_header().expect("Failed to write PNG header");
+-    writer.write_image_data(&pixels).expect("Failed to write PNG data");
+-
+-    eprintln!("Saved to {}", output_path.display());
++    writer
++        .write_image_data(pixels)
++        .expect("Failed to write PNG data");
++    eprintln!("Saved to {}", path.display());
+ }
+ 
+-/// Test component — exercises various layout and styling patterns.
+-#[component]
+-fn App() -> Element {
+-    rsx! {
+-        document::Style { {TAILWIND_CSS} }
+-        div {
+-            style: "width: 100%; height: 100%; background: #1a1a2e; padding: 16px; font-family: sans-serif; color: white; box-sizing: border-box;",
+-
+-            // Title bar
+-            div {
+-                style: "font-size: 20px; font-weight: bold; color: #e94560; margin-bottom: 16px;",
+-                "FTS GUI Component Gallery"
+-            }
+-
+-            // Row of colored boxes (tests flexbox + border-radius + hsl colors)
+-            div {
+-                style: "display: flex; gap: 8px; margin-bottom: 16px;",
+-                for i in 0..8 {
+-                    {
+-                        let hue = i * 45;
+-                        rsx! {
+-                            div {
+-                                style: "width: 48px; height: 48px; border-radius: 8px; background: hsl({hue}, 70%, 50%); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;",
+-                                "{hue}"
+-                            }
+-                        }
+-                    }
+-                }
+-            }
++fn screenshot_comp(output: &std::path::Path) {
++    use comp_plugin::{CompUiState, FtsCompParams};
+ 
+-            // Layout test: two columns
+-            div {
+-                style: "display: flex; gap: 16px; margin-bottom: 16px;",
++    let width = 900;
++    let height = 620;
+ 
+-                // Left column — simulated knob area
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
++    let params = Arc::new(FtsCompParams::default());
++    let ui_state = Arc::new(CompUiState::new(params));
++    let shared = SharedState::new(ui_state);
+ 
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Controls"
+-                    }
+-
+-                    // Simulated knobs (circles with labels)
+-                    div {
+-                        style: "display: flex; gap: 16px; flex-wrap: wrap;",
+-                        for label in ["Gain", "Freq", "Q", "Mix"] {
+-                            div {
+-                                style: "display: flex; flex-direction: column; align-items: center; gap: 4px;",
+-                                div {
+-                                    style: "width: 48px; height: 48px; border-radius: 50%; background: #0f3460; border: 2px solid #e94560; display: flex; align-items: center; justify-content: center; font-size: 11px;",
+-                                    "0.5"
+-                                }
+-                                div {
+-                                    style: "font-size: 10px; color: #888;",
+-                                    "{label}"
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Right column — simulated dropdown + text
+-                div {
+-                    style: "flex: 1; background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                    div {
+-                        style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                        "Settings"
+-                    }
+-
+-                    // Simulated dropdown
+-                    div {
+-                        style: "background: #0f3460; border: 1px solid #333; border-radius: 4px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between;",
+-                        span { "Algorithm: Clean" }
+-                        span { style: "color: #888;", "▼" }
+-                    }
+-
+-                    // Simulated toggle
+-                    div {
+-                        style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;",
+-                        div {
+-                            style: "width: 36px; height: 20px; border-radius: 10px; background: #e94560; position: relative;",
+-                            div {
+-                                style: "width: 16px; height: 16px; border-radius: 50%; background: white; position: absolute; top: 2px; right: 2px;",
+-                            }
+-                        }
+-                        span { style: "font-size: 13px;", "Enabled" }
+-                    }
+-
+-                    // Simulated slider
+-                    div {
+-                        style: "margin-bottom: 4px;",
+-                        div {
+-                            style: "font-size: 11px; color: #888; margin-bottom: 4px;",
+-                            "Dry/Wet"
+-                        }
+-                        div {
+-                            style: "height: 6px; background: #0f3460; border-radius: 3px; position: relative;",
+-                            div {
+-                                style: "width: 65%; height: 100%; background: #e94560; border-radius: 3px;",
+-                            }
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Bottom panel — simulated meter / waveform area
+-            div {
+-                style: "background: #16213e; border-radius: 8px; padding: 12px;",
+-
+-                div {
+-                    style: "font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;",
+-                    "Output"
+-                }
+-
+-                // Simulated level meters
+-                div {
+-                    style: "display: flex; gap: 4px; height: 24px;",
+-                    for level in [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.3, 0.65, 0.55, 0.75, 0.45, 0.6, 0.8, 0.5, 0.7] {
+-                        {
+-                            let pct = (level * 100.0) as u32;
+-                            let color = if level > 0.85 { "#ff4444" } else if level > 0.7 { "#ffaa00" } else { "#44ff44" };
+-                            rsx! {
+-                                div {
+-                                    style: "flex: 1; background: #0f3460; border-radius: 2px; display: flex; align-items: flex-end;",
+-                                    div {
+-                                        style: "width: 100%; height: {pct}%; background: {color}; border-radius: 2px;",
+-                                    }
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-
+-                // Labels
+-                div {
+-                    style: "display: flex; justify-content: space-between; margin-top: 4px;",
+-                    span { style: "font-size: 10px; color: #888;", "L" }
+-                    span { style: "font-size: 10px; color: #888;", "R" }
+-                }
+-            }
+-        }
+-    }
++    eprintln!("Rendering compressor ({}x{})...", width, height);
++    let pixels =
++        nih_plug_dioxus::render_screenshot(comp_plugin::editor::App, width, height, Some(shared));
++    save_png(&pixels, width, height, output);
+ }
+diff --git a/crates/fts-comp/comp-plugin/src/lib.rs b/crates/fts-comp/comp-plugin/src/lib.rs
+index 35834c1..0c8fee8 100644
+--- a/crates/fts-comp/comp-plugin/src/lib.rs
++++ b/crates/fts-comp/comp-plugin/src/lib.rs
+@@ -8,7 +8,7 @@ use std::sync::Arc;
+ use comp_dsp::chain::CompChain;
+ use fts_dsp::{AudioConfig, Processor};
+ 
+-mod editor;
++pub mod editor;
+ 
+ // ── Shared UI State ──────────────────────────────────────────────────
+ 
+@@ -33,7 +33,7 @@ pub struct CompUiState {
+ pub const WAVEFORM_LEN: usize = 200;
+ 
+ impl CompUiState {
+-    fn new(params: Arc<FtsCompParams>) -> Self {
++    pub fn new(params: Arc<FtsCompParams>) -> Self {
+         let waveform_input: Box<[AtomicF32]> = (0..WAVEFORM_LEN)
+             .map(|_| AtomicF32::new(0.0))
+             .collect::<Vec<_>>()
+diff --git a/crates/fts-eq/eq-dsp/src/band.rs b/crates/fts-eq/eq-dsp/src/band.rs
+index ac0a8a5..f1fd633 100644
+--- a/crates/fts-eq/eq-dsp/src/band.rs
++++ b/crates/fts-eq/eq-dsp/src/band.rs
+@@ -27,6 +27,9 @@ pub struct Band {
+     pub q: f64,
+     pub order: usize, // 1, 2, 4, 6, 8, 10, 12
+     pub enabled: bool,
++    /// Tuning: peak cascade Q compensation fraction (0.0–1.0).
++    /// Fraction of theoretical bandwidth narrowing correction applied.
++    pub peak_q_comp: f64,
+ 
+     // Processing state — one of these is active
+     tdf2: [Tdf2Section; MAX_SECTIONS],
+@@ -47,6 +50,7 @@ impl Band {
+             q: 0.707,
+             order: 2,
+             enabled: true,
++            peak_q_comp: 0.105,
+             tdf2: std::array::from_fn(|_| Tdf2Section::new()),
+             svf: std::array::from_fn(|_| SvfSection::new()),
+             num_sections: 1,
+@@ -197,10 +201,14 @@ impl Band {
+ 
+         if order <= 2 {
+             self.num_sections = 1;
++            // Shelf Q compression: Pro-Q 4's display Q maps to internal Q
++            // via √(q_display) scaling. self.q = q_display / √2, so
++            // q_compressed = √(self.q * √2) / √2 = √(q_display) / √2.
++            let q_shelf = (self.q * SQRT_2).sqrt() * std::f64::consts::FRAC_1_SQRT_2;
+             let c = coeff::calculate(
+                 self.filter_type,
+                 self.freq_hz,
+-                self.q,
++                q_shelf,
+                 effective_gain_db,
+                 config.sample_rate,
+             );
+@@ -296,46 +304,19 @@ impl Band {
+     }
+ 
+     fn update_peak_filter(&mut self, order: usize, config: AudioConfig) {
+-        if order <= 2 {
+-            self.num_sections = 1;
+-            let c = coeff::calculate(
+-                FilterType::Peak,
+-                self.freq_hz,
+-                self.q,
+-                self.gain_db,
+-                config.sample_rate,
+-            );
+-            self.set_section_coeffs(0, c);
+-            return;
+-        }
+-
+-        // Higher-order peak: cascade multiple 2nd-order peak sections
+-        // with gain distributed across sections.
+-        let num = order / 2;
+-        self.num_sections = num.min(MAX_SECTIONS);
+-
+-        let g = 10.0_f64.powf(self.gain_db / 20.0);
+-        let g_per = g.powf(1.0 / num as f64);
+-        let gain_per = 20.0 * g_per.log10();
+-
+-        // Mild Q compensation for cascade bandwidth narrowing.
+-        // Cascading N identical peaks narrows bandwidth by √(2^(1/N)−1).
+-        // Apply 15% of theoretical correction to approximate Pro-Q 4's
+-        // wider response without breaking the overall shape.
+-        let n = self.num_sections as f64;
+-        let full_comp = 1.0 / (2.0_f64.powf(1.0 / n) - 1.0).sqrt();
+-        let q_adjusted = self.q * (1.0 + 0.15 * (full_comp - 1.0));
+-
+-        for i in 0..self.num_sections {
+-            let c = coeff::calculate(
+-                FilterType::Peak,
+-                self.freq_hz,
+-                q_adjusted,
+-                gain_per,
+-                config.sample_rate,
+-            );
+-            self.set_section_coeffs(i, c);
+-        }
++        // Pro-Q 4 bell: higher slope produces a WIDER, flatter peak (not narrower).
++        // A single 2nd-order section with full gain and display Q matches this shape.
++        // Cascading sections narrows the bell and diverges from Pro-Q 4 behavior.
++        let _ = order;
++        self.num_sections = 1;
++        let c = coeff::calculate(
++            FilterType::Peak,
++            self.freq_hz,
++            self.q,
++            self.gain_db,
++            config.sample_rate,
++        );
++        self.set_section_coeffs(0, c);
+     }
+ 
+     /// Band shelf: opposing low shelf pair at bandwidth edges.
+diff --git a/crates/fts-eq/eq-plugin/src/lib.rs b/crates/fts-eq/eq-plugin/src/lib.rs
+index 8048ded..24fcea2 100644
+--- a/crates/fts-eq/eq-plugin/src/lib.rs
++++ b/crates/fts-eq/eq-plugin/src/lib.rs
+@@ -129,7 +129,7 @@ impl BandParams {
+                 1000.0,
+                 FloatRange::Skewed {
+                     min: 20.0,
+-                    max: 20000.0,
++                    max: 30000.0,
+                     factor: FloatRange::skew_factor(-2.0),
+                 },
+             )
+@@ -166,18 +166,18 @@ impl BandParams {
+ 
+             slope: IntParam::new(
+                 &format!("B{} Slope", idx + 1),
+-                2, // 18 dB/oct default (matches Pro-Q 4 default of index 2)
++                2, // 12 dB/oct default (matches Pro-Q 4 default of index 2)
+                 IntRange::Linear { min: 0, max: 10 },
+             )
+             .with_value_to_string(Arc::new(|v| match v {
+-                0 => "6 dB/oct".to_string(),
+-                1 => "12 dB/oct".to_string(),
+-                2 => "18 dB/oct".to_string(),
+-                3 => "24 dB/oct".to_string(),
+-                4 => "30 dB/oct".to_string(),
+-                5 => "36 dB/oct".to_string(),
+-                6 => "48 dB/oct".to_string(),
+-                7 => "60 dB/oct".to_string(),
++                0 => "0 dB/oct".to_string(),
++                1 => "6 dB/oct".to_string(),
++                2 => "12 dB/oct".to_string(),
++                3 => "18 dB/oct".to_string(),
++                4 => "24 dB/oct".to_string(),
++                5 => "30 dB/oct".to_string(),
++                6 => "36 dB/oct".to_string(),
++                7 => "48 dB/oct".to_string(),
+                 8 => "72 dB/oct".to_string(),
+                 9 => "96 dB/oct".to_string(),
+                 10 => "Brickwall".to_string(),
+@@ -333,18 +333,18 @@ impl Default for FtsEq {
+ }
+ 
+ /// Map slope index (0–10) to filter order for eq-dsp.
+-/// Pro-Q 4 slopes: 6,12,18,24,30,36,48,60,72,96 dB/oct + Brickwall.
++/// Pro-Q 4 slopes: 0,6,12,18,24,30,36,48,72,96 dB/oct + Brickwall.
+ /// Each 6 dB/oct = 1 pole (order 1).
+ fn slope_to_order(slope: i32) -> usize {
+     match slope {
+-        0 => 1,   // 6 dB/oct
+-        1 => 2,   // 12 dB/oct
+-        2 => 3,   // 18 dB/oct
+-        3 => 4,   // 24 dB/oct
+-        4 => 5,   // 30 dB/oct
+-        5 => 6,   // 36 dB/oct
+-        6 => 8,   // 48 dB/oct (Pro-Q 4 skips 42)
+-        7 => 10,  // 60 dB/oct
++        0 => 2,   // 0 dB/oct (Pro-Q 4 treats same as 12 dB/oct for bell/shelf)
++        1 => 1,   // 6 dB/oct
++        2 => 2,   // 12 dB/oct
++        3 => 3,   // 18 dB/oct
++        4 => 4,   // 24 dB/oct
++        5 => 5,   // 30 dB/oct
++        6 => 6,   // 36 dB/oct
++        7 => 8,   // 48 dB/oct
+         8 => 12,  // 72 dB/oct
+         9 => 16,  // 96 dB/oct (clamped to MAX_ORDER in DSP)
+         10 => 16, // Brickwall (max we can do)
+@@ -414,11 +414,21 @@ impl FtsEq {
+                 let gain = bp.gain_db.value() as f64 * scale;
+                 // Pro-Q 4 convention: display Q=1.0 = Butterworth (filter Q = 1/√2).
+                 let q = bp.q.value() as f64 * std::f64::consts::FRAC_1_SQRT_2;
++                let slope_val = bp.slope.value();
+                 let order = match ft {
+                     FilterType::Lowpass | FilterType::Highpass | FilterType::Bandpass => {
+-                        lp_hp_slope_to_order(bp.slope.value())
++                        lp_hp_slope_to_order(slope_val)
++                    }
++                    // For shelves, slope 0 (0 dB/oct) = 1st-order.
++                    // For bell, slope 0 = same as slope 2 (12 dB/oct, order 2).
++                    FilterType::LowShelf
++                    | FilterType::HighShelf
++                    | FilterType::TiltShelf
++                        if slope_val == 0 =>
++                    {
++                        1
+                     }
+-                    _ => slope_to_order(bp.slope.value()),
++                    _ => slope_to_order(slope_val),
+                 };
+ 
+                 let peak_q_comp = self.params.tune_peak_q_comp.value() as f64;
+diff --git a/crates/fts-pitch/pitch-dsp/Cargo.toml b/crates/fts-pitch/pitch-dsp/Cargo.toml
+index f4e7b6c..262c4a3 100644
+--- a/crates/fts-pitch/pitch-dsp/Cargo.toml
++++ b/crates/fts-pitch/pitch-dsp/Cargo.toml
+@@ -8,7 +8,6 @@ license.workspace = true
+ [dependencies]
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ serde = { workspace = true }
+-realfft = "3"
+ 
+ # External pitch/time-stretch libraries
+ signalsmith-stretch = "0.1"
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index f843397..9763330 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -638,8 +638,8 @@ mod tests {
+             Algorithm::Signalsmith,
+             Algorithm::Rubberband,
+             Algorithm::Allpass,
+-            // PolyOctave excluded: STFT dry path has FFT_SIZE latency;
+-            // dry-wet correctness is tested in pog::tests::dry_wet_mix.
++            // PolyOctave excluded: SSB filter bank has 1-sample latency
++            // on dry path; dry-wet correctness tested in pog::tests::dry_wet_mix.
+         ] {
+             let mut chain = PitchChain::new();
+             chain.algorithm = algo;
+@@ -731,22 +731,16 @@ mod tests {
+             eprintln!("  {algo:?} live: {lat} samples ({ms:.1} ms)");
+         }
+ 
+-        // In live mode, all algorithms should be under 15ms (~720 samples at 48k).
++        // In live mode, all algorithms should be under 25ms (~1200 samples at 48k).
+         // Rubberband R2 real-time has ~1024 sample minimum internal latency.
+-        // PolyOctave uses STFT with FFT_SIZE=2048 latency regardless of live mode.
+         let live_limit_samples = (SR * 0.025) as usize; // 1200 samples
+         for algo in ALL_ALGOS {
+             chain.algorithm = algo;
+             chain.process(&mut l, &mut r);
+             let lat = chain.latency();
+-            let limit = if algo == Algorithm::PolyOctave {
+-                2048
+-            } else {
+-                live_limit_samples
+-            };
+             assert!(
+-                lat <= limit,
+-                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {limit}",
++                lat <= live_limit_samples,
++                "{algo:?} live latency too high: {lat} samples ({:.1} ms), limit {live_limit_samples}",
+                 lat as f64 / SR * 1000.0,
+             );
+         }
+diff --git a/crates/fts-trigger/trigger-plugin/src/editor.rs b/crates/fts-trigger/trigger-plugin/src/editor.rs
+index f794a86..f11b141 100644
+--- a/crates/fts-trigger/trigger-plugin/src/editor.rs
++++ b/crates/fts-trigger/trigger-plugin/src/editor.rs
+@@ -216,17 +216,14 @@ pub fn App() -> Element {
+ 
+                         Divider {}
+ 
+-                        // MIDI output controls
+-                        div {
+-                            style: "display:flex; gap:6px; align-items:center;",
+-                            div {
+-                                style: format!("{style_label}"),
+-                                "MIDI"
+-                            }
+-                            ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
+-                            Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
+-                            Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
+-                        }
++                        // TODO: MIDI output controls (params not yet added)
++                        // div {
++                        //     style: "display:flex; gap:6px; align-items:center;",
++                        //     div { style: format!("{style_label}"), "MIDI" }
++                        //     ParamSlider { param_ptr: params.midi_enabled.as_ptr() }
++                        //     Knob { param_ptr: params.midi_channel.as_ptr(), size: KnobSize::Small }
++                        //     Knob { param_ptr: params.midi_note_length.as_ptr(), size: KnobSize::Small }
++                        // }
+                     }
+                 }
+ 
+@@ -314,7 +311,7 @@ pub fn App() -> Element {
+                         enabled_ptr: params.slots[slot].enabled.as_ptr(),
+                         mute_ptr: params.slots[slot].mute.as_ptr(),
+                         solo_ptr: params.slots[slot].solo.as_ptr(),
+-                        midi_note_ptr: params.slots[slot].midi_note.as_ptr(),
++                        // TODO: midi_note_ptr (param not yet added)
+                         on_load: {
+                             let ui = ui_for_load.clone();
+                             move |slot: usize| {
+diff --git a/crates/fts-trigger/trigger-ui/src/control_view.rs b/crates/fts-trigger/trigger-ui/src/control_view.rs
+index 00ab042..7bc556e 100644
+--- a/crates/fts-trigger/trigger-ui/src/control_view.rs
++++ b/crates/fts-trigger/trigger-ui/src/control_view.rs
+@@ -18,7 +18,7 @@ pub fn MixerStrip(
+     enabled_ptr: ParamPtr,
+     mute_ptr: ParamPtr,
+     solo_ptr: ParamPtr,
+-    midi_note_ptr: ParamPtr,
++    // TODO: midi_note_ptr: ParamPtr, (param not yet added)
+     on_load: EventHandler<usize>,
+ ) -> Element {
+     let t = use_theme();
+diff --git a/xtask/src/main.rs b/xtask/src/main.rs
+index b7e1cf0..3924d1d 100644
+--- a/xtask/src/main.rs
++++ b/xtask/src/main.rs
+@@ -39,6 +39,7 @@ fn reaper_test(
+         timeout_secs,
+         keep_open,
+         ci,
++        extension_whitelist: Vec::new(),
+     };
+ 
+     // ── Step 1: Ensure daw-bridge extension is installed ─────────────────

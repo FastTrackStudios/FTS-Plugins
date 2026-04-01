@@ -1,0 +1,2570 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5e1d208..b80f97a 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -694,15 +694,6 @@ dependencies = [
+  "nih_plug_dioxus",
+ ]
+ 
+-[[package]]
+-name = "audio-gui"
+-version = "0.1.0"
+-source = "git+https://github.com/FastTrackStudios/audio-gui.git?branch=main#ca3d08fa460579b8dbff221d700c80eeb448c5a5"
+-dependencies = [
+- "nih_plug",
+- "nih_plug_dioxus",
+-]
+-
+ [[package]]
+ name = "autocfg"
+ version = "1.5.0"
+@@ -998,7 +989,7 @@ dependencies = [
+  "blitz-traits",
+  "futures-util",
+  "keyboard-types 0.7.0",
+- "rfd",
++ "rfd 0.15.4",
+  "winit",
+ ]
+ 
+@@ -1550,7 +1541,7 @@ name = "comp-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "comp-dsp",
+  "comp-profiles",
+  "comp-ui",
+@@ -1575,7 +1566,7 @@ dependencies = [
+ name = "comp-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "comp-dsp",
+  "comp-profiles",
+  "fts-plugin-core",
+@@ -2309,9 +2300,12 @@ dependencies = [
+ name = "delay-plugin"
+ version = "0.1.0"
+ dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
+  "delay-dsp",
+  "delay-profiles",
+  "delay-ui",
++ "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+ ]
+@@ -2328,7 +2322,7 @@ dependencies = [
+ name = "delay-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "delay-dsp",
+  "delay-profiles",
+  "fts-plugin-core",
+@@ -3140,7 +3134,7 @@ name = "eq-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "eq-dsp",
+  "eq-profiles",
+  "eq-ui",
+@@ -3161,7 +3155,7 @@ dependencies = [
+ name = "eq-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "eq-dsp",
+  "eq-profiles",
+  "fts-plugin-core",
+@@ -3781,7 +3775,7 @@ version = "0.1.0"
+ dependencies = [
+  "anyhow",
+  "atomic_float 1.1.0",
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "nih_plug",
+  "nih_plug_dioxus",
+  "thiserror 2.0.18",
+@@ -3793,6 +3787,7 @@ name = "fts-sample"
+ version = "0.1.0"
+ dependencies = [
+  "crossbeam-channel",
++ "rfd 0.17.2",
+  "symphonium",
+  "tracing",
+ ]
+@@ -3969,6 +3964,9 @@ dependencies = [
+ name = "gate-plugin"
+ version = "0.1.0"
+ dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "fts-dsp",
+  "fts-plugin-core",
+  "gate-dsp",
+  "gate-profiles",
+@@ -3987,7 +3985,7 @@ dependencies = [
+ name = "gate-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-plugin-core",
+  "gate-dsp",
+  "gate-profiles",
+@@ -5284,7 +5282,7 @@ dependencies = [
+ name = "limiter-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-plugin-core",
+  "limiter-dsp",
+  "limiter-profiles",
+@@ -5350,7 +5348,7 @@ name = "livetune-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-dsp",
+  "fts-plugin-core",
+  "livetune-dsp",
+@@ -5752,6 +5750,34 @@ version = "0.1.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6f2dd5c7f8aaf48a76e389068ab25ed80bdbc226b887f9013844c415698c9952"
+ 
++[[package]]
++name = "midi-guitar-analysis"
++version = "0.1.0"
++dependencies = [
++ "hound",
++ "midi-guitar-dsp",
++ "midly",
++ "serde",
++ "serde_json",
++]
++
++[[package]]
++name = "midi-guitar-dsp"
++version = "0.1.0"
++
++[[package]]
++name = "midi-guitar-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "fts-dsp",
++ "fts-plugin-core",
++ "midi-guitar-dsp",
++ "nih_plug",
++ "serde",
++]
++
+ [[package]]
+ name = "midly"
+ version = "0.5.3"
+@@ -6006,6 +6032,32 @@ dependencies = [
+  "serde_json",
+ ]
+ 
++[[package]]
++name = "nam-plugin"
++version = "0.1.0"
++dependencies = [
++ "atomic_float 1.1.0",
++ "audio-gui",
++ "crossbeam-channel",
++ "fts-dsp",
++ "fts-plugin-core",
++ "fts-sample",
++ "gate-dsp",
++ "nam-dsp",
++ "nam-ui",
++ "nih_plug",
++ "serde",
++]
++
++[[package]]
++name = "nam-ui"
++version = "0.1.0"
++dependencies = [
++ "audio-gui",
++ "fts-plugin-core",
++ "nam-dsp",
++]
++
+ [[package]]
+ name = "native-tls"
+ version = "0.2.18"
+@@ -7212,7 +7264,7 @@ name = "pitch-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+@@ -8020,6 +8072,7 @@ dependencies = [
+ name = "reverb-plugin"
+ version = "0.1.0"
+ dependencies = [
++ "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+  "reverb-dsp",
+@@ -8039,7 +8092,7 @@ dependencies = [
+ name = "reverb-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-plugin-core",
+  "reverb-dsp",
+  "reverb-profiles",
+@@ -8069,6 +8122,33 @@ dependencies = [
+  "windows-sys 0.59.0",
+ ]
+ 
++[[package]]
++name = "rfd"
++version = "0.17.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "20dafead71c16a34e1ff357ddefc8afc11e7d51d6d2b9fbd07eaa48e3e540220"
++dependencies = [
++ "block2 0.6.2",
++ "dispatch2",
++ "js-sys",
++ "libc",
++ "log",
++ "objc2 0.6.4",
++ "objc2-app-kit 0.3.2",
++ "objc2-core-foundation",
++ "objc2-foundation 0.3.2",
++ "percent-encoding",
++ "pollster 0.4.0",
++ "raw-window-handle 0.6.2",
++ "wasm-bindgen",
++ "wasm-bindgen-futures",
++ "wayland-backend",
++ "wayland-client",
++ "wayland-protocols",
++ "web-sys",
++ "windows-sys 0.61.2",
++]
++
+ [[package]]
+ name = "rgb"
+ version = "0.8.53"
+@@ -8103,7 +8183,7 @@ name = "rider-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-dsp",
+  "fts-plugin-core",
+  "nih_plug",
+@@ -8123,7 +8203,7 @@ dependencies = [
+ name = "rider-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-plugin-core",
+  "rider-dsp",
+  "rider-profiles",
+@@ -9607,7 +9687,7 @@ dependencies = [
+ name = "tape-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-plugin-core",
+  "tape-dsp",
+  "tape-profiles",
+@@ -10147,7 +10227,7 @@ name = "trigger-plugin"
+ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "crossbeam-channel",
+  "eq-dsp",
+  "fts-dsp",
+@@ -10171,7 +10251,7 @@ dependencies = [
+ name = "trigger-ui"
+ version = "0.1.0"
+ dependencies = [
+- "audio-gui 0.1.0 (git+https://github.com/FastTrackStudios/audio-gui.git?branch=main)",
++ "audio-gui",
+  "fts-plugin-core",
+  "trigger-dsp",
+  "trigger-profiles",
+diff --git a/Cargo.toml b/Cargo.toml
+index fea91f5..309e8c8 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -74,6 +74,8 @@ members = [
+ 
+     # NAM plugin (Neural Amp Modeler)
+     "crates/fts-nam/nam-dsp",
++    "crates/fts-nam/nam-ui",
++    "crates/fts-nam/nam-plugin",
+ 
+     # Shared sample loading
+     "crates/fts-sample",
+@@ -86,6 +88,11 @@ members = [
+     "crates/fts-livetune/livetune-dsp",
+     "crates/fts-livetune/livetune-plugin",
+ 
++    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
++    "crates/fts-midi-guitar/midi-guitar-dsp",
++    "crates/fts-midi-guitar/midi-guitar-plugin",
++    "crates/fts-midi-guitar/midi-guitar-analysis",
++
+     "apps/*",
+     "xtask",
+ ]
+@@ -99,7 +106,7 @@ license = "MIT OR Apache-2.0"
+ 
+ [workspace.dependencies]
+ # Internal crates
+-audio-gui = { git = "https://github.com/FastTrackStudios/audio-gui.git", branch = "main" }
++audio-gui = { path = "crates/audio-gui" }
+ fts-plugin-core = { path = "crates/fts-plugin-core" }
+ fts-dsp = { path = "crates/fts-dsp" }
+ fts-sample = { path = "crates/fts-sample" }
+diff --git a/Justfile b/Justfile
+index 5365dc3..162f123 100644
+--- a/Justfile
++++ b/Justfile
+@@ -39,38 +39,70 @@ build-debug plugin=PLUGIN_NAME: (bundle-debug plugin)
+ 
+ # ── Install Commands ──────────────────────────────────────────────────
+ 
+-# Install a bundled CLAP plugin to REAPER's FX directory
++# Install a bundled CLAP plugin via symlink to REAPER FX directories
+ install plugin=PLUGIN_NAME: (bundle plugin)
+     #!/usr/bin/env bash
+     set -euo pipefail
+ 
+-    # Determine FX directory (Linux vs macOS)
+-    if [ "$(uname)" = "Darwin" ]; then
+-        FX_DIR="{{FX_DIR_MAC}}"
+-    else
+-        # Use REAPER config from env if set (nix shell), else default
+-        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
+-    fi
+-
+     CLAP_FILE="{{plugin}}.clap"
++    BUNDLED="$(realpath ./target/bundled/$CLAP_FILE)"
+ 
+-    mkdir -p "$FX_DIR"
+-
+-    # Remove old plugin
+-    if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -d "$FX_DIR/$CLAP_FILE" ]; then
+-        rm -rf "$FX_DIR/$CLAP_FILE"
+-        echo "Removed old $CLAP_FILE"
+-    fi
+-
+-    # Copy new plugin
+-    BUNDLED="./target/bundled/$CLAP_FILE"
+     if [ ! -e "$BUNDLED" ]; then
+         echo "ERROR: $BUNDLED not found. Did the build succeed?"
+         exit 1
+     fi
+ 
+-    cp -r "$BUNDLED" "$FX_DIR/"
+-    echo "Installed: $FX_DIR/$CLAP_FILE"
++    # Symlink into both REAPER FX directories
++    if [ "$(uname)" = "Darwin" ]; then
++        FX_DIRS=("{{FX_DIR_MAC}}")
++    else
++        FX_DIRS=(
++            "{{REAPER_CONFIG}}/UserPlugins/FX"
++            "{{FX_DIR_LINUX}}"
++        )
++    fi
++
++    # Deduplicate (in case REAPER_CONFIG points to ~/.config/REAPER)
++    declare -A SEEN
++    for FX_DIR in "${FX_DIRS[@]}"; do
++        REAL_DIR="$(mkdir -p "$FX_DIR" && realpath "$FX_DIR")"
++        if [ -n "${SEEN[$REAL_DIR]+x}" ]; then
++            continue
++        fi
++        SEEN[$REAL_DIR]=1
++
++        # Remove old plugin (file, dir, or symlink)
++        DEST="$FX_DIR/$CLAP_FILE"
++        if [ -e "$DEST" ] || [ -L "$DEST" ]; then
++            rm -rf "$DEST"
++        fi
++
++        ln -s "$BUNDLED" "$DEST"
++        echo "Symlinked: $DEST -> $BUNDLED"
++    done
++
++# Install ALL plugins (bundle + symlink each one)
++install-all:
++    #!/usr/bin/env bash
++    set -euo pipefail
++    PLUGINS=(
++        comp-plugin
++        eq-plugin
++        gate-plugin
++        limiter-plugin
++        tape-plugin
++        delay-plugin
++        reverb-plugin
++        trigger-plugin
++        rider-plugin
++        fts-macros
++    )
++    for p in "${PLUGINS[@]}"; do
++        echo "── Installing $p ──"
++        just install "$p"
++        echo ""
++    done
++    echo "All plugins installed."
+ 
+ # Install and show REAPER reload instructions
+ install-reload plugin=PLUGIN_NAME: (install plugin)
+@@ -79,21 +111,39 @@ install-reload plugin=PLUGIN_NAME: (install plugin)
+     echo "Restart REAPER or rescan plugins to pick up the new build."
+     echo "  REAPER → Options → Preferences → Plug-ins → Re-scan"
+ 
+-# Uninstall a plugin from FX directory
++# Uninstall a plugin from all FX directories
+ uninstall plugin=PLUGIN_NAME:
+     #!/usr/bin/env bash
+     set -euo pipefail
++    CLAP_FILE="{{plugin}}.clap"
++
+     if [ "$(uname)" = "Darwin" ]; then
+-        FX_DIR="{{FX_DIR_MAC}}"
++        FX_DIRS=("{{FX_DIR_MAC}}")
+     else
+-        FX_DIR="{{REAPER_CONFIG}}/UserPlugins/FX"
++        FX_DIRS=(
++            "{{REAPER_CONFIG}}/UserPlugins/FX"
++            "{{FX_DIR_LINUX}}"
++        )
+     fi
+-    CLAP_FILE="{{plugin}}.clap"
+-    if [ -e "$FX_DIR/$CLAP_FILE" ] || [ -d "$FX_DIR/$CLAP_FILE" ]; then
+-        rm -rf "$FX_DIR/$CLAP_FILE"
+-        echo "Removed: $FX_DIR/$CLAP_FILE"
+-    else
+-        echo "Not found: $FX_DIR/$CLAP_FILE"
++
++    FOUND=0
++    declare -A SEEN
++    for FX_DIR in "${FX_DIRS[@]}"; do
++        [ -d "$FX_DIR" ] || continue
++        REAL_DIR="$(realpath "$FX_DIR")"
++        [ -n "${SEEN[$REAL_DIR]+x}" ] && continue
++        SEEN[$REAL_DIR]=1
++
++        DEST="$FX_DIR/$CLAP_FILE"
++        if [ -e "$DEST" ] || [ -L "$DEST" ]; then
++            rm -rf "$DEST"
++            echo "Removed: $DEST"
++            FOUND=1
++        fi
++    done
++
++    if [ "$FOUND" = "0" ]; then
++        echo "Not found: $CLAP_FILE"
+     fi
+ 
+ # ── REAPER Commands ───────────────────────────────────────────────────
+@@ -211,6 +261,7 @@ help:
+     echo ""
+     echo "Install:"
+     echo "  just install [plugin]    Build and install to REAPER FX dir"
++    echo "  just install-all         Build and install ALL plugins"
+     echo "  just uninstall [plugin]  Remove plugin from FX dir"
+     echo ""
+     echo "Dev:"
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index cd1f62e..9627794 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -1,14 +1,15 @@
+-//! Two-stage compressor detector: instant gain curve + GR smoothing.
++//! Peak-bridged 2-stage compressor detector.
+ //!
+-//! Architecture (DAFX textbook style):
+-//! 1. Compute instantaneous level: 20*log10(|x|)
+-//! 2. Apply gain curve (threshold/ratio/knee) → raw GR
+-//! 3. Smooth the raw GR with asymmetric 1-pole (attack/release)
++//! Architecture:
++//! 1. Peak-bridge |input| with instant attack, slow fixed decay
++//!    → eliminates zero-crossing dips, gives stable amplitude estimate
++//! 2. Convert to dB: 20*log10(peak_level)
++//! 3. Apply gain curve → raw GR (stable, doesn't oscillate at audio rate)
++//! 4. Smooth raw GR with asymmetric 1-pole (user attack/release)
+ //!
+-//! This produces natural peak-weighted detection because the gain curve
+-//! is nonlinear (soft knee). Averaging the nonlinear GR over a waveform
+-//! cycle gives a result between peak and RMS detection, with the exact
+-//! weighting controlled by the knee shape.
++//! The peak bridge prevents the asymmetric GR smoother from switching
++//! between attack/release coefficients every half-cycle, eliminating
++//! the Jensen's inequality duty-cycle bias.
+ 
+ use fts_dsp::db::{linear_to_db, DB_FLOOR};
+ 
+@@ -24,8 +25,15 @@ const RELEASE_SCALE: f64 = 2.0;
+ /// Minimum release time in seconds to prevent zero-crossing collapse.
+ const MIN_RELEASE_S: f64 = 0.009;
+ 
+-/// Two-stage detector: instant level → gain curve → smoothed GR.
++/// Peak bridge decay time constant in seconds.
++/// Must be long enough to bridge zero crossings at 20 Hz (half-cycle = 25ms).
++/// 200ms gives < 1.1 dB droop at 20 Hz, negligible at > 200 Hz.
++const PEAK_BRIDGE_S: f64 = 0.200;
++
++/// Peak-bridged detector: peak(|input|) → dB → gain curve → smooth GR.
+ pub struct Detector {
++    /// Peak-bridged amplitude (linear) per channel.
++    peak_level: [f64; MAX_CH],
+     /// Smoothed GR (dB, positive = reducing) per channel.
+     smooth_gr: [f64; MAX_CH],
+     /// Previous output sample per channel (for feedback detection).
+@@ -34,16 +42,19 @@ pub struct Detector {
+     // Coefficients
+     attack_coeff: f64,
+     release_coeff: f64,
++    peak_decay_coeff: f64,
+     sample_rate: f64,
+ }
+ 
+ impl Detector {
+     pub fn new() -> Self {
+         Self {
++            peak_level: [0.0; MAX_CH],
+             smooth_gr: [0.0; MAX_CH],
+             prev_output: [0.0; MAX_CH],
+             attack_coeff: 0.0,
+             release_coeff: 0.0,
++            peak_decay_coeff: 0.0,
+             sample_rate: 48000.0,
+         }
+     }
+@@ -53,6 +64,8 @@ impl Detector {
+         self.sample_rate = sample_rate;
+         self.attack_coeff = Self::coeff(attack_s, sample_rate, ATTACK_SCALE);
+         self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, RELEASE_SCALE);
++        // Peak bridge: 1-pole decay with scale=1.0 (standard time constant)
++        self.peak_decay_coeff = Self::coeff(PEAK_BRIDGE_S, sample_rate, 1.0);
+     }
+ 
+     #[inline]
+@@ -64,11 +77,22 @@ impl Detector {
+         }
+     }
+ 
+-    /// Feed a sample and return the instantaneous level in dB.
++    /// Feed a sample and return the peak-bridged level in dB.
++    ///
++    /// The peak bridge tracks |input| with instant attack and slow fixed
++    /// decay, bridging zero crossings to produce a stable level.
+     #[inline]
+     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
+         let combined = input_abs + self.prev_output[ch].abs() * feedback;
+-        linear_to_db(combined).max(DB_FLOOR)
++
++        // Peak bridge: instant attack, slow fixed decay
++        if combined > self.peak_level[ch] {
++            self.peak_level[ch] = combined;
++        } else {
++            self.peak_level[ch] *= self.peak_decay_coeff;
++        }
++
++        linear_to_db(self.peak_level[ch]).max(DB_FLOOR)
+     }
+ 
+     /// Smooth a raw GR value with asymmetric attack/release.
+@@ -98,6 +122,7 @@ impl Detector {
+     }
+ 
+     pub fn reset(&mut self) {
++        self.peak_level = [0.0; MAX_CH];
+         self.smooth_gr = [0.0; MAX_CH];
+         self.prev_output = [0.0; MAX_CH];
+     }
+diff --git a/crates/fts-delay/delay-dsp/src/tape_delay.rs b/crates/fts-delay/delay-dsp/src/tape_delay.rs
+index 0b0d6d4..6ce176f 100644
+--- a/crates/fts-delay/delay-dsp/src/tape_delay.rs
++++ b/crates/fts-delay/delay-dsp/src/tape_delay.rs
+@@ -12,11 +12,22 @@ use fts_dsp::soft_clip::sin_clip;
+ 
+ use crate::modulation::{Flutter, Wow};
+ 
++// RE-201 Space Echo head spacing ratios (relative to Head 1).
++// From Cherry Audio Stardust 201 documentation.
++pub const HEAD2_RATIO: f64 = 1.94;
++pub const HEAD3_RATIO: f64 = 2.85;
++
+ // r[impl delay.tape.core]
+ /// Single-channel tape delay with modulation, feedback filtering, and saturation.
++///
++/// Supports up to 3 read heads (like the Roland RE-201 Space Echo).
++/// Head 1 is the primary at `time_ms`. Heads 2 and 3 read at fixed
++/// spacing ratios (1.94x and 2.85x) from the same tape buffer.
++/// All heads share wow/flutter modulation (same tape transport).
++/// Feedback is derived from the combined output of all active heads.
+ pub struct TapeDelay {
+     // Parameters
+-    /// Delay time in milliseconds.
++    /// Delay time in milliseconds (Head 1 / primary).
+     pub time_ms: f64,
+     /// Feedback amount (0.0 = no repeats, 1.0 = infinite).
+     pub feedback: f64,
+@@ -39,6 +50,16 @@ pub struct TapeDelay {
+     /// Flutter rate in Hz.
+     pub flutter_rate: f64,
+ 
++    // Multi-head (RE-201 style)
++    /// Enable Head 2 (reads at HEAD2_RATIO × time_ms).
++    pub head2_enabled: bool,
++    /// Enable Head 3 (reads at HEAD3_RATIO × time_ms).
++    pub head3_enabled: bool,
++    /// Head 2 output level (0.0–1.0).
++    pub head2_level: f64,
++    /// Head 3 output level (0.0–1.0).
++    pub head3_level: f64,
++
+     // Internal state
+     delay: DelayLine,
+     wow: Wow,
+@@ -67,6 +88,10 @@ impl TapeDelay {
+             wow_drift: 0.3,
+             flutter_depth: 0.0,
+             flutter_rate: 6.0,
++            head2_enabled: false,
++            head3_enabled: false,
++            head2_level: 1.0,
++            head3_level: 1.0,
+             delay: DelayLine::new(48000 * 5 + 1024),
+             wow: Wow::new(),
+             flutter: Flutter::new(),
+diff --git a/crates/fts-eq/eq-dsp/src/band.rs b/crates/fts-eq/eq-dsp/src/band.rs
+index 049e71f..548bebd 100644
+--- a/crates/fts-eq/eq-dsp/src/band.rs
++++ b/crates/fts-eq/eq-dsp/src/band.rs
+@@ -405,10 +405,9 @@ impl Band {
+         let num = (order / 2).max(1);
+         self.num_sections = num.min(MAX_SECTIONS);
+ 
+-        // Increase Q per section to compensate for cascade bandwidth expansion.
+-        // Cascading N identical notch sections widens the -3dB bandwidth;
+-        // scaling Q by N^0.3 approximately preserves the apparent bandwidth.
+-        let q_compensated = self.q * (self.num_sections as f64).powf(0.3);
++        // Compensate Q for cascade bandwidth expansion.
++        // N^0.5 empirical scaling balances notch width and depth.
++        let q_compensated = self.q * (self.num_sections as f64).powf(0.5);
+ 
+         for i in 0..self.num_sections {
+             let c = coeff::calculate(
+diff --git a/crates/fts-gate/gate-plugin/Cargo.toml b/crates/fts-gate/gate-plugin/Cargo.toml
+index abc7409..efecc88 100644
+--- a/crates/fts-gate/gate-plugin/Cargo.toml
++++ b/crates/fts-gate/gate-plugin/Cargo.toml
+@@ -7,11 +7,14 @@ edition.workspace = true
+ description = "FTS Gate — CLAP/VST3 audio plugin entry point"
+ 
+ [lib]
+-crate-type = ["cdylib"]
++crate-type = ["cdylib", "lib"]
+ 
+ [dependencies]
++audio-gui = { workspace = true }
+ fts-plugin-core = { path = "../../fts-plugin-core" }
++fts-dsp = { workspace = true }
+ gate-dsp = { path = "../gate-dsp" }
+ gate-profiles = { path = "../gate-profiles" }
+ gate-ui = { path = "../gate-ui" }
+ nih_plug = { workspace = true }
++atomic_float = { workspace = true }
+diff --git a/crates/fts-gate/gate-plugin/src/lib.rs b/crates/fts-gate/gate-plugin/src/lib.rs
+index 4fb29a2..df0b3d0 100644
+--- a/crates/fts-gate/gate-plugin/src/lib.rs
++++ b/crates/fts-gate/gate-plugin/src/lib.rs
+@@ -1,25 +1,253 @@
+-//! FTS Gate — nih-plug entry point.
++//! FTS Gate — nih-plug entry point with full DSP bridge and Dioxus GUI.
+ 
+-use nih_plug::prelude::*;
++use atomic_float::AtomicF32;
++use fts_plugin_core::prelude::*;
++use std::sync::atomic::Ordering;
++use std::sync::Arc;
+ 
+-struct FtsGate {
+-    params: std::sync::Arc<FtsGateParams>,
+-    // gate_chain: gate_dsp::GateChain,
++use fts_dsp::{AudioConfig, Processor};
++use gate_dsp::GateChain;
++
++mod editor;
++
++// ── Shared UI State ──────────────────────────────────────────────────
++
++/// Audio-thread → UI metering data.
++pub struct GateUiState {
++    pub params: Arc<FtsGateParams>,
++    /// Current gate gain (0.0 = closed, 1.0 = open).
++    pub gate_gain: AtomicF32,
++    /// Peak input level in dB.
++    pub input_peak_db: AtomicF32,
++    /// Peak output level in dB.
++    pub output_peak_db: AtomicF32,
++}
++
++impl GateUiState {
++    fn new(params: Arc<FtsGateParams>) -> Self {
++        Self {
++            params,
++            gate_gain: AtomicF32::new(0.0),
++            input_peak_db: AtomicF32::new(-100.0),
++            output_peak_db: AtomicF32::new(-100.0),
++        }
++    }
+ }
+ 
++// ── Parameters ───────────────────────────────────────────────────────
++
+ #[derive(Params)]
+-struct FtsGateParams {
+-    // TODO: Define nih-plug params that bridge to gate-dsp + gate-profiles
++pub struct FtsGateParams {
++    #[id = "threshold"]
++    pub threshold_db: FloatParam,
++
++    #[id = "hysteresis"]
++    pub hysteresis_db: FloatParam,
++
++    #[id = "attack"]
++    pub attack_ms: FloatParam,
++
++    #[id = "hold"]
++    pub hold_ms: FloatParam,
++
++    #[id = "release"]
++    pub release_ms: FloatParam,
++
++    #[id = "range"]
++    pub range_db: FloatParam,
++
++    #[id = "lookahead"]
++    pub lookahead_ms: FloatParam,
++
++    #[id = "sc_hpf"]
++    pub sc_hpf_freq: FloatParam,
++
++    #[id = "sc_lpf"]
++    pub sc_lpf_freq: FloatParam,
++
++    #[id = "sc_listen"]
++    pub sc_listen: FloatParam,
++}
++
++impl Default for FtsGateParams {
++    fn default() -> Self {
++        Self {
++            threshold_db: FloatParam::new(
++                "Threshold",
++                -40.0,
++                FloatRange::Linear {
++                    min: -80.0,
++                    max: 0.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            hysteresis_db: FloatParam::new(
++                "Hysteresis",
++                10.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 40.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            attack_ms: FloatParam::new(
++                "Attack",
++                0.5,
++                FloatRange::Skewed {
++                    min: 0.01,
++                    max: 100.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(2)),
++
++            hold_ms: FloatParam::new(
++                "Hold",
++                50.0,
++                FloatRange::Skewed {
++                    min: 0.0,
++                    max: 2000.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            release_ms: FloatParam::new(
++                "Release",
++                100.0,
++                FloatRange::Skewed {
++                    min: 1.0,
++                    max: 2000.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            range_db: FloatParam::new(
++                "Range",
++                -80.0,
++                FloatRange::Linear {
++                    min: -80.0,
++                    max: 0.0,
++                },
++            )
++            .with_unit(" dB")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            lookahead_ms: FloatParam::new(
++                "Lookahead",
++                0.0,
++                FloatRange::Linear {
++                    min: 0.0,
++                    max: 20.0,
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(1)),
++
++            sc_hpf_freq: FloatParam::new(
++                "SC HPF",
++                0.0,
++                FloatRange::Skewed {
++                    min: 0.0,
++                    max: 2000.0,
++                    factor: FloatRange::skew_factor(-1.5),
++                },
++            )
++            .with_unit(" Hz")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            sc_lpf_freq: FloatParam::new(
++                "SC LPF",
++                0.0,
++                FloatRange::Skewed {
++                    min: 0.0,
++                    max: 20000.0,
++                    factor: FloatRange::skew_factor(-1.5),
++                },
++            )
++            .with_unit(" Hz")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
++            sc_listen: FloatParam::new(
++                "SC Listen",
++                0.0,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                if v > 0.5 {
++                    "On".to_string()
++                } else {
++                    "Off".to_string()
++                }
++            }))
++            .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                "on" | "1" | "true" => Some(1.0),
++                "off" | "0" | "false" => Some(0.0),
++                _ => s.parse().ok(),
++            })),
++        }
++    }
++}
++
++// ── Plugin ───────────────────────────────────────────────────────────
++
++struct FtsGate {
++    params: Arc<FtsGateParams>,
++    ui_state: Arc<GateUiState>,
++    editor_state: Arc<DioxusState>,
++    chain: GateChain,
++    sample_rate: f64,
+ }
+ 
+ impl Default for FtsGate {
+     fn default() -> Self {
++        let params = Arc::new(FtsGateParams::default());
++        let ui_state = Arc::new(GateUiState::new(params.clone()));
+         Self {
+-            params: std::sync::Arc::new(FtsGateParams {}),
++            params,
++            ui_state,
++            editor_state: DioxusState::new(|| (700, 420)),
++            chain: GateChain::new(),
++            sample_rate: 48000.0,
+         }
+     }
+ }
+ 
++impl FtsGate {
++    /// Sync nih-plug params → gate-dsp parameters.
++    fn sync_params(&mut self) {
++        let threshold = self.params.threshold_db.value() as f64;
++        let hysteresis = self.params.hysteresis_db.value() as f64;
++
++        self.chain.open_threshold_db = threshold;
++        self.chain.close_threshold_db = threshold - hysteresis;
++        self.chain.attack_ms = self.params.attack_ms.value() as f64;
++        self.chain.hold_ms = self.params.hold_ms.value() as f64;
++        self.chain.release_ms = self.params.release_ms.value() as f64;
++        self.chain.range_db = self.params.range_db.value() as f64;
++        self.chain.lookahead_ms = self.params.lookahead_ms.value() as f64;
++        self.chain.sc_listen = self.params.sc_listen.value() > 0.5;
++
++        let sc_hpf = self.params.sc_hpf_freq.value() as f64;
++        let sc_lpf = self.params.sc_lpf_freq.value() as f64;
++        self.chain.set_sc_hpf(sc_hpf);
++        self.chain.set_sc_lpf(sc_lpf);
++
++        self.chain.update(AudioConfig {
++            sample_rate: self.sample_rate,
++            max_buffer_size: 512,
++        });
++    }
++}
++
+ impl Plugin for FtsGate {
+     const NAME: &'static str = "FTS Gate";
+     const VENDOR: &'static str = "FastTrackStudio";
+@@ -36,17 +264,106 @@ impl Plugin for FtsGate {
+     type SysExMessage = ();
+     type BackgroundTask = ();
+ 
+-    fn params(&self) -> std::sync::Arc<dyn Params> {
++    fn params(&self) -> Arc<dyn Params> {
+         self.params.clone()
+     }
+ 
++    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
++        create_dioxus_editor_with_state(
++            self.editor_state.clone(),
++            self.ui_state.clone(),
++            editor::App,
++        )
++    }
++
++    fn initialize(
++        &mut self,
++        _audio_io_layout: &AudioIOLayout,
++        buffer_config: &BufferConfig,
++        context: &mut impl InitContext<Self>,
++    ) -> bool {
++        self.sample_rate = buffer_config.sample_rate as f64;
++        self.chain.update(AudioConfig {
++            sample_rate: self.sample_rate,
++            max_buffer_size: buffer_config.max_buffer_size as usize,
++        });
++
++        // Report lookahead latency
++        let latency = self.chain.latency_samples() as u32;
++        context.set_latency_samples(latency);
++
++        true
++    }
++
++    fn reset(&mut self) {
++        self.chain.reset();
++    }
++
+     fn process(
+         &mut self,
+-        _buffer: &mut Buffer,
++        buffer: &mut Buffer,
+         _aux: &mut AuxiliaryBuffers,
+-        _context: &mut impl ProcessContext<Self>,
++        context: &mut impl ProcessContext<Self>,
+     ) -> ProcessStatus {
+-        // TODO: Bridge nih-plug buffer to gate_dsp::GateChain::process
++        self.sync_params();
++
++        // Update latency if lookahead changed
++        let latency = self.chain.latency_samples() as u32;
++        context.set_latency_samples(latency);
++
++        for mut frame in buffer.iter_samples() {
++            let mut channels = frame.iter_mut();
++            let left_ref = channels.next().unwrap();
++            let right_ref = channels.next().unwrap();
++
++            // Track input peak
++            let input_peak = (*left_ref as f64).abs().max((*right_ref as f64).abs()) as f32;
++
++            // Process through gate chain (single-sample via 1-element slices)
++            let mut l_buf = [*left_ref as f64];
++            let mut r_buf = [*right_ref as f64];
++            self.chain.process(&mut l_buf, &mut r_buf);
++
++            *left_ref = l_buf[0] as f32;
++            *right_ref = r_buf[0] as f32;
++
++            // Track output peak
++            let output_peak = l_buf[0].abs().max(r_buf[0].abs()) as f32;
++
++            // Update metering atomics
++            let gain = self.chain.last_gain[0] as f32;
++            self.ui_state.gate_gain.store(gain, Ordering::Relaxed);
++
++            // Exponential peak decay
++            let prev_in = self.ui_state.input_peak_db.load(Ordering::Relaxed);
++            let in_db = if input_peak > 0.0 {
++                20.0 * input_peak.log10()
++            } else {
++                -100.0
++            };
++            let new_in = if in_db > prev_in {
++                in_db
++            } else {
++                prev_in - 0.3
++            };
++            self.ui_state.input_peak_db.store(new_in, Ordering::Relaxed);
++
++            let prev_out = self.ui_state.output_peak_db.load(Ordering::Relaxed);
++            let out_db = if output_peak > 0.0 {
++                20.0 * output_peak.log10()
++            } else {
++                -100.0
++            };
++            let new_out = if out_db > prev_out {
++                out_db
++            } else {
++                prev_out - 0.3
++            };
++            self.ui_state
++                .output_peak_db
++                .store(new_out, Ordering::Relaxed);
++        }
++
+         ProcessStatus::Normal
+     }
+ }
+diff --git a/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs b/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
+index e406602..122d399 100644
+--- a/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
++++ b/crates/fts-pitch/pitch-dsp/src/allpass_shift.rs
+@@ -10,7 +10,8 @@
+ //! Cubic (Catmull-Rom) interpolation provides sub-sample accuracy without
+ //! the clicking artifacts of allpass interpolation.
+ //!
+-//! Latency: **0 samples** — output is produced immediately.
++//! Latency: `sweep_len / 2` samples (crossfade-weighted average read offset).
++//! Standard: ~2048 samples (42ms). Live: ~512 samples (10ms).
+ //! Character: Classic hardware pitch shifter (Eventide H3000, Boss PS-series).
+ 
+ use fts_dsp::delay_line::DelayLine;
+@@ -19,14 +20,21 @@ use std::f64::consts::PI;
+ const BUFFER_SIZE: usize = 8192;
+ /// Margin for cubic interpolation (needs 2 samples on each side).
+ const MARGIN: f64 = 4.0;
+-/// Maximum sweep range within the buffer.
+-const SWEEP_LEN: f64 = (BUFFER_SIZE as f64) - MARGIN * 2.0;
++
++/// Standard sweep: ~4096 samples. Modulation ~5.9 Hz at octave down — inaudible.
++/// Latency: ~2048 samples (42ms).
++const STANDARD_SWEEP: f64 = 4096.0;
++/// Live sweep: ~1024 samples. Modulation ~23 Hz at octave down — audible but acceptable.
++/// Latency: ~512 samples (10ms).
++const LIVE_SWEEP: f64 = 1024.0;
+ 
+ pub struct AllpassShifter {
+     /// Pitch ratio: 0.5 = octave down, 2.0 = octave up.
+     pub speed: f64,
+     /// Mix: 0.0 = dry only, 1.0 = wet only.
+     pub mix: f64,
++    /// Live mode: shorter sweep for lower latency.
++    pub live: bool,
+ 
+     delay: DelayLine,
+ 
+@@ -36,6 +44,8 @@ pub struct AllpassShifter {
+     /// Sweep phase for head B [0.0, 1.0). Always ~0.5 ahead of sweep_a.
+     sweep_b: f64,
+ 
++    /// Current sweep length in samples (set by update()).
++    sweep_len: f64,
+     sample_rate: f64,
+ }
+ 
+@@ -44,15 +54,18 @@ impl AllpassShifter {
+         Self {
+             speed: 0.5,
+             mix: 1.0,
++            live: false,
+             delay: DelayLine::new(BUFFER_SIZE),
+             sweep_a: 0.0,
+             sweep_b: 0.5,
++            sweep_len: STANDARD_SWEEP,
+             sample_rate: 48000.0,
+         }
+     }
+ 
+     pub fn update(&mut self, sample_rate: f64) {
+         self.sample_rate = sample_rate;
++        self.sweep_len = if self.live { LIVE_SWEEP } else { STANDARD_SWEEP };
+     }
+ 
+     pub fn reset(&mut self) {
+@@ -69,27 +82,15 @@ impl AllpassShifter {
+         s * s
+     }
+ 
+-    /// Compute read offset (samples behind write head) from sweep phase.
+-    /// For pitch-down (drift > 0): offset increases with phase (sweeps away).
+-    /// For pitch-up (drift < 0): offset decreases with phase (sweeps toward).
+-    /// Always returns a value within [MARGIN, MARGIN + SWEEP_LEN].
+-    #[inline]
+-    fn phase_to_offset(phase: f64, drift: f64) -> f64 {
+-        if drift >= 0.0 {
+-            MARGIN + phase * SWEEP_LEN
+-        } else {
+-            MARGIN + (1.0 - phase) * SWEEP_LEN
+-        }
+-    }
+-
+     /// Process one sample. Returns the mixed (dry/wet) output.
+     #[inline]
+     pub fn tick(&mut self, input: f64) -> f64 {
+         self.delay.write(input);
+ 
++        let sweep_len = self.sweep_len;
+         let drift = 1.0 - self.speed;
+         let abs_drift = drift.abs().max(0.0001);
+-        let phase_inc = abs_drift / SWEEP_LEN;
++        let phase_inc = abs_drift / sweep_len;
+ 
+         // Advance sweep phases.
+         self.sweep_a += phase_inc;
+@@ -105,9 +106,19 @@ impl AllpassShifter {
+         }
+ 
+         // Compute read offsets directly from sweep phases.
+-        // This guarantees offsets are always in [MARGIN, MARGIN + SWEEP_LEN].
+-        let offset_a = Self::phase_to_offset(self.sweep_a, drift);
+-        let offset_b = Self::phase_to_offset(self.sweep_b, drift);
++        // For pitch-down (drift > 0): offset increases with phase (sweeps away).
++        // For pitch-up (drift < 0): offset decreases with phase (sweeps toward).
++        // Always within [MARGIN, MARGIN + sweep_len].
++        let offset_a = if drift >= 0.0 {
++            MARGIN + self.sweep_a * sweep_len
++        } else {
++            MARGIN + (1.0 - self.sweep_a) * sweep_len
++        };
++        let offset_b = if drift >= 0.0 {
++            MARGIN + self.sweep_b * sweep_len
++        } else {
++            MARGIN + (1.0 - self.sweep_b) * sweep_len
++        };
+ 
+         // Read from each head with cubic interpolation.
+         let a = self.delay.read_cubic(offset_a);
+@@ -122,9 +133,9 @@ impl AllpassShifter {
+         input * (1.0 - self.mix) + wet * self.mix
+     }
+ 
+-    /// Latency in samples. Always zero for this algorithm.
++    /// Latency in samples — the crossfade-weighted average read offset.
+     pub fn latency(&self) -> usize {
+-        0
++        (self.sweep_len / 2.0) as usize
+     }
+ }
+ 
+@@ -286,9 +297,15 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn latency_is_zero() {
+-        let s = make_shifter();
+-        assert_eq!(s.latency(), 0);
++    fn latency_reports_correctly() {
++        let mut s = make_shifter();
++        s.live = false;
++        s.update(SR);
++        assert_eq!(s.latency(), (STANDARD_SWEEP / 2.0) as usize);
++
++        s.live = true;
++        s.update(SR);
++        assert_eq!(s.latency(), (LIVE_SWEEP / 2.0) as usize);
+     }
+ 
+     #[test]
+diff --git a/crates/fts-pitch/pitch-dsp/src/chain.rs b/crates/fts-pitch/pitch-dsp/src/chain.rs
+index c4caadc..5ddff34 100644
+--- a/crates/fts-pitch/pitch-dsp/src/chain.rs
++++ b/crates/fts-pitch/pitch-dsp/src/chain.rs
+@@ -43,7 +43,7 @@ pub enum Algorithm {
+     /// High quality, ~512+ sample latency.
+     Rubberband,
+     /// Allpass interpolation — Dattorro/Schroeder barberpole style.
+-    /// Zero latency, classic hardware pitch shifter character.
++    /// ~1024 sample latency (standard), ~256 (live). Classic hardware character.
+     Allpass,
+ }
+ 
+@@ -156,12 +156,16 @@ impl PitchChain {
+             // Rubberband: R2 engine + smaller blocks.
+             self.rubberband.live = self.live;
+ 
++            // Allpass: shorter sweep for lower latency.
++            self.allpass.live = self.live;
++
+             // Re-initialise engines with new settings.
+             let sr = self.sample_rate;
+             self.psola.update(sr);
+             self.wsola.update(sr);
+             self.signalsmith.update(sr);
+             self.rubberband.update(sr);
++            self.allpass.update(sr);
+         }
+ 
+         let ratio = semitones_to_ratio(self.semitones.clamp(-24.0, 24.0));
+diff --git a/crates/fts-pitch/pitch-plugin/src/editor.rs b/crates/fts-pitch/pitch-plugin/src/editor.rs
+index 924c609..8044712 100644
+--- a/crates/fts-pitch/pitch-plugin/src/editor.rs
++++ b/crates/fts-pitch/pitch-plugin/src/editor.rs
+@@ -85,29 +85,30 @@ pub fn App() -> Element {
+             div {
+                 style: format!(
+                     "display:flex; justify-content:space-between; align-items:center; \
+-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
+-                    BORDER = theme::BORDER,
++                     padding-bottom:6px; border-bottom:1px solid {};",
++                    theme::BORDER,
+                 ),
+                 div {
+                     style: "display:flex; align-items:baseline; gap:12px;",
+                     div {
+-                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
++                        style: format!("font-size:{}; font-weight:700; letter-spacing:0.5px;", theme::FONT_SIZE_TITLE),
+                         "FTS PITCH"
+                     }
+                     div {
+                         style: format!(
+-                            "font-size:12px; color:{}; font-variant-numeric:tabular-nums;",
++                            "{} color:{};",
++                            theme::STYLE_VALUE,
+                             theme::TEXT_DIM,
+                         ),
+                         "{st_text}"
+                     }
+                     div {
+-                        style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
++                        style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
+                         "Latency: {latency_text}"
+                     }
+                 }
+                 div {
+-                    style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
++                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
+                     "FastTrackStudio"
+                 }
+             }
+@@ -115,9 +116,8 @@ pub fn App() -> Element {
+             // ── Algorithm selector + Live toggle ─────────────────
+             div {
+                 style: format!(
+-                    "display:flex; gap:8px; align-items:center; background:{CARD_BG}; \
+-                     border-radius:6px; padding:8px;",
+-                    CARD_BG = theme::CARD_BG,
++                    "{} display:flex; gap:8px; align-items:center;",
++                    theme::STYLE_CARD,
+                 ),
+                 SectionLabel { text: "Algorithm" }
+                 div {
+@@ -139,14 +139,13 @@ pub fn App() -> Element {
+ 
+             // ── Main controls + Meters ───────────────────────────
+             div {
+-                style: "display:flex; gap:10px; flex:1; min-height:0;",
++                style: format!("display:flex; gap:{}; flex:1; min-height:0;", theme::SPACING_SECTION),
+ 
+                 // Controls card
+                 div {
+                     style: format!(
+-                        "flex:1; background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
+-                         display:flex; flex-direction:column; gap:12px;",
+-                        CARD_BG = theme::CARD_BG,
++                        "{} flex:1; display:flex; flex-direction:column; gap:12px;",
++                        theme::STYLE_CARD,
+                     ),
+ 
+                     // Core controls
+@@ -192,9 +191,8 @@ pub fn App() -> Element {
+                 // Meters
+                 div {
+                     style: format!(
+-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
+-                         display:flex; gap:8px; align-items:stretch;",
+-                        CARD_BG = theme::CARD_BG,
++                        "{} display:flex; gap:8px; align-items:stretch;",
++                        theme::STYLE_CARD,
+                     ),
+                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 240.0 }
+                     LevelMeterDb { level_db: output_db, label: "OUT".to_string(), height: 240.0 }
+diff --git a/crates/fts-reverb/reverb-dsp/src/chain.rs b/crates/fts-reverb/reverb-dsp/src/chain.rs
+index 502c28d..fb954ad 100644
+--- a/crates/fts-reverb/reverb-dsp/src/chain.rs
++++ b/crates/fts-reverb/reverb-dsp/src/chain.rs
+@@ -1,6 +1,278 @@
+-//! Reverb chain — composes all reverb types into a single processor.
++//! Reverb chain — top-level processor with algorithm dispatch,
++//! pre/post processing, mix, and width.
+ 
+-// TODO: Implement ReverbChain composing KPlate, Galactic, Verbity
++use fts_dsp::biquad::{Biquad, FilterType};
++use fts_dsp::delay_line::DelayLine;
++use fts_dsp::{AudioConfig, Processor};
++
++use crate::algorithm::{AlgorithmParams, AlgorithmType, ReverbAlgorithm};
++use crate::algorithms;
+ 
+ /// Full reverb processing chain.
+-pub struct ReverbChain;
++///
++/// Signal flow: Input → Input HP/LP → Pre-Delay → Algorithm → Width → Mix
++pub struct ReverbChain {
++    // Algorithm
++    algorithm: Box<dyn ReverbAlgorithm>,
++    algorithm_type: AlgorithmType,
++
++    // Pre-delay (up to 500ms)
++    predelay: DelayLine,
++    predelay_samples: usize,
++
++    // Input conditioning
++    input_hp: Biquad,
++    input_lp: Biquad,
++
++    // Algorithm params
++    pub params: AlgorithmParams,
++
++    // Global controls
++    /// Pre-delay in milliseconds (0-500).
++    pub predelay_ms: f64,
++    /// Dry/wet mix (0.0 = fully dry, 1.0 = fully wet).
++    pub mix: f64,
++    /// Stereo width (0.0 = mono, 1.0 = normal, 2.0 = extra wide).
++    pub width: f64,
++    /// Input highpass frequency in Hz (20 = off).
++    pub input_hp_freq: f64,
++    /// Input lowpass frequency in Hz (20000 = off).
++    pub input_lp_freq: f64,
++
++    sample_rate: f64,
++}
++
++impl ReverbChain {
++    pub fn new() -> Self {
++        let sample_rate = 48000.0;
++        let max_predelay = (sample_rate * 0.5) as usize; // 500ms
++
++        Self {
++            algorithm: algorithms::create(AlgorithmType::Room, sample_rate),
++            algorithm_type: AlgorithmType::Room,
++            predelay: DelayLine::new(max_predelay + 1),
++            predelay_samples: 0,
++            input_hp: Biquad::new(),
++            input_lp: Biquad::new(),
++            params: AlgorithmParams::default(),
++            predelay_ms: 0.0,
++            mix: 0.5,
++            width: 1.0,
++            input_hp_freq: 20.0,
++            input_lp_freq: 20000.0,
++            sample_rate,
++        }
++    }
++
++    /// Switch to a different algorithm type. Resets algorithm state.
++    pub fn set_algorithm(&mut self, algo: AlgorithmType) {
++        if algo != self.algorithm_type {
++            self.algorithm_type = algo;
++            self.algorithm = algorithms::create(algo, self.sample_rate);
++            self.algorithm.set_params(&self.params);
++        }
++    }
++
++    /// Get the current algorithm type.
++    pub fn algorithm_type(&self) -> AlgorithmType {
++        self.algorithm_type
++    }
++
++    /// Update all algorithm parameters.
++    pub fn update_params(&mut self) {
++        self.algorithm.set_params(&self.params);
++    }
++}
++
++impl Processor for ReverbChain {
++    fn reset(&mut self) {
++        self.algorithm.reset();
++        self.predelay.clear();
++        self.input_hp.reset();
++        self.input_lp.reset();
++    }
++
++    fn update(&mut self, config: AudioConfig) {
++        self.sample_rate = config.sample_rate;
++
++        // Rebuild pre-delay if sample rate changed
++        let max_predelay = (config.sample_rate * 0.5) as usize;
++        self.predelay = DelayLine::new(max_predelay + 1);
++        self.predelay_samples = (self.predelay_ms * 0.001 * config.sample_rate) as usize;
++
++        // Update input filters
++        self.input_hp.set(
++            FilterType::Highpass,
++            self.input_hp_freq.max(20.0),
++            0.707,
++            config.sample_rate,
++        );
++        self.input_lp.set(
++            FilterType::Lowpass,
++            self.input_lp_freq.min(20000.0),
++            0.707,
++            config.sample_rate,
++        );
++
++        // Update algorithm
++        self.algorithm.set_sample_rate(config.sample_rate);
++        self.algorithm.set_params(&self.params);
++    }
++
++    fn process(&mut self, left: &mut [f64], right: &mut [f64]) {
++        let n = left.len().min(right.len());
++
++        // Update pre-delay samples (in case it changed)
++        self.predelay_samples = (self.predelay_ms * 0.001 * self.sample_rate) as usize;
++
++        for i in 0..n {
++            let dry_l = left[i];
++            let dry_r = right[i];
++
++            // Input filtering
++            let filt_l = self.input_lp.tick(self.input_hp.tick(dry_l, 0), 0);
++            let filt_r = self.input_lp.tick(self.input_hp.tick(dry_r, 1), 1);
++
++            // Pre-delay (mono summed for pre-delay, then split back)
++            let (pd_l, pd_r) = if self.predelay_samples > 0 {
++                self.predelay.write(filt_l);
++                let delayed = self.predelay.read(self.predelay_samples);
++                (delayed, filt_r) // Pre-delay on L, direct on R (or both)
++            } else {
++                (filt_l, filt_r)
++            };
++
++            // Algorithm processing (returns wet signal only)
++            let (wet_l, wet_r) = self.algorithm.tick(pd_l, pd_r);
++
++            // Stereo width (mid-side)
++            let (final_l, final_r) = if (self.width - 1.0).abs() > 0.001 {
++                let mid = (wet_l + wet_r) * 0.5;
++                let side = (wet_l - wet_r) * 0.5;
++                (mid + side * self.width, mid - side * self.width)
++            } else {
++                (wet_l, wet_r)
++            };
++
++            // Dry/wet mix
++            left[i] = dry_l * (1.0 - self.mix) + final_l * self.mix;
++            right[i] = dry_r * (1.0 - self.mix) + final_r * self.mix;
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::f64::consts::PI;
++
++    const SR: f64 = 48000.0;
++
++    fn config() -> AudioConfig {
++        AudioConfig {
++            sample_rate: SR,
++            max_buffer_size: 512,
++        }
++    }
++
++    #[test]
++    fn dry_wet_mix() {
++        let mut c = ReverbChain::new();
++        c.mix = 0.0;
++        c.update(config());
++
++        let mut l = vec![0.5; 512];
++        let mut r = vec![0.5; 512];
++        c.process(&mut l, &mut r);
++
++        assert!((l[0] - 0.5).abs() < 1e-10, "Dry pass-through");
++    }
++
++    #[test]
++    fn wet_produces_output() {
++        let mut c = ReverbChain::new();
++        c.mix = 1.0;
++        c.update(config());
++
++        // Send an impulse
++        let n = 4800;
++        let mut l: Vec<f64> = (0..n).map(|i| if i < 10 { 1.0 } else { 0.0 }).collect();
++        let mut r = l.clone();
++
++        c.process(&mut l, &mut r);
++
++        // Wet signal should have energy after the impulse
++        let late_energy: f64 = l[100..].iter().map(|x| x * x).sum();
++        assert!(late_energy > 0.001, "Reverb should produce a tail: {late_energy}");
++    }
++
++    #[test]
++    fn all_algorithms_no_nan() {
++        for &algo in AlgorithmType::ALL {
++            let mut c = ReverbChain::new();
++            c.set_algorithm(algo);
++            c.mix = 1.0;
++            c.update(config());
++
++            let n = 4800; // 100ms
++            let mut l: Vec<f64> = (0..n)
++                .map(|i| (2.0 * PI * 440.0 * i as f64 / SR).sin() * 0.5)
++                .collect();
++            let mut r = l.clone();
++
++            c.process(&mut l, &mut r);
++
++            for (i, (&lv, &rv)) in l.iter().zip(r.iter()).enumerate() {
++                assert!(
++                    lv.is_finite(),
++                    "{}: L NaN/Inf at sample {i}: {lv}",
++                    algo.name()
++                );
++                assert!(
++                    rv.is_finite(),
++                    "{}: R NaN/Inf at sample {i}: {rv}",
++                    algo.name()
++                );
++            }
++        }
++    }
++
++    #[test]
++    fn algorithm_switching() {
++        let mut c = ReverbChain::new();
++        c.update(config());
++
++        for &algo in AlgorithmType::ALL {
++            c.set_algorithm(algo);
++            assert_eq!(c.algorithm_type(), algo);
++
++            let mut l = vec![0.1; 128];
++            let mut r = vec![0.1; 128];
++            c.process(&mut l, &mut r);
++        }
++    }
++
++    #[test]
++    fn predelay_delays_signal() {
++        let mut c = ReverbChain::new();
++        c.mix = 1.0;
++        c.predelay_ms = 10.0; // 10ms = 480 samples at 48kHz
++        c.update(config());
++
++        let n = 2400;
++        let mut l: Vec<f64> = (0..n).map(|i| if i == 0 { 1.0 } else { 0.0 }).collect();
++        let mut r = l.clone();
++
++        c.process(&mut l, &mut r);
++
++        // Signal should be near-zero for first ~480 samples on L
++        let early_energy: f64 = l[..400].iter().map(|x| x * x).sum();
++        let late_energy: f64 = l[400..].iter().map(|x| x * x).sum();
++
++        // Late energy should be larger (delayed signal arrives)
++        assert!(
++            late_energy > early_energy,
++            "Predelay should shift energy later: early={early_energy}, late={late_energy}"
++        );
++    }
++}
+diff --git a/crates/fts-reverb/reverb-dsp/src/galactic.rs b/crates/fts-reverb/reverb-dsp/src/galactic.rs
+deleted file mode 100644
+index e7fd249..0000000
+--- a/crates/fts-reverb/reverb-dsp/src/galactic.rs
++++ /dev/null
+@@ -1,7 +0,0 @@
+-//! Galactic shimmer reverb.
+-//!
+-//! Pitch-shifted feedback reverb with freeze mode and infinite
+-//! sustain capability. Creates ethereal, evolving textures by
+-//! feeding octave-shifted signal back into the reverb tank.
+-
+-// TODO: Implement Galactic algorithm from Airwindows
+diff --git a/crates/fts-reverb/reverb-dsp/src/kplate.rs b/crates/fts-reverb/reverb-dsp/src/kplate.rs
+deleted file mode 100644
+index becb777..0000000
+--- a/crates/fts-reverb/reverb-dsp/src/kplate.rs
++++ /dev/null
+@@ -1,7 +0,0 @@
+-//! kPlateA plate reverb.
+-//!
+-//! Dense early reflections with an allpass diffusion network and
+-//! modulated delay lines. Models the resonant behavior of a
+-//! suspended metal plate with adjustable damping and decay.
+-
+-// TODO: Implement kPlateA algorithm from Airwindows
+diff --git a/crates/fts-reverb/reverb-dsp/src/lib.rs b/crates/fts-reverb/reverb-dsp/src/lib.rs
+index 2af7b38..f409cd7 100644
+--- a/crates/fts-reverb/reverb-dsp/src/lib.rs
++++ b/crates/fts-reverb/reverb-dsp/src/lib.rs
+@@ -1,21 +1,31 @@
+-//! Reverb DSP engine — spatial effects for the plugin suite.
++//! Reverb DSP engine — comprehensive reverb processor with 12 algorithm types.
+ //!
+-//! Depends on `eq-dsp` for input/output EQ shaping (pre-reverb filtering,
+-//! post-reverb tone control).
++//! # Architecture
+ //!
+-//! # Algorithms (from Airwindows)
++//! Signal flow: Input → Input HP/LP → Pre-Delay → Algorithm → Output EQ → Width → Mix
+ //!
+-//! - [`kplate::KPlate`] — kPlateA plate reverb with dense early reflections,
+-//!   allpass diffusion network, and modulated delay lines
+-//! - [`galactic::Galactic`] — Shimmer reverb with pitch-shifted feedback,
+-//!   freeze mode, and infinite sustain capability
+-//! - [`verbity::Verbity`] — Hall/room reverb with configurable room size,
+-//!   pre-delay, and damping characteristics
+-//! - [`chain::ReverbChain`] — Composable chain of the above reverb processors
++//! # Algorithms
++//!
++//! **Phase 1 — Classic:**
++//! - [`algorithms::room`] — FDN + early reflections
++//! - [`algorithms::hall`] — Large FDN with modulated allpass diffusion
++//! - [`algorithms::plate`] — Dattorro tank topology (1997 paper)
++//! - [`algorithms::spring`] — Waveguide + allpass dispersion
++//!
++//! **Phase 2 — Extended:**
++//! - [`algorithms::cloud`] — CloudSeed-style ambient (multitap → diffuser → parallel delays)
++//! - [`algorithms::bloom`] — Multi-diffusion feeding FDN tank
++//! - [`algorithms::shimmer`] — Pitch-shifted feedback reverb
++//! - [`algorithms::chorale`] — Formant-filtered pitch-shifted reverb
++//! - [`algorithms::magneto`] — Multi-head tape delay + progressive diffusion
++//! - [`algorithms::nonlinear`] — Shaped envelopes (reverse, gate, swoosh, ramp)
++//! - [`algorithms::swell`] — Envelope-controlled reverb buildup
++//! - [`algorithms::reflections`] — Geometric early reflections
+ 
++pub mod algorithm;
++pub mod algorithms;
+ pub mod chain;
+-pub mod galactic;
+-pub mod kplate;
+-pub mod verbity;
++pub mod primitives;
+ 
++pub use algorithm::{AlgorithmParams, AlgorithmType, ReverbAlgorithm};
+ pub use chain::ReverbChain;
+diff --git a/crates/fts-reverb/reverb-dsp/src/verbity.rs b/crates/fts-reverb/reverb-dsp/src/verbity.rs
+deleted file mode 100644
+index e29b1c8..0000000
+--- a/crates/fts-reverb/reverb-dsp/src/verbity.rs
++++ /dev/null
+@@ -1,7 +0,0 @@
+-//! Verbity hall/room reverb.
+-//!
+-//! Configurable room size with pre-delay and damping. Uses a
+-//! feedback delay network (FDN) with frequency-dependent decay
+-//! to model the absorption characteristics of real rooms.
+-
+-// TODO: Implement Verbity algorithm from Airwindows
+diff --git a/crates/fts-reverb/reverb-plugin/Cargo.toml b/crates/fts-reverb/reverb-plugin/Cargo.toml
+index 42f861f..3a5e45d 100644
+--- a/crates/fts-reverb/reverb-plugin/Cargo.toml
++++ b/crates/fts-reverb/reverb-plugin/Cargo.toml
+@@ -10,6 +10,7 @@ description = "FTS Reverb — CLAP/VST3 audio plugin entry point"
+ crate-type = ["cdylib"]
+ 
+ [dependencies]
++fts-dsp = { path = "../../fts-dsp" }
+ fts-plugin-core = { path = "../../fts-plugin-core" }
+ reverb-dsp = { path = "../reverb-dsp" }
+ reverb-profiles = { path = "../reverb-profiles" }
+diff --git a/crates/fts-reverb/reverb-plugin/src/lib.rs b/crates/fts-reverb/reverb-plugin/src/lib.rs
+index cdc6d54..161ea09 100644
+--- a/crates/fts-reverb/reverb-plugin/src/lib.rs
++++ b/crates/fts-reverb/reverb-plugin/src/lib.rs
+@@ -1,25 +1,219 @@
+ //! FTS Reverb — nih-plug entry point.
++//!
++//! Comprehensive reverb plugin with 12 algorithm types:
++//! Room, Hall, Plate, Spring, Cloud, Bloom, Shimmer, Chorale,
++//! Magneto, Non-Linear, Swell, Reflections.
+ 
++use fts_dsp::Processor;
+ use nih_plug::prelude::*;
++use reverb_dsp::{AlgorithmType, ReverbChain};
++use std::sync::Arc;
+ 
+ struct FtsReverb {
+-    params: std::sync::Arc<FtsReverbParams>,
+-    // reverb_chain: reverb_dsp::ReverbChain,
++    params: Arc<FtsReverbParams>,
++    chain: ReverbChain,
++    sample_rate: f64,
+ }
+ 
+ #[derive(Params)]
+ struct FtsReverbParams {
+-    // TODO: Define nih-plug params that bridge to reverb-dsp + reverb-profiles
++    // Algorithm selector
++    #[id = "algorithm"]
++    pub algorithm: IntParam,
++
++    // Shared controls
++    #[id = "decay"]
++    pub decay: FloatParam,
++
++    #[id = "size"]
++    pub size: FloatParam,
++
++    #[id = "predelay"]
++    pub predelay: FloatParam,
++
++    #[id = "diffusion"]
++    pub diffusion: FloatParam,
++
++    #[id = "damping"]
++    pub damping: FloatParam,
++
++    #[id = "modulation"]
++    pub modulation: FloatParam,
++
++    #[id = "tone"]
++    pub tone: FloatParam,
++
++    #[id = "mix"]
++    pub mix: FloatParam,
++
++    #[id = "width"]
++    pub width: FloatParam,
++
++    // Input conditioning
++    #[id = "input_hp"]
++    pub input_hp: FloatParam,
++
++    #[id = "input_lp"]
++    pub input_lp: FloatParam,
++
++    // Algorithm-specific
++    #[id = "extra_a"]
++    pub extra_a: FloatParam,
++
++    #[id = "extra_b"]
++    pub extra_b: FloatParam,
++}
++
++impl Default for FtsReverbParams {
++    fn default() -> Self {
++        Self {
++            algorithm: IntParam::new(
++                "Algorithm",
++                0,
++                IntRange::Linear {
++                    min: 0,
++                    max: (AlgorithmType::ALL.len() - 1) as i32,
++                },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                AlgorithmType::from_index(v as usize).name().to_string()
++            })),
++
++            decay: FloatParam::new("Decay", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_unit(" ")
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            size: FloatParam::new("Size", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_unit(" ")
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            predelay: FloatParam::new(
++                "Pre-Delay",
++                0.0,
++                FloatRange::Skewed {
++                    min: 0.0,
++                    max: 500.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" ms"),
++
++            diffusion: FloatParam::new(
++                "Diffusion",
++                0.7,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_unit(" ")
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            damping: FloatParam::new(
++                "Damping",
++                0.3,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_unit(" ")
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            modulation: FloatParam::new(
++                "Mod",
++                0.2,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_unit(" ")
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            tone: FloatParam::new(
++                "Tone",
++                0.0,
++                FloatRange::Linear {
++                    min: -1.0,
++                    max: 1.0,
++                },
++            ),
++
++            mix: FloatParam::new("Mix", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_unit(" ")
++                .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            width: FloatParam::new("Width", 1.0, FloatRange::Linear { min: 0.0, max: 2.0 }),
++
++            input_hp: FloatParam::new(
++                "Input HP",
++                20.0,
++                FloatRange::Skewed {
++                    min: 20.0,
++                    max: 2000.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" Hz"),
++
++            input_lp: FloatParam::new(
++                "Input LP",
++                20000.0,
++                FloatRange::Skewed {
++                    min: 1000.0,
++                    max: 20000.0,
++                    factor: FloatRange::skew_factor(2.0),
++                },
++            )
++            .with_unit(" Hz"),
++
++            extra_a: FloatParam::new(
++                "Extra A",
++                0.5,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_unit(" ")
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++
++            extra_b: FloatParam::new(
++                "Extra B",
++                0.5,
++                FloatRange::Linear { min: 0.0, max: 1.0 },
++            )
++            .with_unit(" ")
++            .with_value_to_string(formatters::v2s_f32_percentage(0)),
++        }
++    }
+ }
+ 
+ impl Default for FtsReverb {
+     fn default() -> Self {
+         Self {
+-            params: std::sync::Arc::new(FtsReverbParams {}),
++            params: Arc::new(FtsReverbParams::default()),
++            chain: ReverbChain::new(),
++            sample_rate: 48000.0,
+         }
+     }
+ }
+ 
++impl FtsReverb {
++    fn sync_params(&mut self) {
++        // Algorithm selection
++        let algo = AlgorithmType::from_index(self.params.algorithm.value() as usize);
++        self.chain.set_algorithm(algo);
++
++        // Shared params
++        self.chain.params.decay = self.params.decay.value() as f64;
++        self.chain.params.size = self.params.size.value() as f64;
++        self.chain.params.diffusion = self.params.diffusion.value() as f64;
++        self.chain.params.damping = self.params.damping.value() as f64;
++        self.chain.params.modulation = self.params.modulation.value() as f64;
++        self.chain.params.tone = self.params.tone.value() as f64;
++        self.chain.params.extra_a = self.params.extra_a.value() as f64;
++        self.chain.params.extra_b = self.params.extra_b.value() as f64;
++
++        self.chain.predelay_ms = self.params.predelay.value() as f64;
++        self.chain.mix = self.params.mix.value() as f64;
++        self.chain.width = self.params.width.value() as f64;
++        self.chain.input_hp_freq = self.params.input_hp.value() as f64;
++        self.chain.input_lp_freq = self.params.input_lp.value() as f64;
++
++        self.chain.update_params();
++    }
++}
++
+ impl Plugin for FtsReverb {
+     const NAME: &'static str = "FTS Reverb";
+     const VENDOR: &'static str = "FastTrackStudio";
+@@ -36,24 +230,75 @@ impl Plugin for FtsReverb {
+     type SysExMessage = ();
+     type BackgroundTask = ();
+ 
+-    fn params(&self) -> std::sync::Arc<dyn Params> {
++    fn params(&self) -> Arc<dyn Params> {
+         self.params.clone()
+     }
+ 
++    fn initialize(
++        &mut self,
++        _audio_io_layout: &AudioIOLayout,
++        buffer_config: &BufferConfig,
++        _context: &mut impl InitContext<Self>,
++    ) -> bool {
++        self.sample_rate = buffer_config.sample_rate as f64;
++        self.chain.update(fts_dsp::AudioConfig {
++            sample_rate: self.sample_rate,
++            max_buffer_size: buffer_config.max_buffer_size as usize,
++        });
++        true
++    }
++
++    fn reset(&mut self) {
++        self.chain.reset();
++    }
++
+     fn process(
+         &mut self,
+-        _buffer: &mut Buffer,
++        buffer: &mut Buffer,
+         _aux: &mut AuxiliaryBuffers,
+         _context: &mut impl ProcessContext<Self>,
+     ) -> ProcessStatus {
+-        // TODO: Bridge nih-plug buffer to reverb_dsp::ReverbChain::process
++        self.sync_params();
++
++        const CHUNK: usize = 128;
++        let num_samples = buffer.samples();
++        let mut offset = 0;
++
++        while offset < num_samples {
++            let len = (num_samples - offset).min(CHUNK);
++
++            let mut left_f64 = [0.0f64; CHUNK];
++            let mut right_f64 = [0.0f64; CHUNK];
++
++            // Convert f32 → f64
++            let channel_slices = buffer.as_slice();
++            for i in 0..len {
++                left_f64[i] = channel_slices[0][offset + i] as f64;
++                right_f64[i] = channel_slices[1][offset + i] as f64;
++            }
++
++            // Process
++            self.chain
++                .process(&mut left_f64[..len], &mut right_f64[..len]);
++
++            // Convert f64 → f32
++            let channel_slices = buffer.as_slice();
++            for i in 0..len {
++                channel_slices[0][offset + i] = left_f64[i] as f32;
++                channel_slices[1][offset + i] = right_f64[i] as f32;
++            }
++
++            offset += len;
++        }
++
+         ProcessStatus::Normal
+     }
+ }
+ 
+ impl ClapPlugin for FtsReverb {
+     const CLAP_ID: &'static str = "com.fasttrackstudio.reverb";
+-    const CLAP_DESCRIPTION: Option<&'static str> = Some("Reverb with hardware profiles");
++    const CLAP_DESCRIPTION: Option<&'static str> =
++        Some("Comprehensive reverb with 12 algorithm types");
+     const CLAP_MANUAL_URL: Option<&'static str> = None;
+     const CLAP_SUPPORT_URL: Option<&'static str> = None;
+     const CLAP_FEATURES: &'static [ClapFeature] = &[
+diff --git a/crates/fts-rider/rider-plugin/src/editor.rs b/crates/fts-rider/rider-plugin/src/editor.rs
+index dad03c4..df5209b 100644
+--- a/crates/fts-rider/rider-plugin/src/editor.rs
++++ b/crates/fts-rider/rider-plugin/src/editor.rs
+@@ -68,38 +68,38 @@ pub fn App() -> Element {
+             div {
+                 style: format!(
+                     "display:flex; justify-content:space-between; align-items:center; \
+-                     padding-bottom:6px; border-bottom:1px solid {BORDER};",
+-                    BORDER = theme::BORDER,
++                     padding-bottom:6px; border-bottom:1px solid {};",
++                    theme::BORDER,
+                 ),
+                 div {
+                     style: "display:flex; align-items:baseline; gap:12px;",
+                     div {
+-                        style: "font-size:16px; font-weight:700; letter-spacing:0.5px;",
++                        style: format!("font-size:{}; font-weight:700; letter-spacing:0.5px;", theme::FONT_SIZE_TITLE),
+                         "FTS RIDER"
+                     }
+                     div {
+                         style: format!(
+-                            "font-size:12px; color:{gain_color}; font-variant-numeric:tabular-nums;",
++                            "{} color:{gain_color};",
++                            theme::STYLE_VALUE,
+                         ),
+                         "Gain: {gain_text}"
+                     }
+                 }
+                 div {
+-                    style: format!("font-size:11px; color:{};", theme::TEXT_DIM),
++                    style: format!("font-size:{}; color:{};", theme::FONT_SIZE_LABEL, theme::TEXT_DIM),
+                     "FastTrackStudio"
+                 }
+             }
+ 
+             // ── Visualization row ────────────────────────────────
+             div {
+-                style: "display:flex; gap:10px; min-height:0;",
++                style: format!("display:flex; gap:{}; min-height:0;", theme::SPACING_SECTION),
+ 
+                 // Waveform display
+                 div {
+                     style: format!(
+-                        "flex:1; background:{CARD_BG}; border-radius:6px; padding:8px; \
+-                         display:flex; flex-direction:column; gap:4px; min-width:0;",
+-                        CARD_BG = theme::CARD_BG,
++                        "{} flex:1; display:flex; flex-direction:column; gap:{}; min-width:0;",
++                        theme::STYLE_CARD, theme::SPACING_LABEL,
+                     ),
+                     SectionLabel { text: "Waveform / Gain Ride" }
+                     PeakWaveform {
+@@ -113,9 +113,8 @@ pub fn App() -> Element {
+                 // Meters
+                 div {
+                     style: format!(
+-                        "background:{CARD_BG}; border-radius:6px; padding:8px; \
+-                         display:flex; gap:8px; align-items:stretch;",
+-                        CARD_BG = theme::CARD_BG,
++                        "{} display:flex; gap:8px; align-items:stretch;",
++                        theme::STYLE_CARD,
+                     ),
+                     LevelMeterDb { level_db: input_db, label: "IN".to_string(), height: 140.0 }
+                     GrMeter { gain_reduction_db: -gain, height: 140.0 }
+@@ -126,9 +125,8 @@ pub fn App() -> Element {
+             // ── Controls ─────────────────────────────────────────
+             div {
+                 style: format!(
+-                    "background:{CARD_BG}; border-radius:6px; padding:12px 16px; \
+-                     display:flex; flex-direction:column; gap:10px; flex:1; min-height:0;",
+-                    CARD_BG = theme::CARD_BG,
++                    "{} display:flex; flex-direction:column; gap:{}; flex:1; min-height:0;",
++                    theme::STYLE_CARD, theme::SPACING_SECTION,
+                 ),
+ 
+                 // Row 1: Primary "Magic Ride" knobs (large)
+diff --git a/crates/fts-sample/Cargo.toml b/crates/fts-sample/Cargo.toml
+index 109a345..07afe6b 100644
+--- a/crates/fts-sample/Cargo.toml
++++ b/crates/fts-sample/Cargo.toml
+@@ -10,3 +10,4 @@ description = "Shared audio sample loading utilities for FTS plugins"
+ symphonium = { workspace = true }
+ crossbeam-channel = { workspace = true }
+ tracing = { workspace = true }
++rfd = "0.17"
+diff --git a/crates/fts-sample/src/dialog.rs b/crates/fts-sample/src/dialog.rs
+index 7e38e4a..a991d32 100644
+--- a/crates/fts-sample/src/dialog.rs
++++ b/crates/fts-sample/src/dialog.rs
+@@ -1,15 +1,11 @@
+-//! Native file dialog without external dependencies.
++//! Native file dialog using `rfd` (Rusty File Dialog).
+ //!
+-//! Uses the system file picker: `zenity` on Linux, `osascript` on macOS,
+-//! `powershell` on Windows. Falls back gracefully if unavailable.
++//! Uses xdg-desktop-portal on Linux (NixOS-compatible), native dialogs
++//! on macOS and Windows.
+ 
+ use std::path::PathBuf;
+-use std::process::Command;
+ 
+ /// Open a native file dialog for selecting audio files.
+-///
+-/// `title` is the dialog window title. Returns `None` if the user cancels
+-/// or no dialog tool is available.
+ pub fn pick_audio_file(title: &str) -> Option<PathBuf> {
+     pick_file(
+         title,
+@@ -21,122 +17,12 @@ pub fn pick_audio_file(title: &str) -> Option<PathBuf> {
+ 
+ /// Open a native file dialog for selecting files with the given extensions.
+ pub fn pick_file(title: &str, extensions: &[&str]) -> Option<PathBuf> {
+-    #[cfg(target_os = "linux")]
+-    {
+-        pick_file_zenity(title, extensions)
+-    }
+-
+-    #[cfg(target_os = "macos")]
+-    {
+-        pick_file_macos(title, extensions)
+-    }
++    let mut dialog = rfd::FileDialog::new().set_title(title);
+ 
+-    #[cfg(target_os = "windows")]
+-    {
+-        pick_file_windows(title, extensions)
++    if !extensions.is_empty() {
++        dialog = dialog.add_filter("Files", extensions);
+     }
++    dialog = dialog.add_filter("All Files", &["*"]);
+ 
+-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+-    {
+-        let _ = (title, extensions);
+-        None
+-    }
+-}
+-
+-#[cfg(target_os = "linux")]
+-fn pick_file_zenity(title: &str, extensions: &[&str]) -> Option<PathBuf> {
+-    // Build filter string for zenity: "*.wav *.flac *.mp3 ..."
+-    let filter_pattern: String = extensions
+-        .iter()
+-        .map(|e| format!("*.{e}"))
+-        .collect::<Vec<_>>()
+-        .join(" ");
+-    let filter = format!("Audio Files | {filter_pattern}");
+-
+-    let output = Command::new("zenity")
+-        .args([
+-            "--file-selection",
+-            "--title",
+-            title,
+-            "--file-filter",
+-            &filter,
+-            "--file-filter",
+-            "All Files | *",
+-        ])
+-        .output()
+-        .ok()?;
+-
+-    if output.status.success() {
+-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+-        if path.is_empty() {
+-            None
+-        } else {
+-            Some(PathBuf::from(path))
+-        }
+-    } else {
+-        None
+-    }
+-}
+-
+-#[cfg(target_os = "macos")]
+-fn pick_file_macos(title: &str, extensions: &[&str]) -> Option<PathBuf> {
+-    let types: String = extensions
+-        .iter()
+-        .map(|e| format!("\"{e}\""))
+-        .collect::<Vec<_>>()
+-        .join(", ");
+-
+-    let script = format!(
+-        r#"set theFile to choose file with prompt "{title}" of type {{{types}}}
+-POSIX path of theFile"#,
+-    );
+-
+-    let output = Command::new("osascript")
+-        .args(["-e", &script])
+-        .output()
+-        .ok()?;
+-
+-    if output.status.success() {
+-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+-        if path.is_empty() {
+-            None
+-        } else {
+-            Some(PathBuf::from(path))
+-        }
+-    } else {
+-        None
+-    }
+-}
+-
+-#[cfg(target_os = "windows")]
+-fn pick_file_windows(title: &str, extensions: &[&str]) -> Option<PathBuf> {
+-    let filter_parts: String = extensions
+-        .iter()
+-        .map(|e| format!("*.{e}"))
+-        .collect::<Vec<_>>()
+-        .join(";");
+-
+-    let script = format!(
+-        r#"Add-Type -AssemblyName System.Windows.Forms
+-$f = New-Object System.Windows.Forms.OpenFileDialog
+-$f.Title = '{title}'
+-$f.Filter = 'Audio Files|{filter_parts}|All Files|*.*'
+-if ($f.ShowDialog() -eq 'OK') {{ $f.FileName }}"#,
+-    );
+-
+-    let output = Command::new("powershell")
+-        .args(["-NoProfile", "-Command", &script])
+-        .output()
+-        .ok()?;
+-
+-    if output.status.success() {
+-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+-        if path.is_empty() {
+-            None
+-        } else {
+-            Some(PathBuf::from(path))
+-        }
+-    } else {
+-        None
+-    }
++    dialog.pick_file()
+ }
+diff --git a/crates/fts-trigger/trigger-plugin/src/lib.rs b/crates/fts-trigger/trigger-plugin/src/lib.rs
+index 8a79cd4..5543fb2 100644
+--- a/crates/fts-trigger/trigger-plugin/src/lib.rs
++++ b/crates/fts-trigger/trigger-plugin/src/lib.rs
+@@ -98,6 +98,9 @@ pub struct SlotParams {
+ 
+     #[id = "solo"]
+     pub solo: FloatParam,
++
++    #[id = "midi_note"]
++    pub midi_note: IntParam,
+ }
+ 
+ impl SlotParams {
+@@ -202,10 +205,35 @@ impl SlotParams {
+                     _ => s.parse().ok(),
+                 }
+             })),
++
++            // GM drum map defaults: C1(36)=Kick, D1(38)=Snare, F#1(42)=HH...
++            midi_note: IntParam::new(
++                &format!("S{} Note", idx + 1),
++                DEFAULT_MIDI_NOTES[idx] as i32,
++                IntRange::Linear { min: 0, max: 127 },
++            )
++            .with_value_to_string(Arc::new(|v| {
++                let note_names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
++                let name = note_names[v as usize % 12];
++                let octave = (v / 12) - 1;
++                format!("{}{} ({})", name, octave, v)
++            })),
+         }
+     }
+ }
+ 
++/// Default MIDI note numbers per slot (GM drum map).
++const DEFAULT_MIDI_NOTES: [u8; NUM_SLOTS] = [
++    36, // C1 — Kick
++    38, // D1 — Snare
++    42, // F#1 — Closed HH
++    46, // A#1 — Open HH
++    41, // F1 — Low Tom
++    43, // G1 — Mid Tom
++    45, // A1 — High Tom
++    49, // C#2 — Crash
++];
++
+ // ── Persisted Slot Paths ────────────────────────────────────────────
+ 
+ #[derive(Default, serde::Serialize, serde::Deserialize)]
+@@ -269,6 +297,16 @@ pub struct FtsTriggerParams {
+     #[id = "output_gain"]
+     pub output_gain: FloatParam,
+ 
++    // MIDI output
++    #[id = "midi_enabled"]
++    pub midi_enabled: FloatParam,
++
++    #[id = "midi_channel"]
++    pub midi_channel: IntParam,
++
++    #[id = "midi_note_length"]
++    pub midi_note_length: FloatParam,
++
+     // Per-slot (8 slots)
+     #[nested(array, group = "Slot {}")]
+     pub slots: [SlotParams; NUM_SLOTS],
+@@ -454,6 +492,31 @@ impl Default for FtsTriggerParams {
+             .with_unit(" dB")
+             .with_value_to_string(formatters::v2s_f32_rounded(1)),
+ 
++            // MIDI output
++            midi_enabled: FloatParam::new("MIDI Out", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
++                .with_value_to_string(Arc::new(|v| {
++                    if v > 0.5 { "On".to_string() } else { "Off".to_string() }
++                }))
++                .with_string_to_value(Arc::new(|s| match s.trim().to_lowercase().as_str() {
++                    "on" | "1" | "true" => Some(1.0),
++                    "off" | "0" | "false" => Some(0.0),
++                    _ => s.parse().ok(),
++                })),
++
++            midi_channel: IntParam::new("MIDI Ch", 10, IntRange::Linear { min: 1, max: 16 }),
++
++            midi_note_length: FloatParam::new(
++                "Note Len",
++                100.0,
++                FloatRange::Skewed {
++                    min: 10.0,
++                    max: 2000.0,
++                    factor: FloatRange::skew_factor(-2.0),
++                },
++            )
++            .with_unit(" ms")
++            .with_value_to_string(formatters::v2s_f32_rounded(0)),
++
+             // Slots
+             slots: std::array::from_fn(|i| SlotParams::new(i)),
+ 
+@@ -478,6 +541,12 @@ struct FtsTrigger {
+     waveform_interval: usize,
+     waveform_peak: f32,
+     waveform_trigger_peak: f32,
++
++    // MIDI note-off tracking: remaining samples until note-off per slot
++    midi_note_remaining: [u32; NUM_SLOTS],
++    // Currently active MIDI note per slot (for sending note-off on retrigger)
++    midi_active_note: [u8; NUM_SLOTS],
++    midi_note_active: [bool; NUM_SLOTS],
+ }
+ 
+ impl Default for FtsTrigger {
+@@ -488,7 +557,7 @@ impl Default for FtsTrigger {
+         Self {
+             params,
+             ui_state,
+-            editor_state: DioxusState::new(|| (1060, 640)),
++            editor_state: DioxusState::new(|| (1200, 720)),
+             engine: TriggerEngine::new(),
+             sample_rate: 48000.0,
+             sample_rx: rx,
+@@ -496,6 +565,9 @@ impl Default for FtsTrigger {
+             waveform_interval: 960,
+             waveform_peak: 0.0,
+             waveform_trigger_peak: 0.0,
++            midi_note_remaining: [0; NUM_SLOTS],
++            midi_active_note: [0; NUM_SLOTS],
++            midi_note_active: [false; NUM_SLOTS],
+         }
+     }
+ }
+@@ -599,6 +671,9 @@ impl Plugin for FtsTrigger {
+         ..AudioIOLayout::const_default()
+     }];
+ 
++    const MIDI_INPUT: MidiConfig = MidiConfig::None;
++    const MIDI_OUTPUT: MidiConfig = MidiConfig::Basic;
++
+     type SysExMessage = ();
+     type BackgroundTask = ();
+ 
+@@ -656,7 +731,7 @@ impl Plugin for FtsTrigger {
+         &mut self,
+         buffer: &mut Buffer,
+         _aux: &mut AuxiliaryBuffers,
+-        _context: &mut impl ProcessContext<Self>,
++        context: &mut impl ProcessContext<Self>,
+     ) -> ProcessStatus {
+         // Poll for loaded samples
+         self.poll_loaded_samples();
+@@ -666,7 +741,16 @@ impl Plugin for FtsTrigger {
+ 
+         // Report latency to host (non-zero for spectral modes)
+         let latency = self.engine.detector.latency_samples() as u32;
+-        _context.set_latency_samples(latency);
++        context.set_latency_samples(latency);
++
++        // MIDI config
++        let midi_enabled = self.params.midi_enabled.value() > 0.5;
++        let midi_channel = (self.params.midi_channel.value() - 1) as u8;
++        let note_length_samples = (self.params.midi_note_length.value() as f64
++            * self.sample_rate
++            / 1000.0) as u32;
++
++        let mut sample_index: u32 = 0;
+ 
+         // Process in blocks — convert f32 <-> f64
+         for mut frame in buffer.iter_samples() {
+@@ -691,7 +775,69 @@ impl Plugin for FtsTrigger {
+ 
+             let output_peak = left.abs().max(right.abs()) as f32;
+ 
+-            // Update metering atomics
++            // ── MIDI output ────────────────────────────────────────
++            if midi_enabled {
++                // Send note-on events when trigger fires
++                if self.engine.triggered_this_block {
++                    let vel = self.engine.last_velocity as f32;
++                    let any_solo = self.engine.slot_solo.iter().any(|&s| s);
++
++                    for s in 0..NUM_SLOTS {
++                        if !self.engine.slot_enabled[s] || self.engine.slot_mute[s] {
++                            continue;
++                        }
++                        if any_solo && !self.engine.slot_solo[s] {
++                            continue;
++                        }
++
++                        let note = self.params.slots[s].midi_note.value() as u8;
++
++                        // Send note-off for previous note if still active
++                        if self.midi_note_active[s] {
++                            context.send_event(NoteEvent::NoteOff {
++                                timing: sample_index,
++                                voice_id: None,
++                                channel: midi_channel,
++                                note: self.midi_active_note[s],
++                                velocity: 0.0,
++                            });
++                        }
++
++                        // Send note-on
++                        context.send_event(NoteEvent::NoteOn {
++                            timing: sample_index,
++                            voice_id: None,
++                            channel: midi_channel,
++                            note,
++                            velocity: vel,
++                        });
++
++                        self.midi_active_note[s] = note;
++                        self.midi_note_remaining[s] = note_length_samples;
++                        self.midi_note_active[s] = true;
++                    }
++                }
++
++                // Decrement note-off timers and send note-off when expired
++                for s in 0..NUM_SLOTS {
++                    if self.midi_note_active[s] {
++                        if self.midi_note_remaining[s] == 0 {
++                            context.send_event(NoteEvent::NoteOff {
++                                timing: sample_index,
++                                voice_id: None,
++                                channel: midi_channel,
++                                note: self.midi_active_note[s],
++                                velocity: 0.0,
++                            });
++                            self.midi_note_active[s] = false;
++                        } else {
++                            self.midi_note_remaining[s] -= 1;
++                        }
++                    }
++                }
++            }
++
++            // ── Metering ───────────────────────────────────────────
+             // Input peak with decay
+             let prev_in = self.ui_state.input_peak_db.load(Ordering::Relaxed);
+             let in_db = if input_peak > 0.0 {
+@@ -776,6 +922,8 @@ impl Plugin for FtsTrigger {
+                 self.waveform_peak = 0.0;
+                 self.waveform_trigger_peak = 0.0;
+             }
++
++            sample_index += 1;
+         }
+ 
+         // Decay trigger flash
+diff --git a/crates/fts-trigger/trigger-ui/src/lib.rs b/crates/fts-trigger/trigger-ui/src/lib.rs
+index a02d073..77663db 100644
+--- a/crates/fts-trigger/trigger-ui/src/lib.rs
++++ b/crates/fts-trigger/trigger-ui/src/lib.rs
+@@ -5,3 +5,4 @@
+ 
+ pub mod control_view;
+ pub mod profile_view;
++pub mod trigger_waveform;
+diff --git a/xtask/src/main.rs b/xtask/src/main.rs
+index b7e1cf0..e8cdbed 100644
+--- a/xtask/src/main.rs
++++ b/xtask/src/main.rs
+@@ -105,22 +105,27 @@ fn reaper_test(
+         return Err(format!("Failed to bundle {package}").into());
+     }
+ 
+-    // Install the CLAP to FX dir
++    // Symlink the CLAP to FX dir
+     let clap_file = format!("{package}.clap");
+     let bundled = workspace_root.join("target/bundled").join(&clap_file);
+     let fx_dir = user_plugins_dir.join("FX");
+     std::fs::create_dir_all(&fx_dir)?;
+     if bundled.exists() {
+         let dest = fx_dir.join(&clap_file);
+-        if dest.exists() {
++        if dest.exists() || dest.is_symlink() {
+             let _ = std::fs::remove_file(&dest).or_else(|_| std::fs::remove_dir_all(&dest));
+         }
+-        if bundled.is_dir() {
+-            copy_dir_recursive(&bundled, &dest)?;
+-        } else {
+-            std::fs::copy(&bundled, &dest)?;
++        #[cfg(unix)]
++        std::os::unix::fs::symlink(&bundled, &dest)?;
++        #[cfg(not(unix))]
++        {
++            if bundled.is_dir() {
++                copy_dir_recursive(&bundled, &dest)?;
++            } else {
++                std::fs::copy(&bundled, &dest)?;
++            }
+         }
+-        println!("  Installed {clap_file} -> {}", fx_dir.display());
++        println!("  Symlinked {clap_file} -> {}", bundled.display());
+     } else {
+         println!("  WARNING: {clap_file} not found at {}", bundled.display());
+     }

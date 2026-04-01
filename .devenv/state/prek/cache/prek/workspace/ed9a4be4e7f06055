@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+  "created_at": {
+    "secs_since_epoch": 1775082714,
+    "nanos_since_epoch": 562231877
+  },
+  "config_files": [
+    {
+      "path": "/home/cody/Development/FastTrackStudio/FTS-Plugins/.pre-commit-config.yaml",
+      "modified": {
+        "secs_since_epoch": 1,
+        "nanos_since_epoch": 0
+      },
+      "size": 824
+    }
+  ]
+}

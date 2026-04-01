@@ -1,0 +1,35 @@
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index ee40715..07b201b 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -371,14 +371,23 @@ pub fn high_shelf_1(freq_hz: f64, gain_db: f64, sample_rate: f64) -> Coeffs {
+     let w0 = (2.0 * PI * corner_hz / sample_rate).clamp(1e-6, PI - 1e-6);
+ 
+     // Bilinear transform 1st-order high shelf (prewarp with w0/2)
+-    // H(z) = ((g + wc)*z + (-g + wc)) / ((1 + wc)*z + (-1 + wc))
+-    // Works for both boost (g > 1) and cut (g < 1).
+     let wc = (w0 / 2.0).tan();
+-    let a0_inv = 1.0 / (1.0 + wc);
+-    let b0 = (g + wc) * a0_inv;
+-    let b1 = (-g + wc) * a0_inv;
+-    let a1 = (-1.0 + wc) * a0_inv;
+-    [1.0, a1, 0.0, b0, b1, 0.0]
++    if g > 1.0 {
++        // Boost: H(s) = (g*s + wc) / (s + wc)
++        let a0_inv = 1.0 / (1.0 + wc);
++        let b0 = (g + wc) * a0_inv;
++        let b1 = (-g + wc) * a0_inv;
++        let a1 = (-1.0 + wc) * a0_inv;
++        [1.0, a1, 0.0, b0, b1, 0.0]
++    } else {
++        // Cut: H(s) = (s + wc) / ((1/g)*s + wc)
++        let g_inv = 1.0 / g;
++        let a0_inv = 1.0 / (g_inv + wc);
++        let b0 = (1.0 + wc) * a0_inv;
++        let b1 = (-1.0 + wc) * a0_inv;
++        let a1 = (-g_inv + wc) * a0_inv;
++        [1.0, a1, 0.0, b0, b1, 0.0]
++    }
+ }
+ 
+ /// 1st-order allpass filter coefficients.

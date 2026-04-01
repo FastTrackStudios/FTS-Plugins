@@ -1,0 +1,11 @@
+diff --git a/crates/fts-livetune/livetune-dsp/Cargo.toml b/crates/fts-livetune/livetune-dsp/Cargo.toml
+index 5883d75..0a46ece 100644
+--- a/crates/fts-livetune/livetune-dsp/Cargo.toml
++++ b/crates/fts-livetune/livetune-dsp/Cargo.toml
+@@ -9,3 +9,6 @@ license.workspace = true
+ fts-dsp = { path = "../../fts-dsp", default-features = false }
+ pitch-dsp = { path = "../../fts-pitch/pitch-dsp" }
+ serde = { workspace = true }
++
++# ONNX Runtime for neural pitch detection models
++ort = { version = "2", default-features = false }
