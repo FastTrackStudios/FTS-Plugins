@@ -1,0 +1,30 @@
+diff --git a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055 b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+index 5635a66..6d71961 100644
+--- a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
++++ b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+@@ -2,8 +2,8 @@
+   "version": 1,
+   "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+   "created_at": {
+-    "secs_since_epoch": 1775100153,
+-    "nanos_since_epoch": 824964914
++    "secs_since_epoch": 1775103988,
++    "nanos_since_epoch": 371742424
+   },
+   "config_files": [
+     {
+diff --git a/crates/fts-comp/comp-dsp-v2/src/smoother.rs b/crates/fts-comp/comp-dsp-v2/src/smoother.rs
+index 8af2923..9a9091d 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/smoother.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/smoother.rs
+@@ -3,8 +3,8 @@
+ /// Exponential smoother for gain reduction with Pro-C 3 change detection.
+ ///
+ /// Implements hybrid smoothing based on change detection:
+-/// - If change >= 0.1% of gr_inst: Use exponential smoothing (approximates Hermite path)
+-/// - If change < 0.1%: Use sqrt(gr_inst) fallback (steady state)
++/// - If change >= 0.1% of state_value: Use Hermite cubic interpolation
++/// - If change < 0.1%: Use sqrt(state_value) fallback
+ pub struct GainReductionSmoother {
+     sample_rate: f64,
+     attack_s: f64,

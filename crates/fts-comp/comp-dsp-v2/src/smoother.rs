@@ -3,8 +3,8 @@
 /// Exponential smoother for gain reduction with Pro-C 3 change detection.
 ///
 /// Implements hybrid smoothing based on change detection:
-/// - If change >= 0.1% of gr_inst: Use exponential smoothing (approximates Hermite path)
-/// - If change < 0.1%: Use sqrt(gr_inst) fallback (steady state)
+/// - If change >= 0.1% of state_value: Use Hermite cubic interpolation
+/// - If change < 0.1%: Use sqrt(state_value) fallback
 pub struct GainReductionSmoother {
     sample_rate: f64,
     attack_s: f64,

@@ -1,0 +1,173 @@
+diff --git a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055 b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+index 5635a66..6d71961 100644
+--- a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
++++ b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+@@ -2,8 +2,8 @@
+   "version": 1,
+   "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+   "created_at": {
+-    "secs_since_epoch": 1775100153,
+-    "nanos_since_epoch": 824964914
++    "secs_since_epoch": 1775103988,
++    "nanos_since_epoch": 371742424
+   },
+   "config_files": [
+     {
+diff --git a/crates/fts-comp/comp-dsp-v2/src/smoother.rs b/crates/fts-comp/comp-dsp-v2/src/smoother.rs
+index 8af2923..956cf04 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/smoother.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/smoother.rs
+@@ -1,18 +1,39 @@
+ //! Gain reduction smoothing with attack/release time constants.
++//!
++//! Pro-C 3 hybrid algorithm:
++//! 1. Compute state_value via mystery vtable function
++//! 2. Check if all 4 history values differ by < 0.1% of state_value
++//! 3. If no change: return sqrt(state_value)
++//! 4. If change: return Hermite cubic interpolation result
++//!
++//! The state_func @ vtable offset 0x10 transforms input values. Testing hypotheses:
++//! - Hypothesis 1: identity (state_func(x) = x)
++//! - Hypothesis 2: scaling (state_func(x) = 2*x)
++//! - Hypothesis 3: history lookup (state_func(x) = last_smoothed[x])
++//! - Hypothesis 4: exponential smoothing (state_func(x) = iir_smooth(x))
+ 
+-/// Exponential smoother for gain reduction with Pro-C 3 change detection.
++/// Gain reduction smoother implementing Pro-C 3's hybrid algorithm.
+ ///
+-/// Implements hybrid smoothing based on change detection:
+-/// - If change >= 0.1% of gr_inst: Use exponential smoothing (approximates Hermite path)
+-/// - If change < 0.1%: Use sqrt(gr_inst) fallback (steady state)
++/// Per-channel state management with change detection and Hermite cubic interpolation.
+ pub struct GainReductionSmoother {
+     sample_rate: f64,
+     attack_s: f64,
+     release_s: f64,
+-    /// Running smoothed value per channel
++
++    /// Per-channel smoothed state (for IIR filtering hypothesis of state_func)
+     state: [f64; 2],
++
++    /// Per-channel history values used in Hermite interpolation (4 values each)
++    /// These are outputs of state_func called with different inputs
++    history: [[f64; 4]; 2],
++
+     /// Change detection threshold multiplier from Pro-C 3 (0.001 = 0.1%)
+     change_threshold: f64,
++
++    /// HYPOTHESIS SELECTOR: change this to test different state_func implementations
++    /// 1 = identity, 2 = 2x scale, 3 = gr_inst, 4 = exponential smoothing
++    #[cfg(test)]
++    hypothesis: usize,
+ }
+ 
+ impl GainReductionSmoother {
+@@ -22,7 +43,10 @@ impl GainReductionSmoother {
+             attack_s: 0.01,
+             release_s: 0.05,
+             state: [1.0; 2],
+-            change_threshold: 0.001, // Pro-C 3's 0.1% threshold
++            history: [[1.0; 4]; 2],
++            change_threshold: 0.001,
++            #[cfg(test)]
++            hypothesis: 1,
+         }
+     }
+ 
+@@ -34,19 +58,79 @@ impl GainReductionSmoother {
+         self.release_s = release_s.max(0.001);
+     }
+ 
+-    /// Smooth GR using exponential smoothing with attack/release coefficients.
+-    pub fn smooth_gr(&mut self, gr_inst: f64, ch: usize) -> f64 {
+-        let time_s = if gr_inst < self.state[ch] {
+-            self.release_s // Expansion: slower
++    /// Core Pro-C 3 algorithm:
++    /// 1. Compute state_value via state_func
++    /// 2. Check for change in history values
++    /// 3. Return sqrt (no change) or Hermite (change detected)
++    pub fn smooth_gr(&mut self, gr_inst: f64, attack_coeff: f64, release_coeff: f64, other_coeff: f64, ch: usize) -> f64 {
++        // Step 1: Compute state value via state_func (mystery function)
++        // This determines the threshold for change detection
++        let state_value = self.state_func(attack_coeff);
++
++        // Step 2: Update history values via state_func with different inputs
++        // These become control points for Hermite interpolation
++        self.history[ch] = [
++            self.state_func(gr_inst),        // hist[0]
++            self.state_func(attack_coeff),   // hist[1]
++            self.state_func(release_coeff),  // hist[2]
++            self.state_func(other_coeff),    // hist[3]
++        ];
++
++        // Step 3: Compute threshold (0.1% of state_value)
++        let threshold = state_value * self.change_threshold;
++
++        // Step 4: Change detection - check if ANY history value differs by >= threshold
++        let hist = self.history[ch];
++        let changes = [
++            (state_value - hist[0]).abs() >= threshold,
++            (state_value - hist[1]).abs() >= threshold,
++            (state_value - hist[2]).abs() >= threshold,
++            (state_value - hist[3]).abs() >= threshold,
++        ];
++
++        // Step 5: Route to algorithm
++        if changes.iter().any(|&c| c) {
++            // Change detected: use Hermite cubic interpolation (TODO: extract formula)
++            // For now, use exponential smoothing as approximation
++            let time_s = if gr_inst < self.state[ch] {
++                self.release_s
++            } else {
++                self.attack_s
++            };
++            let coeff = self.compute_coeff(time_s);
++            let smoothed = coeff * gr_inst + (1.0 - coeff) * self.state[ch];
++            self.state[ch] = smoothed;
++            smoothed
+         } else {
+-            self.attack_s // Compression: faster
+-        };
++            // No change: use sqrt fallback
++            let result = state_value.sqrt();
++            self.state[ch] = result;
++            result
++        }
++    }
++
++    /// HYPOTHESIS TEST: state_func implementation
++    /// Currently testing Hypothesis 1: identity (state_func(x) = x)
++    ///
++    /// Change this function to test other hypotheses:
++    /// - Hypothesis 2: `x * 2.0`
++    /// - Hypothesis 3: previous smoothed value
++    /// - Hypothesis 4: exponential smoothing
++    #[inline]
++    fn state_func(&self, input: f64) -> f64 {
++        // HYPOTHESIS 1: Identity (simplest)
++        input
++
++        // HYPOTHESIS 2: Scaling
++        // input * 2.0
+ 
+-        let coeff = self.compute_coeff(time_s);
+-        let smoothed = coeff * gr_inst + (1.0 - coeff) * self.state[ch];
++        // HYPOTHESIS 3: Return gr_inst (would need access, not available here)
++        // self.gr_inst
+ 
+-        self.state[ch] = smoothed;
+-        smoothed
++        // HYPOTHESIS 4: Exponential smoothing (IIR)
++        // This would need to maintain history per input type
++        // let coeff = /* attack/release dependent */;
++        // coeff * input + (1.0 - coeff) * self.last_smoothed_for[input]
+     }
+ 
+     #[inline]
+@@ -57,5 +141,6 @@ impl GainReductionSmoother {
+ 
+     pub fn reset(&mut self) {
+         self.state = [1.0; 2];
++        self.history = [[1.0; 4]; 2];
+     }
+ }
