@@ -17,6 +17,7 @@
 use crate::detector::Detector;
 use crate::gain_curve::GainCurve;
 use crate::hermite::{HermiteCubicSmoother, StateFuncHypothesis};
+use std::f64::consts::{LN_2, PI};
 
 /// Per-band compression state
 #[derive(Clone)]
@@ -35,6 +36,12 @@ pub struct CompressionBand {
 
     /// Last computed gain reduction (dB)
     last_gr_db: f64,
+
+    /// Previous detected level (for Band 2 hysteresis)
+    previous_level_db: f64,
+
+    /// Sample rate (needed for crossover frequency calculation)
+    sample_rate: f64,
 }
 
 impl CompressionBand {
@@ -45,7 +52,71 @@ impl CompressionBand {
             gain_curve: GainCurve::new(sample_rate),
             smoother: HermiteCubicSmoother::new(StateFuncHypothesis::Identity),
             last_gr_db: 0.0,
+            previous_level_db: -80.0,
+            sample_rate,
         }
+    }
+
+    /// Calculate level-dependent crossover frequency from detected level
+    /// Formula (from Pro-C 3 @ 0x18010e9d0):
+    /// freq = (2 * exp(level * LN2) * PI) / sample_rate
+    fn compute_crossover_frequency(&self, level_db: f64) -> f64 {
+        // Clamp level to reasonable range to prevent overflow
+        let level_clamped = level_db.clamp(-80.0, 20.0);
+
+        // Apply exponential: exp(level * ln(2))
+        let exp_val = (level_clamped * LN_2).exp();
+
+        // Compute frequency: (2 * exp_val * π) / sample_rate
+        (2.0 * exp_val * PI) / self.sample_rate
+    }
+
+    /// Apply Band 2 special sqrt-based processing (only for band_index == 2)
+    /// Formula (from Pro-C 3 @ 0x180052d90-0x180052bc):
+    /// band2_output = sqrt(level_abs² + 1.0) * freq_scaled + (level_abs * 0.5)
+    /// Where freq_scaled = crossover_freq * 0.5 (DAT_180213064)
+    fn apply_band2_special_processing(&mut self, level_db: f64, crossover_freq: f64) -> f64 {
+        if self.band_index != 2 {
+            return level_db;
+        }
+
+        // Compute level difference for hysteresis (Band 2 adaptive detection)
+        let level_diff = (level_db - self.previous_level_db).abs();
+
+        // Band 2 scaling constant (DAT_180213064 from binary)
+        const BAND2_SCALE: f64 = 0.5;
+
+        // Crossover frequency scaling for Band 2
+        let freq_scaled = crossover_freq * BAND2_SCALE;
+
+        // Apply sqrt-based formula:
+        // sqrt(level_diff² + 1.0) provides smooth rounding near zero
+        let sqrt_component = (level_diff * level_diff + 1.0).sqrt() * freq_scaled;
+
+        // Add linear component: level_diff * 0.5
+        let linear_component = level_diff.abs() * BAND2_SCALE;
+
+        // Final Band 2 output
+        let band2_output = sqrt_component + linear_component;
+
+        // Apply hysteresis with 4.0 dB threshold (from binary)
+        const HYSTERESIS_WIDTH: f64 = 4.0;
+        const DETECTION_THRESHOLD: f64 = 40.0; // Reference threshold from binary
+
+        let output_with_hysteresis = if band2_output > DETECTION_THRESHOLD {
+            band2_output
+        } else if band2_output < (DETECTION_THRESHOLD - HYSTERESIS_WIDTH) {
+            band2_output
+        } else {
+            // Within hysteresis zone - use smoothed interpolation
+            DETECTION_THRESHOLD - HYSTERESIS_WIDTH
+                + (band2_output - (DETECTION_THRESHOLD - HYSTERESIS_WIDTH))
+        };
+
+        // Update previous level for next sample
+        self.previous_level_db = level_db;
+
+        output_with_hysteresis
     }
 
     /// Process one sample through this band's compression
@@ -53,10 +124,19 @@ impl CompressionBand {
         // Step 1: Detect level
         let level_db = self.detector.detect_level(input.abs());
 
-        // Step 2: Compute gain reduction
-        let gr_instant = self.gain_curve.compute_gr(level_db);
+        // Step 2: Compute level-dependent crossover frequency
+        // Formula from Pro-C 3 @ 0x18010e9d0:
+        // freq = (2 * exp(level * LN2) * PI) / sample_rate
+        let crossover_freq = self.compute_crossover_frequency(level_db);
 
-        // Step 3: Smooth with Hermite cubic
+        // Step 3: Apply Band 2 special sqrt-based processing (if applicable)
+        // This modifies the effective level used for gain curve computation
+        let effective_level_db = self.apply_band2_special_processing(level_db, crossover_freq);
+
+        // Step 4: Compute gain reduction using effective level
+        let gr_instant = self.gain_curve.compute_gr(effective_level_db);
+
+        // Step 5: Smooth with Hermite cubic
         let log_rel = self.gain_curve.release_coeff.ln();
         let log_atk = self.gain_curve.attack_coeff.ln();
         let sqrt_h0 = gr_instant.sqrt();
@@ -73,20 +153,11 @@ impl CompressionBand {
             channel,
         );
 
-        // Step 4: Apply band-specific processing
-        // Band 2 (low) has special sqrt-based scaling (from binary @ 0x18010e9d0)
-        let gr_final = if self.band_index == 2 {
-            // Low band special processing
-            gr_smoothed // Placeholder - would apply sqrt scaling based on filter type
-        } else {
-            gr_smoothed
-        };
-
         // Track for metering
-        self.last_gr_db = fts_dsp::db::linear_to_db(gr_final).max(0.0);
+        self.last_gr_db = fts_dsp::db::linear_to_db(gr_smoothed).max(0.0);
 
-        // Step 5: Apply to audio
-        input * gr_final
+        // Step 6: Apply to audio
+        input * gr_smoothed
     }
 
     /// Update parameters for this band

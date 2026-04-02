@@ -1,0 +1,200 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 6f573fd1baf3c34a9197be96383387a65591650c..071bcb8ace4a66b0536ec257ab318044182ca359 100644
+GIT binary patch
+delta 257
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9Gy%nS^i3=9lcuYQO*>*%ClRb;RGP9=x;LRoe1
+zYma-`q^bv*4Z;G<3=IE~07#61fq{wP%f`m*+!JRsY>wcOaozkSu!>ROE7MP=zf6qG
+ztjwIuyv%~kn-h6T7&m_ksbUoP#`KHn9}^QZ8#5O(AF~it>O*)Hqri8j-%S6Rn3>s`
+kxtaNyg`raKqN*4LelY!EVqj)r=3wSw7GM?uNp&a#08bT5od5s;
+
+delta 190
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9Ham>3v185kHs#C59wvqZ*O71`^)Q_0~?*u%kb
+zX3}0KQq_aZ2H_7(3=IE~07#61fq{wP%Erd)+?#Lk$hc1az|*k#OJEh_=7&5jjGI4&
+Qz*rx`VXSviVAc#}0C~edWdHyG
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index cc57fba70677841449918adf67fdef646ae6d541..3619927e16829293c7e05c604ad2aec001a5c4b7 100644
+GIT binary patch
+delta 1493
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXtZdyXtij!=(Omz=xx#G
+zZs*l~r;@{~qdn*8Nv9+E+a>bl`*^pzh3Gdiap;`p`!B@tM0>kIjqDe`=|@uaeWn-m
+z$wyCL{Zy}%BhqfgrxMY?IomyYWViB9pIfFcJY8VEyySGwZ+iM1#wq_lsHD#{!O(k~
+zRlk%YAk9oEA?vr+_KG#KeY}inlQnr~ZGRY||D2Jdy6}06yyYdE?H9uIXY(_vO}BB=
+zPZ#B2U|?XdDzXPVws?oZSDu{NXST061GQO)MNO93cJfDg$?0m}^n^HCZ*7u}IFWk}
+z*^m;BU3+JLdy_Kb!S)+(P;7N)obGXnaRJ9oTVK%$3tn4n|L{ll3m>a00|SHibk7vM
+zMOa<Yc%bpdOSW@m+c|jUw(<*uR12k~mZj#ES*2y>q!zO%PcOJ5D~aZ^=(g|ndwX=s
+zaM)48aeSF(4r>tmtnC)Ma>zmB#mJ~Wc@6&@j_$wVX^s*GcR+r#=Vw%(e&MuiG*%bR
+z%v;t!%YWG%L^ugCs$+AM{F7t6bL>xogA2{b5)S{TPaI}y6`a~WBNy(V=?_En=S`2V
+zky`_G)a71X!_X^#%(ri-m4hS|Z>Y;y)fgBUQl>k&=_gB}#NwN8LR0&US2A$%KVo3s
+zzV?jl25=&RIT5T+ZhGKbI|)df@_lbhN-wIE#b-q!`<JlnLjqjv+kdP@aqL1a4NeBz
+zMp4d2UJj6%G1E2n$~i+Fzv@c!!IK4{q39v{XSHmyqy_^61B$!jriherzfv>A6RJ`y
+zAYGgc3=EvGH2Z0JQGv!HPk)?tupy`Lb0=FbmA+uq-X8G|;f=<hGPt}keT_87Ty_qb
+zV(A<i|Lq0;(BgnmZ8~<p?3;Yad{2e(!R;M<@{l|X3x0UA#p0I*3*<`H9O{{h-y#$b
+zy_(4%BgFYycl!=Kd047uPclkw6z|ZSuCY^Q7QXoT_eZ1dO_5;y_6d7rzwj|?PQSWF
+z&I_8naC*&Yl8=8@yU=b(Gzn`8GOIG7WKXo5fW@CNAFf_iaB@70$6iK_wl2fAE~B<C
+o<F+o7wl34QF0-~S^R_OFwl2%IE~~aK>$WbNwl3RkU3Nc`0ZgtBegFUf
+
+delta 1631
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXtZdyXtij!=(Omz=xx#G
+zZs*mpUUwmPZiLSEy*Jr=Hb)%n<7HHvtjRlTa^v}hTpFAVwvD2kjl3Mw1K--kOwQnU
+zW>lZPCdz0I2OsajJ*@eU?rbi&_=S&g>10=VFUIAQC&))LE}Q&DK3Q@F0|NsG0|Ntt
+zRgpc|4tv&>=M%anKG@vxa4Wy?QbA@_rj*pO)VwmQw9K5;V&>(O4Gbh%mdP^PPW~t_
+zDa8yjfRllNffHr`%bdKBW0Nj7;Iokp*~aas99mZH)|s+>2O}fQTkJ_j$&KRenv*m5
+zX5sVRqSR-3{`UnpZ4MCl!Z%%IrJ*-|-(8q6`O(+U(++ITP}s^p{qIggAx458s&|Vt
+zS*Q6+4v!ru{@L6z_3hWy&9k;kIFalh?Vp$U_jO%<w%s6z5$>Vs1&NF}<7=K)%~R7y
+z*_zuuk{ID$nl4bph&PfZZ&&j7K0LD#uRSQf3N_`6)tZpcyuG4{v5$8;+YQ5ojQFDG
+zjH3Bm_JBLuPZw9PqKDk{(<=>AFq58bS;ys)xUA*qkuzO$m!TY3IZ8rf4X%CZ6ZoYQ
+zx9KPzh?%c4#agLCefy0=_&qS4<01ELNQP5oN<X~!=TZOdA1*O|;bUFNz`)==*;C#P
+zlE`p)BbaMR;FOR%@!L5bGj8P<25Az)%tAOkwdl`|oC;>H`-E&n@me;+thr{Z;`ujP
+z;EkE-8Bs<LIGm;)@BWut+z1Y~?J6q`xf#J>i&6??B})cdzxo^uj|wla8kF##6JFif
+z*O;z~ZV-yo{#{Knv2r}EyLpBK+-=)CWKEqJr+3dZoXepzS<jYb&BRrkHv~Y^`wA8Y
+z28NW$ALQfZKt&6Rt6p-shkQ?Ha^>QG#K62cS78G<3+sY($bm{e2`t6YWscpliZ)D(
+zuvh^05{he|#%~JJ@{Ew!{G$Qk+Kfn}2aFv5Du1aYJh#0D_pJ;ghn|?>gS%n>kHAAI
+znnSA6DazqvlM_T)$Vo#P#&&@&!*+o#qjrHV<92~AlXihF({_O_vvz?l^LBwQi*|u7
+b%XWb-t9F4d>vn-In|6UN+wB5fb}y0vz`Qh+
+
+diff --git a/crates/fts-comp/comp-dsp-v2/src/multiband.rs b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+index 03b224d..0d2a25a 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/multiband.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+@@ -17,6 +17,7 @@
+ use crate::detector::Detector;
+ use crate::gain_curve::GainCurve;
+ use crate::hermite::{HermiteCubicSmoother, StateFuncHypothesis};
++use std::f64::consts::{LN_2, PI};
+ 
+ /// Per-band compression state
+ #[derive(Clone)]
+@@ -35,6 +36,12 @@ pub struct CompressionBand {
+ 
+     /// Last computed gain reduction (dB)
+     last_gr_db: f64,
++
++    /// Previous detected level (for Band 2 hysteresis)
++    previous_level_db: f64,
++
++    /// Sample rate (needed for crossover frequency calculation)
++    sample_rate: f64,
+ }
+ 
+ impl CompressionBand {
+@@ -45,7 +52,70 @@ impl CompressionBand {
+             gain_curve: GainCurve::new(sample_rate),
+             smoother: HermiteCubicSmoother::new(StateFuncHypothesis::Identity),
+             last_gr_db: 0.0,
++            previous_level_db: -80.0,
++            sample_rate,
++        }
++    }
++
++    /// Calculate level-dependent crossover frequency from detected level
++    /// Formula (from Pro-C 3 @ 0x18010e9d0):
++    /// freq = (2 * exp(level * LN2) * PI) / sample_rate
++    fn compute_crossover_frequency(&self, level_db: f64) -> f64 {
++        // Clamp level to reasonable range to prevent overflow
++        let level_clamped = level_db.clamp(-80.0, 20.0);
++
++        // Apply exponential: exp(level * ln(2))
++        let exp_val = (level_clamped * LN_2).exp();
++
++        // Compute frequency: (2 * exp_val * π) / sample_rate
++        (2.0 * exp_val * PI) / self.sample_rate
++    }
++
++    /// Apply Band 2 special sqrt-based processing (only for band_index == 2)
++    /// Formula (from Pro-C 3 @ 0x180052d90-0x180052bc):
++    /// band2_output = sqrt(level_abs² + 1.0) * freq_scaled + (level_abs * 0.5)
++    /// Where freq_scaled = crossover_freq * 0.5 (DAT_180213064)
++    fn apply_band2_special_processing(&mut self, level_db: f64, crossover_freq: f64) -> f64 {
++        if self.band_index != 2 {
++            return level_db;
+         }
++
++        // Compute level difference for hysteresis (Band 2 adaptive detection)
++        let level_diff = (level_db - self.previous_level_db).abs();
++
++        // Band 2 scaling constant (DAT_180213064 from binary)
++        const BAND2_SCALE: f64 = 0.5;
++
++        // Crossover frequency scaling for Band 2
++        let freq_scaled = crossover_freq * BAND2_SCALE;
++
++        // Apply sqrt-based formula:
++        // sqrt(level_diff² + 1.0) provides smooth rounding near zero
++        let sqrt_component = (level_diff * level_diff + 1.0).sqrt() * freq_scaled;
++
++        // Add linear component: level_diff * 0.5
++        let linear_component = level_diff.abs() * BAND2_SCALE;
++
++        // Final Band 2 output
++        let band2_output = sqrt_component + linear_component;
++
++        // Apply hysteresis with 4.0 dB threshold (from binary)
++        const HYSTERESIS_WIDTH: f64 = 4.0;
++        const DETECTION_THRESHOLD: f64 = 40.0; // Reference threshold from binary
++
++        let output_with_hysteresis = if band2_output > DETECTION_THRESHOLD {
++            band2_output
++        } else if band2_output < (DETECTION_THRESHOLD - HYSTERESIS_WIDTH) {
++            band2_output
++        } else {
++            // Within hysteresis zone - use smoothed interpolation
++            DETECTION_THRESHOLD - HYSTERESIS_WIDTH + (band2_output - (DETECTION_THRESHOLD - HYSTERESIS_WIDTH))
++        };
++
++        // Update previous level for next sample
++        self.previous_level_db = level_db;
++
++        output_with_hysteresis
+     }
+ 
+     /// Process one sample through this band's compression
+@@ -53,10 +123,19 @@ impl CompressionBand {
+         // Step 1: Detect level
+         let level_db = self.detector.detect_level(input.abs());
+ 
+-        // Step 2: Compute gain reduction
+-        let gr_instant = self.gain_curve.compute_gr(level_db);
++        // Step 2: Compute level-dependent crossover frequency
++        // Formula from Pro-C 3 @ 0x18010e9d0:
++        // freq = (2 * exp(level * LN2) * PI) / sample_rate
++        let crossover_freq = self.compute_crossover_frequency(level_db);
++
++        // Step 3: Apply Band 2 special sqrt-based processing (if applicable)
++        // This modifies the effective level used for gain curve computation
++        let effective_level_db = self.apply_band2_special_processing(level_db, crossover_freq);
++
++        // Step 4: Compute gain reduction using effective level
++        let gr_instant = self.gain_curve.compute_gr(effective_level_db);
+ 
+-        // Step 3: Smooth with Hermite cubic
++        // Step 5: Smooth with Hermite cubic
+         let log_rel = self.gain_curve.release_coeff.ln();
+         let log_atk = self.gain_curve.attack_coeff.ln();
+         let sqrt_h0 = gr_instant.sqrt();
+@@ -73,20 +152,11 @@ impl CompressionBand {
+             channel,
+         );
+ 
+-        // Step 4: Apply band-specific processing
+-        // Band 2 (low) has special sqrt-based scaling (from binary @ 0x18010e9d0)
+-        let gr_final = if self.band_index == 2 {
+-            // Low band special processing
+-            gr_smoothed // Placeholder - would apply sqrt scaling based on filter type
+-        } else {
+-            gr_smoothed
+-        };
+-
+         // Track for metering
+-        self.last_gr_db = fts_dsp::db::linear_to_db(gr_final).max(0.0);
++        self.last_gr_db = fts_dsp::db::linear_to_db(gr_smoothed).max(0.0);
+ 
+-        // Step 5: Apply to audio
+-        input * gr_final
++        // Step 6: Apply to audio
++        input * gr_smoothed
+     }
+ 
+     /// Update parameters for this band
