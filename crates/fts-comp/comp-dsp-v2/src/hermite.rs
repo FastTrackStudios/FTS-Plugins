@@ -87,13 +87,31 @@ impl HermiteCubicSmoother {
         ];
 
         // Step 5: Route to algorithm
-        if changes.iter().any(|&c| c) {
+        let result = if changes.iter().any(|&c| c) {
             // Change detected: use Hermite cubic
-            self.hermite_cubic(hist, log_rel, log_atk, log_third, sqrt_h0, sqrt_h1)
+            let hc_result = self.hermite_cubic(hist, log_rel, log_atk, log_third, sqrt_h0, sqrt_h1);
+            eprintln!("[HERMITE] Change detected");
+            eprintln!(
+                "  hist=[{:.6}, {:.6}, {:.6}, {:.6}]",
+                hist[0], hist[1], hist[2], hist[3]
+            );
+            eprintln!(
+                "  log_rel={:.6}, log_atk={:.6}, log_third={:.6}",
+                log_rel, log_atk, log_third
+            );
+            eprintln!("  sqrt_h0={:.6}, sqrt_h1={:.6}", sqrt_h0, sqrt_h1);
+            eprintln!("  hermite_cubic result={:.6}", hc_result);
+            hc_result
         } else {
             // No change: use sqrt fallback
-            state_value.sqrt()
-        }
+            let sqrt_result = state_value.sqrt();
+            eprintln!(
+                "[HERMITE] No change, using sqrt: state_value={:.6}, sqrt_result={:.6}",
+                state_value, sqrt_result
+            );
+            sqrt_result
+        };
+        result
     }
 
     /// Branch A: Main Hermite cubic path (lines 18010d63b-18010d734)
