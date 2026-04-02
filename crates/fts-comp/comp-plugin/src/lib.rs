@@ -129,7 +129,7 @@ impl Default for FtsCompParams {
         Self {
             threshold_db: FloatParam::new(
                 "Threshold",
-                -10.0,
+                -20.0,
                 FloatRange::Linear {
                     min: -60.0,
                     max: 0.0,

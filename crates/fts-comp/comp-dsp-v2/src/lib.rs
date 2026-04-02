@@ -64,7 +64,7 @@ impl ProC3Compressor {
             hermite_smoother: HermiteCubicSmoother::new(StateFuncHypothesis::Identity),
             sample_rate,
             last_gr_db: [0.0; 2],
-            threshold_db: 0.0,
+            threshold_db: -20.0,
             ratio: 4.0,
             attack_ms: 10.0,
             release_ms: 50.0,
@@ -136,11 +136,20 @@ impl ProC3Compressor {
         // Step 4: APPLY TO AUDIO
         let mut output = input_linear * gr_smoothed;
 
-        // DEBUG
-        if channel == 0 && self.last_gr_db[0] == 0.0 && input_linear.abs() > 0.1 {
-            eprintln!("[COMP] After Hermite:");
-            eprintln!("  gr_smoothed={} ({:.2} dB)", gr_smoothed, fts_dsp::db::linear_to_db(gr_smoothed.max(1e-10)));
-            eprintln!("  output after GR={}", output);
+        // DEBUG: Log first 10 samples per frequency to see signal
+        static mut SAMPLE_NUM: u64 = 0;
+        unsafe {
+            SAMPLE_NUM += 1;
+            let gr_db = fts_dsp::db::linear_to_db(gr_smoothed.max(1e-10));
+            if channel == 0 && SAMPLE_NUM <= 10 {
+                eprintln!("[COMP] Sample {}: input={:.6}, level={:.2}dB, gr={:.2}dB, gr_smooth={:.6}",
+                    SAMPLE_NUM,
+                    input_linear,
+                    fts_dsp::db::linear_to_db(input_linear.abs().max(1e-10)),
+                    gr_db,
+                    gr_smoothed
+                );
+            }
         }
 
         // Step 5: OUTPUT GAIN
