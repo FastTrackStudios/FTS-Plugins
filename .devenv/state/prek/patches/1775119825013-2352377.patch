@@ -1,0 +1,19 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index a00287c..b7fa03d 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -18,12 +18,14 @@ pub mod detector;
+ pub mod gain_curve;
+ pub mod hermite;
+ pub mod smoother;
++pub mod styles;
+ 
+ pub use chain::CompChain;
+ pub use detector::Detector;
+ pub use gain_curve::GainCurve;
+ pub use hermite::{HermiteCubicSmoother, StateFuncHypothesis};
+ pub use smoother::GainReductionSmoother;
++pub use styles::{CompressionStyle, StyleCoefficients};
+ 
+ /// Pro-C 3 Compressor: Complete faithfu extraction from binary
+ pub struct ProC3Compressor {
