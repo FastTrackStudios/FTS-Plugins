@@ -17,7 +17,7 @@ fn make_comp() -> Compressor {
     c.channel_link = 1.0;
     c.inertia = 0.0;
     c.ceiling = 1.0;
-    c.fold = 0.0;
+    // fold defaults to 1.0 (100% compressed signal, no dry blend)
     c.input_gain_db = 0.0;
     c.output_gain_db = 0.0;
     c.update(SAMPLE_RATE);
@@ -189,7 +189,7 @@ fn channel_link_matches_stereo_gr() {
 #[test]
 fn fold_blends_dry_signal() {
     let mut comp_dry = make_comp();
-    comp_dry.fold = 1.0; // 100% dry
+    comp_dry.fold = 0.0; // 100% dry
     comp_dry.update(SAMPLE_RATE);
 
     let amplitude = 1.0;

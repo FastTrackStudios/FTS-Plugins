@@ -95,7 +95,7 @@ impl Compressor {
             inertia: 0.0,
             inertia_decay: 0.94,
             ceiling: 1.0,
-            fold: 0.0,
+            fold: 1.0,
             input_gain_db: 0.0,
             output_gain_db: 0.0,
             auto_makeup: false,
