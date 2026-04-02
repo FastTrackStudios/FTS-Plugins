@@ -1,0 +1,69 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs b/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
+index 65a284d..dc3a219 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
+@@ -1,6 +1,9 @@
+ //! Gain curve computation: threshold, ratio, knee with attack/release coefficients.
+ //!
+ //! Extracted from Pro-C 3 binary (compute_attack_release_coeffs @ 180109b60).
++//! Updated with style-specific coefficient scaling from styles.rs analysis.
++
++use crate::styles::CompressionStyle;
+ 
+ /// Gain reduction curve processor with attack/release coefficients.
+ pub struct GainCurve {
+@@ -18,6 +21,9 @@ pub struct GainCurve {
+     sample_rate: f64,
+     attack_ms: f64,
+     release_ms: f64,
++
++    // Compression style - affects attack/release behavior
++    style: CompressionStyle,
+ }
+ 
+ impl GainCurve {
+@@ -33,17 +39,42 @@ impl GainCurve {
+             sample_rate,
+             attack_ms: 10.0,
+             release_ms: 50.0,
++            style: CompressionStyle::Clean,
+         };
+         curve.update_coefficients();
+         curve
+     }
+ 
++    /// Set compression style (affects attack/release response)
++    pub fn set_style(&mut self, style: CompressionStyle) {
++        if self.style != style {
++            self.style = style;
++            self.update_coefficients();
++        }
++    }
++
+     /// Update coefficients when attack/release times change.
++    /// Applies style-specific multipliers from binary analysis.
+     pub fn update_coefficients(&mut self) {
+         // Simplified coefficient computation from attack/release times
+         // In the real binary, this comes from compute_attack_release_coeffs
+-        self.attack_coeff = (-2.0 / (self.sample_rate * self.attack_ms / 1000.0)).exp();
+-        self.release_coeff = (-2.0 / (self.sample_rate * self.release_ms / 1000.0)).exp();
++        let base_attack = (-2.0 / (self.sample_rate * self.attack_ms / 1000.0)).exp();
++        let base_release = (-2.0 / (self.sample_rate * self.release_ms / 1000.0)).exp();
++
++        // Apply style-specific multipliers from binary RE:
++        // FET: 0.9x attack (faster), 0.95x release (slower) = more aggressive
++        // VCA: 1.0x both (baseline, clean)
++        // Optical: 1.15x attack (slower), 0.93x release (faster) = vintage character
++        let (attack_mult, release_mult) = match self.style {
++            CompressionStyle::Clean => (1.0, 1.0),
++            CompressionStyle::Fet => (0.9, 0.95),
++            CompressionStyle::Vca => (1.0, 1.0),
++            CompressionStyle::Optical => (1.15, 0.93),
++            CompressionStyle::Reserved => (1.0, 1.0),
++        };
++
++        self.attack_coeff = base_attack * attack_mult;
++        self.release_coeff = base_release * release_mult;
+         self.other_coeff = self.release_coeff; // Placeholder
+     }
+ 

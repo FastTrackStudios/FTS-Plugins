@@ -393,6 +393,7 @@ impl FtsComp {
         c.set_attack_ms(self.params.attack_ms.value() as f64);
         c.set_release_ms(self.params.release_ms.value() as f64);
         c.set_knee(self.params.knee_db.value() as f64);
+        c.set_style(self.params.style.value());
         c.style = self.params.style.value();
         c.auto_makeup = self.params.auto_makeup.value() > 0.5;
         c.feedback = self.params.feedback.value() as f64;

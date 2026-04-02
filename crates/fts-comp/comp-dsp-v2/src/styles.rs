@@ -8,7 +8,7 @@
 //! Style dispatcher @ 0x18010a6c0 in Pro-C 3 binary.
 
 /// Compression style selector
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CompressionStyle {
     /// Style 0: Default/Clean - baseline behavior
     Clean = 0,

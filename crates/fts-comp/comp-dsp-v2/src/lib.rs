@@ -277,6 +277,12 @@ impl ProC3Compressor {
         self.fold = fold.clamp(0.0, 1.0);
     }
 
+    /// Set compression style (affects attack/release response)
+    pub fn set_style(&mut self, style_id: i32) {
+        let style = CompressionStyle::from_id(style_id);
+        self.gain_curve.set_style(style);
+    }
+
     /// Reset internal state
     pub fn reset(&mut self) {
         self.detector.reset();

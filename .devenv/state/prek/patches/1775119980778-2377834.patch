@@ -1,0 +1,111 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs b/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
+index 65a284d..dc3a219 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
+@@ -1,6 +1,9 @@
+ //! Gain curve computation: threshold, ratio, knee with attack/release coefficients.
+ //!
+ //! Extracted from Pro-C 3 binary (compute_attack_release_coeffs @ 180109b60).
++//! Updated with style-specific coefficient scaling from styles.rs analysis.
++
++use crate::styles::CompressionStyle;
+ 
+ /// Gain reduction curve processor with attack/release coefficients.
+ pub struct GainCurve {
+@@ -18,6 +21,9 @@ pub struct GainCurve {
+     sample_rate: f64,
+     attack_ms: f64,
+     release_ms: f64,
++
++    // Compression style - affects attack/release behavior
++    style: CompressionStyle,
+ }
+ 
+ impl GainCurve {
+@@ -33,17 +39,42 @@ impl GainCurve {
+             sample_rate,
+             attack_ms: 10.0,
+             release_ms: 50.0,
++            style: CompressionStyle::Clean,
+         };
+         curve.update_coefficients();
+         curve
+     }
+ 
++    /// Set compression style (affects attack/release response)
++    pub fn set_style(&mut self, style: CompressionStyle) {
++        if self.style != style {
++            self.style = style;
++            self.update_coefficients();
++        }
++    }
++
+     /// Update coefficients when attack/release times change.
++    /// Applies style-specific multipliers from binary analysis.
+     pub fn update_coefficients(&mut self) {
+         // Simplified coefficient computation from attack/release times
+         // In the real binary, this comes from compute_attack_release_coeffs
+-        self.attack_coeff = (-2.0 / (self.sample_rate * self.attack_ms / 1000.0)).exp();
+-        self.release_coeff = (-2.0 / (self.sample_rate * self.release_ms / 1000.0)).exp();
++        let base_attack = (-2.0 / (self.sample_rate * self.attack_ms / 1000.0)).exp();
++        let base_release = (-2.0 / (self.sample_rate * self.release_ms / 1000.0)).exp();
++
++        // Apply style-specific multipliers from binary RE:
++        // FET: 0.9x attack (faster), 0.95x release (slower) = more aggressive
++        // VCA: 1.0x both (baseline, clean)
++        // Optical: 1.15x attack (slower), 0.93x release (faster) = vintage character
++        let (attack_mult, release_mult) = match self.style {
++            CompressionStyle::Clean => (1.0, 1.0),
++            CompressionStyle::Fet => (0.9, 0.95),
++            CompressionStyle::Vca => (1.0, 1.0),
++            CompressionStyle::Optical => (1.15, 0.93),
++            CompressionStyle::Reserved => (1.0, 1.0),
++        };
++
++        self.attack_coeff = base_attack * attack_mult;
++        self.release_coeff = base_release * release_mult;
+         self.other_coeff = self.release_coeff; // Placeholder
+     }
+ 
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index b7fa03d..d8a1130 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -277,6 +277,12 @@ impl ProC3Compressor {
+         self.fold = fold.clamp(0.0, 1.0);
+     }
+ 
++    /// Set compression style (affects attack/release response)
++    pub fn set_style(&mut self, style_id: i32) {
++        let style = CompressionStyle::from_id(style_id);
++        self.gain_curve.set_style(style);
++    }
++
+     /// Reset internal state
+     pub fn reset(&mut self) {
+         self.detector.reset();
+diff --git a/crates/fts-comp/comp-dsp-v2/src/styles.rs b/crates/fts-comp/comp-dsp-v2/src/styles.rs
+index b3fba31..edb7aea 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/styles.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/styles.rs
+@@ -8,7 +8,7 @@
+ //! Style dispatcher @ 0x18010a6c0 in Pro-C 3 binary.
+ 
+ /// Compression style selector
+-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+ pub enum CompressionStyle {
+     /// Style 0: Default/Clean - baseline behavior
+     Clean = 0,
+diff --git a/crates/fts-comp/comp-plugin/src/lib.rs b/crates/fts-comp/comp-plugin/src/lib.rs
+index 6ce2eab..79d3120 100644
+--- a/crates/fts-comp/comp-plugin/src/lib.rs
++++ b/crates/fts-comp/comp-plugin/src/lib.rs
+@@ -393,6 +393,7 @@ impl FtsComp {
+         c.set_attack_ms(self.params.attack_ms.value() as f64);
+         c.set_release_ms(self.params.release_ms.value() as f64);
+         c.set_knee(self.params.knee_db.value() as f64);
++        c.set_style(self.params.style.value());
+         c.style = self.params.style.value();
+         c.auto_makeup = self.params.auto_makeup.value() > 0.5;
+         c.feedback = self.params.feedback.value() as f64;

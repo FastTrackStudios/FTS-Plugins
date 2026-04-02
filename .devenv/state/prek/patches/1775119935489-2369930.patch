@@ -1,0 +1,14 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs b/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
+index 65a284d..71c9d52 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/gain_curve.rs
+@@ -1,6 +1,9 @@
+ //! Gain curve computation: threshold, ratio, knee with attack/release coefficients.
+ //!
+ //! Extracted from Pro-C 3 binary (compute_attack_release_coeffs @ 180109b60).
++//! Updated with style-specific coefficient scaling from styles.rs analysis.
++
++use crate::styles::CompressionStyle;
+ 
+ /// Gain reduction curve processor with attack/release coefficients.
+ pub struct GainCurve {
