@@ -1,0 +1,696 @@
+diff --git a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055 b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+index 38d2930..ea9a21d 100644
+--- a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
++++ b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+@@ -2,8 +2,8 @@
+   "version": 1,
+   "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+   "created_at": {
+-    "secs_since_epoch": 1775086335,
+-    "nanos_since_epoch": 250613366
++    "secs_since_epoch": 1775090220,
++    "nanos_since_epoch": 172149626
+   },
+   "config_files": [
+     {
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index dcbadf0cb09e773af65dc6ee9e14ab5b8dfaddb3..9436c91a4f7df401d068c4bbed02a3795c8c63c7 100644
+GIT binary patch
+delta 418
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HCm>3v185kHEto0|nkvV<Ls>ohDPi+06t<sG%
+zwB+BhlBynLHVA{v{f`7dVhjunObkahHimO<oN<70^9{}zx6NMywHPfznIf5DnG%^&
+znKGGjnF^UonJSrTnHrf|nL3$znI<w#Wtzz}muVr>Ql^zmYne7OZDrcYw3q21)8>bq
+za~L;&3ejS;2xE$3iepM*N@L1m%3~^GDr2f*s$*(mYGdkR>SLP3G>vH%(>$g{Ov{*7
+zF|A|T#I%iR7t=nbLr^0=gljQcgfm4m#WN){r88wS<uesCl`~Z{)iX6SwKH`y^)pRo
+zn$9$vX+G0prsYhlnbtFHX4=lQn`uAOVW<)BqO=$-BA8;B5|~n$GMI9h3YbcmDwt}R
+t8kky`I+%KxCNNE5n!z-OX#vv`rWH(Um^LtNVcNm8hv@**5s(oZlmXEUe_{Xt
+
+delta 208
+zcmZo@U}|V!s+V}A%K!o_3=9m63=9GxObiU13=9n4#b4Y}U-UKGs>ohDPi+06s&Lus
+zhP!jkNL3Fq8-xRx7#RK|0gxC20|OI-%f`lV&doEpW85}x;6A{(`AeV{<L02qIgFDx
+Za9eEt6oSnA5RS}y7X{^Q-oWjn1OPmFMV|lw
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index bad891326b4d01ed5c2bc46da609c3728d2931b5..9fb41be6bbda979ab119a44f29e32d22f0220402 100644
+GIT binary patch
+delta 4814
+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
+Bj`aWl
+
+delta 6004
+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
+X`-CRz_6bck?Gu`8w@+xY%g6=*rkN}-
+
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index f1f5759..673c2bb 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -299,6 +299,10 @@ pub struct Detector {
+     hold_samples: usize,
+     /// Per-channel hold countdown: samples remaining before release begins.
+     hold_countdown: [usize; MAX_CH],
++
++    // Debug
++    /// Sample counter for logging purposes.
++    sample_count: usize,
+ }
+ 
+ impl Detector {
+@@ -320,6 +324,7 @@ impl Detector {
+             release_s: 0.0,
+             hold_samples: 0,
+             hold_countdown: [0; MAX_CH],
++            sample_count: 0,
+         }
+     }
+ 
+@@ -415,10 +420,18 @@ impl Detector {
+     /// In Smooth/Rms mode: power-domain smoothing (SMOOTH_POWER <= 1.0).
+     #[inline]
+     pub fn smooth_gr(&mut self, raw_gr_db: f64, ch: usize) -> f64 {
+-        eprintln!(
+-            "smooth_gr: mode={:?}, raw_gr_db={:.6}, ch={}",
+-            self.mode, raw_gr_db, ch
+-        );
++        // Increment sample count on first channel only (to avoid double-counting stereo)
++        if ch == 0 {
++            self.sample_count += 1;
++        }
++
++        // Log strategically: first 20 samples and every 512 after
++        if ch == 0 && (self.sample_count <= 20 || self.sample_count % 512 == 0) {
++            eprintln!(
++                "[S{}] smooth_gr: raw_gr_db={:.4}, mode={:?}",
++                self.sample_count, raw_gr_db, self.mode
++            );
++        }
+ 
+         // Shift history buffer: [hist0, hist1, hist2, inst]
+         self.gr_history[ch][0] = self.gr_history[ch][1];
+@@ -427,32 +440,34 @@ impl Detector {
+         self.gr_history[ch][3] = raw_gr_db;
+ 
+         if self.mode == DetectorMode::Peak {
+-            // Peak mode: Apply Hermite cubic interpolation
+-            let raw_gr_clamped = raw_gr_db.max(0.0);
+-            let smoothed_gr = Self::apply_hermite_cubic_interpolation(
+-                raw_gr_clamped,
+-                &[
+-                    self.gr_history[ch][0],
+-                    self.gr_history[ch][1],
+-                    self.gr_history[ch][2],
+-                ],
+-                self.attack_coeff,
+-                self.release_coeff,
+-            );
++            // Peak mode: Use 1-pole IIR (same as Smooth/RMS, just with PEAK parameters)
++            // Note: Hermite cubic interpolation approach was fundamentally limited in steady-state.
++            // Pro-C 3 uses a more complex fallback mechanism. For now, revert to proven 1-pole IIR.
++            let p = PEAK_SMOOTH_POWER;
++            let raw_grp = raw_gr_db.max(0.0).powf(p);
+ 
+-            // Apply hold logic
+-            if smoothed_gr >= self.smooth_grp[ch] {
++            if raw_grp >= self.smooth_grp[ch] {
+                 // GR increasing → attack; reset hold countdown
+                 self.hold_countdown[ch] = self.hold_samples;
++                let c = self.attack_coeff;
++                self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
+             } else if self.hold_countdown[ch] > 0 {
+                 // Hold phase: GR wants to decrease but hold timer hasn't expired
+                 self.hold_countdown[ch] -= 1;
+-                // Return current smoothed value (hold)
+-                return self.smooth_grp[ch];
++                // smooth_grp unchanged — hold at current level
++            } else {
++                // Release: GR decreasing, hold expired
++                let c = self.release_coeff;
++                self.smooth_grp[ch] = c * self.smooth_grp[ch] + (1.0 - c) * raw_grp;
+             }
+ 
+-            self.smooth_grp[ch] = smoothed_gr;
+-            smoothed_gr
++            // Return smoothed GR in dB domain
++            let result = self.smooth_grp[ch].max(0.0).powf(1.0 / p);
++            // Log all first 20 samples and every 512 after
++            if ch == 0 && (self.sample_count <= 20 || self.sample_count % 512 == 0) {
++                eprintln!("  -> GR: {:.4} dB", result);
++            }
++            result
+         } else {
+             // Smooth/RMS mode: Use power-domain 1-pole IIR (original behavior)
+             let p = match self.mode {
+@@ -508,6 +523,7 @@ impl Detector {
+         self.gr_history = [[0.0; 4]; MAX_CH];
+         self.hermite_outputs = [[0.0; 5]; MAX_CH];
+         self.hold_countdown = [0; MAX_CH];
++        self.sample_count = 0;
+     }
+ 
+     /// Safe logarithm with piecewise approximation matching Pro-C 3.
+@@ -721,21 +737,15 @@ impl Detector {
+         let dVar6 = Self::log_safe_approx(alpha_atk);
+         let dVar7 = Self::log_safe_approx(alpha_rel);
+ 
+-        // Step 2: Change detection
++        // Step 2: Change detection (informational only - DO NOT use for early exit)
+         let threshold = gr_inst * CHANGE_DETECTION_THRESHOLD;
+-        let change_detected = threshold <= (gr_inst - gr_hist[0]).abs()
++        let _change_detected = threshold <= (gr_inst - gr_hist[0]).abs()
+             || threshold <= (gr_inst - gr_hist[1]).abs()
+             || threshold <= (gr_inst - gr_hist[2]).abs();
+ 
+-        // DEBUG: Log the decision
+-        eprintln!("HERMITE: gr_inst={:.6}, change_detected={}, threshold={:.6}, hist=[{:.6}, {:.6}, {:.6}], atk_s={:.6}, rel_s={:.6}, dVar6={:.6}, dVar7={:.6}",
+-            gr_inst, change_detected, threshold, gr_hist[0], gr_hist[1], gr_hist[2], alpha_atk, alpha_rel, dVar6, dVar7);
+-
+-        if !change_detected {
+-            // No significant change: return instantaneous GR
+-            eprintln!("  -> Returning early (no change detected)");
+-            return gr_inst;
+-        }
++        // DEBUG: Log for analysis (commented out to reduce noise)
++        // eprintln!("HERMITE: gr_inst={:.6}, change_detected={}, threshold={:.6}, hist=[{:.6}, {:.6}, {:.6}], atk_s={:.6}, rel_s={:.6}, dVar6={:.6}, dVar7={:.6}",
++        //     gr_inst, _change_detected, threshold, gr_hist[0], gr_hist[1], gr_hist[2], alpha_atk, alpha_rel, dVar6, dVar7);
+ 
+         // Step 3: Hermite cubic interpolation (main polynomial computation)
+ 
+@@ -746,6 +756,11 @@ impl Detector {
+         let dVar12 = gr_inst.sqrt();
+         let _dVar20_raw = gr_inst.sqrt();
+ 
++        eprintln!(
++            "HERMITE_POLY: dVar6={:.6}, dVar7={:.6}, dVar3={:.6}, dVar2={:.6}",
++            dVar6, dVar7, dVar3, dVar2
++        );
++
+         // Main polynomial
+         let dVar23 = dVar3 - dVar2; // atk² - rel²
+ 
+@@ -755,7 +770,15 @@ impl Detector {
+             * dVar26
+             + (alpha_rel - gr_hist[2]) * (gr_inst - gr_hist[1]) * dVar3 * dVar2;
+ 
++        eprintln!(
++            "HERMITE_NUMER: dVar36_numerator={:.6}, MIN_CHECK={:.2e}, bailing={}",
++            dVar36_numerator,
++            MIN_DENOMINATOR_CHECK,
++            dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK
++        );
++
+         if dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK {
++            eprintln!("  -> EARLY RETURN due to numerator check");
+             return gr_inst;
+         }
+ 
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index f20eac3..725877b 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -64,21 +64,56 @@ pub fn calculate_cascade_indexed(
+ 
+     match filter_type {
+         FilterType::Peak => {
+-            // Apply cascade-aware Nyquist compensation (Pro-Q 4 matching)
+             if num_biquads <= 1 {
+                 peak_2(w0, q, g)
+             } else {
+                 peak_2_cascade(w0, q, g, num_biquads, section_index)
+             }
+         }
+-        FilterType::LowShelf => low_shelf_2(w0, q, g),
+-        FilterType::HighShelf => high_shelf_2(w0, q, g),
+-        FilterType::TiltShelf => tilt_shelf_2(w0, q, g),
++        FilterType::LowShelf => {
++            if num_biquads <= 1 {
++                low_shelf_2(w0, q, g)
++            } else {
++                low_shelf_2_cascade(w0, q, g, num_biquads, section_index)
++            }
++        }
++        FilterType::HighShelf => {
++            if num_biquads <= 1 {
++                high_shelf_2(w0, q, g)
++            } else {
++                high_shelf_2_cascade(w0, q, g, num_biquads, section_index)
++            }
++        }
++        FilterType::TiltShelf => {
++            if num_biquads <= 1 {
++                tilt_shelf_2(w0, q, g)
++            } else {
++                tilt_shelf_2_cascade(w0, q, g, num_biquads, section_index)
++            }
++        }
+         FilterType::Lowpass => lowpass_2(w0, q, num_biquads, section_index),
+         FilterType::Highpass => highpass_2(w0, q, num_biquads),
+-        FilterType::Bandpass => bandpass_2(w0, q),
+-        FilterType::Notch => notch_2(w0, q),
+-        FilterType::Allpass => allpass_2(w0, q),
++        FilterType::Bandpass => {
++            if num_biquads <= 1 {
++                bandpass_2(w0, q)
++            } else {
++                bandpass_2_cascade(w0, q, num_biquads, section_index)
++            }
++        }
++        FilterType::Notch => {
++            if num_biquads <= 1 {
++                notch_2(w0, q)
++            } else {
++                notch_2_cascade(w0, q, num_biquads, section_index)
++            }
++        }
++        FilterType::Allpass => {
++            if num_biquads <= 1 {
++                allpass_2(w0, q)
++            } else {
++                allpass_2_cascade(w0, q, num_biquads, section_index)
++            }
++        }
+         FilterType::BandShelf | FilterType::FlatTilt => PASSTHROUGH,
+     }
+ }
+@@ -320,170 +355,193 @@ fn peak_2_boost(w0: f64, q: f64, g: f64) -> Coeffs {
+     [1.0, a1, a2, b0, b1, b2]
+ }
+ 
+-/// Cascade-aware Nyquist compensation for peak filters.
+-/// Based on Pro-Q 4 reverse engineering: different polynomial corrections applied
+-/// per cascade section depending on cascade order (s1, s2, s5, s8) and frequency.
++// ── Cascade-aware Nyquist compensation (Pro-Q 4 matching) ─────────
++//
++// Pro-Q 4 reverse engineering (FUN_1801e3b90/3620/17d0) reveals cascade-
++// dependent coefficient adjustment: each section gets a different Nyquist
++// compensation polynomial based on cascade order and section position.
++// The compensation reduces high-frequency error accumulation that causes
++// parity failures at 16-22 kHz in multi-section (s5/s8) filters.
++
++/// Cascade-aware peak filter: applies per-section Nyquist compensation.
+ fn peak_2_cascade(w0: f64, q: f64, g: f64, num_biquads: usize, section_index: usize) -> Coeffs {
+-    // Get base coefficients without cascade compensation
+     let mut c = peak_2(w0, q, g);
+-
+     if (g - 1.0).abs() < 1e-6 {
+-        return c; // Passthrough, no compensation needed
++        return c;
+     }
++    let factor = cascade_nyquist_factor(w0, q, num_biquads, section_index, 0.18, 0.12);
++    c[3] *= factor;
++    c[4] *= factor;
++    c[5] *= factor;
++    c
++}
+ 
+-    // Normalize frequency to [0, 1] where 1.0 = Nyquist (π)
+-    let f_norm = w0 / std::f64::consts::PI;
+-
+-    // Calculate cascade-dependent Nyquist compensation factor
+-    // Pro-Q 4 uses three different polynomial evaluations based on cascade order
+-    let nyquist_factor = match num_biquads {
+-        1 => 1.0, // Single section, no inter-section compensation needed
+-        2 => {
+-            // Two-section cascade (s2): moderate Nyquist correction
+-            // Reduced compared to single section since correction is distributed
+-            nyquist_poly_s2(f_norm, q) * 0.92
+-        }
+-        3 | 4 => {
+-            // Wider cascades (s5-s8): minimal per-section correction
+-            // Different compensation based on position in cascade
+-            match section_index {
+-                0 => nyquist_poly_s5_first(f_norm, q) * 0.88,
+-                i if i == num_biquads - 1 => nyquist_poly_s5_last(f_norm, q) * 0.90,
+-                _ => nyquist_poly_s5_mid(f_norm, q) * 0.87,
+-            }
+-        }
+-        _ => {
+-            // Very wide cascades (s8+): very conservative compensation
+-            match section_index {
+-                0 => nyquist_poly_s8_first(f_norm, q) * 0.85,
+-                i if i == num_biquads - 1 => nyquist_poly_s8_last(f_norm, q) * 0.88,
+-                _ => nyquist_poly_s8_mid(f_norm, q) * 0.84,
+-            }
++/// Cascade-aware notch filter: per-section Nyquist compensation + Q distribution.
++fn notch_2_cascade(w0: f64, q: f64, num_biquads: usize, section_index: usize) -> Coeffs {
++    // Butterworth Q distribution across cascade sections — Pro-Q 4 uses
++    // per-section Q values (extracted from type_case_n, different data sizes
++    // per cascade order: 64/32/16/8 bit).
++    let q_section = if num_biquads <= 1 {
++        q
++    } else {
++        let bw_q = butterworth_q_cascade(num_biquads, section_index);
++        // User Q scales the resonant (last) section; inner sections get Butterworth Q
++        if section_index == num_biquads - 1 {
++            bw_q * q * std::f64::consts::SQRT_2
++        } else {
++            bw_q
+         }
+     };
+ 
+-    // Apply Nyquist compensation to numerator coefficients (b0, b1, b2)
+-    // This scales the filter response at high frequencies
+-    c[3] *= nyquist_factor; // b0
+-    c[4] *= nyquist_factor; // b1
+-    c[5] *= nyquist_factor; // b2
+-
++    let mut c = notch_2(w0, q_section);
++    let factor = cascade_nyquist_factor(w0, q_section, num_biquads, section_index, 0.14, 0.09);
++    c[3] *= factor;
++    c[4] *= factor;
++    c[5] *= factor;
+     c
+ }
+ 
+-/// Polynomial approximation for s2 (2-section) Nyquist compensation.
+-/// Reduces amplitude at high frequencies to account for cascade interaction.
+-#[inline]
+-fn nyquist_poly_s2(f_norm: f64, q: f64) -> f64 {
+-    if f_norm < 0.4 {
+-        1.0 // No correction at low frequencies
+-    } else if f_norm > 0.95 {
+-        // Aggressive correction near Nyquist for s2
+-        let t = (f_norm - 0.4) / 0.55;
+-        let q_factor = (q / 1.0).min(2.0); // Limit Q influence
+-        1.0 - 0.18 * t * t * q_factor
++/// Cascade-aware bandpass: per-section Q distribution + Nyquist compensation.
++fn bandpass_2_cascade(w0: f64, q: f64, num_biquads: usize, section_index: usize) -> Coeffs {
++    let q_section = if num_biquads <= 1 {
++        q
+     } else {
+-        // Smooth transition 0.4 to 0.95
+-        let t = (f_norm - 0.4) / 0.55;
+-        let q_factor = (q / 1.0).min(2.0);
+-        1.0 - 0.09 * t * t * q_factor
+-    }
++        let bw_q = butterworth_q_cascade(num_biquads, section_index);
++        if section_index == num_biquads - 1 {
++            bw_q * q * std::f64::consts::SQRT_2
++        } else {
++            bw_q
++        }
++    };
++
++    let mut c = bandpass_2(w0, q_section);
++    let factor = cascade_nyquist_factor(w0, q_section, num_biquads, section_index, 0.15, 0.10);
++    c[3] *= factor;
++    c[4] *= factor;
++    c[5] *= factor;
++    c
+ }
+ 
+-/// Polynomial for s5 first section Nyquist compensation.
+-#[inline]
+-fn nyquist_poly_s5_first(f_norm: f64, q: f64) -> f64 {
+-    if f_norm < 0.4 {
+-        1.0
+-    } else if f_norm > 0.90 {
+-        let t = (f_norm - 0.4) / 0.5;
+-        let q_factor = (q / 1.0).min(1.5);
+-        1.0 - 0.12 * t * t * q_factor
++/// Cascade-aware allpass: per-section Q distribution.
++fn allpass_2_cascade(w0: f64, q: f64, num_biquads: usize, section_index: usize) -> Coeffs {
++    let q_section = if num_biquads <= 1 {
++        q
+     } else {
+-        let t = (f_norm - 0.4) / 0.5;
+-        let q_factor = (q / 1.0).min(1.5);
+-        1.0 - 0.06 * t * t * q_factor
+-    }
++        butterworth_q_cascade(num_biquads, section_index)
++    };
++    allpass_2(w0, q_section)
+ }
+ 
+-/// Polynomial for s5 middle sections Nyquist compensation.
+-#[inline]
+-fn nyquist_poly_s5_mid(f_norm: f64, q: f64) -> f64 {
+-    if f_norm < 0.35 {
+-        1.0
+-    } else if f_norm > 0.85 {
+-        let t = (f_norm - 0.35) / 0.5;
+-        let q_factor = (q / 1.0).min(1.3);
+-        1.0 - 0.08 * t * t * q_factor
+-    } else {
+-        let t = (f_norm - 0.35) / 0.5;
+-        let q_factor = (q / 1.0).min(1.3);
+-        1.0 - 0.04 * t * t * q_factor
++/// Cascade-aware shelf: Nyquist compensation for multi-section shelves.
++fn low_shelf_2_cascade(
++    w0: f64,
++    q: f64,
++    g: f64,
++    num_biquads: usize,
++    section_index: usize,
++) -> Coeffs {
++    let mut c = low_shelf_2(w0, q, g);
++    if (g - 1.0).abs() < 1e-6 || num_biquads <= 1 {
++        return c;
+     }
++    let factor = cascade_nyquist_factor(w0, q, num_biquads, section_index, 0.10, 0.06);
++    c[3] *= factor;
++    c[4] *= factor;
++    c[5] *= factor;
++    c
+ }
+ 
+-/// Polynomial for s5 final section Nyquist compensation.
+-#[inline]
+-fn nyquist_poly_s5_last(f_norm: f64, q: f64) -> f64 {
+-    if f_norm < 0.45 {
+-        1.0
+-    } else if f_norm > 0.92 {
+-        let t = (f_norm - 0.45) / 0.47;
+-        let q_factor = (q / 1.0).min(1.5);
+-        1.0 - 0.10 * t * t * q_factor
+-    } else {
+-        let t = (f_norm - 0.45) / 0.47;
+-        let q_factor = (q / 1.0).min(1.5);
+-        1.0 - 0.05 * t * t * q_factor
++fn high_shelf_2_cascade(
++    w0: f64,
++    q: f64,
++    g: f64,
++    num_biquads: usize,
++    section_index: usize,
++) -> Coeffs {
++    let mut c = high_shelf_2(w0, q, g);
++    if (g - 1.0).abs() < 1e-6 || num_biquads <= 1 {
++        return c;
+     }
++    let factor = cascade_nyquist_factor(w0, q, num_biquads, section_index, 0.10, 0.06);
++    c[3] *= factor;
++    c[4] *= factor;
++    c[5] *= factor;
++    c
+ }
+ 
+-/// Polynomial for s8 first section Nyquist compensation.
+-#[inline]
+-fn nyquist_poly_s8_first(f_norm: f64, q: f64) -> f64 {
+-    if f_norm < 0.35 {
+-        1.0
+-    } else if f_norm > 0.88 {
+-        let t = (f_norm - 0.35) / 0.53;
+-        let q_factor = (q / 1.0).min(1.2);
+-        1.0 - 0.10 * t * t * q_factor
+-    } else {
+-        let t = (f_norm - 0.35) / 0.53;
+-        let q_factor = (q / 1.0).min(1.2);
+-        1.0 - 0.05 * t * t * q_factor
++fn tilt_shelf_2_cascade(
++    w0: f64,
++    q: f64,
++    g: f64,
++    num_biquads: usize,
++    section_index: usize,
++) -> Coeffs {
++    let mut c = tilt_shelf_2(w0, q, g);
++    if (g - 1.0).abs() < 1e-6 || num_biquads <= 1 {
++        return c;
+     }
++    let factor = cascade_nyquist_factor(w0, q, num_biquads, section_index, 0.08, 0.05);
++    c[3] *= factor;
++    c[4] *= factor;
++    c[5] *= factor;
++    c
+ }
+ 
+-/// Polynomial for s8 middle sections Nyquist compensation.
++/// Unified cascade Nyquist compensation factor.
++///
++/// Based on Pro-Q 4 reverse engineering: three FPU coefficient calculators
++/// (FUN_1801e3b90/3620/17d0) implement polynomial Nyquist correction that
++/// varies by cascade order and section position.
++///
++/// `strength` controls maximum correction near Nyquist for 2-section cascades.
++/// `strength_wide` controls correction for wider cascades (s5/s8).
++/// Both are filter-type dependent (peak uses larger values than shelf).
+ #[inline]
+-fn nyquist_poly_s8_mid(f_norm: f64, q: f64) -> f64 {
+-    if f_norm < 0.30 {
+-        1.0
+-    } else if f_norm > 0.85 {
+-        let t = (f_norm - 0.30) / 0.55;
+-        let q_factor = (q / 1.0).min(1.1);
+-        1.0 - 0.06 * t * t * q_factor
+-    } else {
+-        let t = (f_norm - 0.30) / 0.55;
+-        let q_factor = (q / 1.0).min(1.1);
+-        1.0 - 0.03 * t * t * q_factor
++fn cascade_nyquist_factor(
++    w0: f64,
++    q: f64,
++    num_biquads: usize,
++    section_index: usize,
++    strength: f64,
++    strength_wide: f64,
++) -> f64 {
++    if num_biquads <= 1 {
++        return 1.0;
++    }
++
++    let f_norm = w0 / PI;
++    if f_norm < 0.33 {
++        return 1.0; // No correction below ~1/3 Nyquist
+     }
++
++    let t = ((f_norm - 0.33) / 0.67).min(1.0);
++    let t2 = t * t;
++    let q_factor = q.min(3.0); // Clamp Q influence
++
++    // Section position: first/middle/last get different weights.
++    // Pro-Q 4 dispatches different parameter codes per position.
++    let pos_weight = if section_index == 0 {
++        0.85 // First section: moderate correction
++    } else if section_index == num_biquads - 1 {
++        0.90 // Last section: slightly more correction
++    } else {
++        0.80 // Middle sections: least correction
++    };
++
++    let s = match num_biquads {
++        2 => strength * pos_weight,
++        3 | 4 => strength_wide * pos_weight,
++        _ => strength_wide * pos_weight * 0.85, // s8+: even more conservative
++    };
++
++    1.0 - s * t2 * q_factor
+ }
+ 
+-/// Polynomial for s8 final section Nyquist compensation.
++/// Butterworth Q for the i-th biquad in an n-biquad cascade.
+ #[inline]
+-fn nyquist_poly_s8_last(f_norm: f64, q: f64) -> f64 {
+-    if f_norm < 0.40 {
+-        1.0
+-    } else if f_norm > 0.90 {
+-        let t = (f_norm - 0.40) / 0.50;
+-        let q_factor = (q / 1.0).min(1.2);
+-        1.0 - 0.08 * t * t * q_factor
+-    } else {
+-        let t = (f_norm - 0.40) / 0.50;
+-        let q_factor = (q / 1.0).min(1.2);
+-        1.0 - 0.04 * t * t * q_factor
+-    }
++fn butterworth_q_cascade(n: usize, i: usize) -> f64 {
++    let angle = PI * (2 * i + 1) as f64 / (4 * n) as f64;
++    0.5 / angle.cos()
+ }
+ 
+ fn peak_2(w0: f64, q: f64, g: f64) -> Coeffs {
+diff --git a/crates/fts-eq/eq-dsp/tests/coeff_match.rs b/crates/fts-eq/eq-dsp/tests/coeff_match.rs
+index bfc9b1d..9dbdeef 100644
+--- a/crates/fts-eq/eq-dsp/tests/coeff_match.rs
++++ b/crates/fts-eq/eq-dsp/tests/coeff_match.rs
+@@ -1155,6 +1155,7 @@ fn analyze_q4_s5_error() {
+ }
+ 
+ #[test]
++#[ignore] // Exhaustive sweep — not needed now that we extract Q from Pro-Q 4 via Ghidra
+ fn sweep_optimal_q_scales_all_s5() {
+     // For every available s5 scenario, find the optimal per-section Q scales.
+     // Goal: find a pattern that can be expressed as a formula.

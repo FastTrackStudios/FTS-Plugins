@@ -1,0 +1,162 @@
+diff --git a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055 b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+index 38d2930..90c0f61 100644
+--- a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
++++ b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+@@ -2,8 +2,8 @@
+   "version": 1,
+   "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+   "created_at": {
+-    "secs_since_epoch": 1775086335,
+-    "nanos_since_epoch": 250613366
++    "secs_since_epoch": 1775092895,
++    "nanos_since_epoch": 955967620
+   },
+   "config_files": [
+     {
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index dcbadf0cb09e773af65dc6ee9e14ab5b8dfaddb3..2ead2cf43df18c5a5e3aada815a6e7e83dae7ca1 100644
+GIT binary patch
+delta 257
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9G#ObiU13=9m*e*V}I+wgd?Rgt}Rp4j?BkACVL
+z|0i2xMXGv`*&tlN#K7<$34p{H7#NrsLN+#rb55Mmu=xh(9QVy%0<{<gLYX3&Vwn<|
+zQkgQDa+wO5Hb3M%!npZUh!&$j7*iBe98(fg8dDZi9#aui>O;5|qd+)QG*diNGE+KJ
+jHd8)RF;wbZloq2v1XB!C0#gc822&1G0aFP`>V`4^Zemi1
+
+delta 190
+zcmZo@U}|V!s+V}A%K!o_3=9m63=9GxObiU13=9n4#b4Y}U-UKGs>ohDPi+06s&Lus
+zhP!jkNL3Fq8-xRx7#RK|0gxC20|OI-%f`lV&dm{AbKEBva5ZfH5~#(vIg#rM<K|Bx
+QFxH1~80%dWnDs&#0EV(Yr2qf`
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index bad891326b4d01ed5c2bc46da609c3728d2931b5..38ccc8f12e56a0cddf293579626d8340bdcd5bb1 100644
+GIT binary patch
+delta 1404
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsBBT?uHe<q6I*|1@uG*x&EFK?Z<k0G
+z@8jL>=BnDn#KC8_T-AGfYW;SDR%LsBM%k$bV$suAUsEaN;AKtzox3A(*>;bq%E$Q`
+zWv5>d5R;tF`CLVxLnC^ht7flB5{jnV-&9IDiuTLi3gDeGV|&G7@jhNgxyhQmv$j8U
+zRejFLv0pozr<JABZCi%wY<@<$>1U=WmvEe~Zd=iDKXuFY7a_{W`KPZ>SCwLslV!G@
+z{83(Vy4n*ZA&%0JJf?-eZ$E-*n^Ufu5Al!OZ&SwCvRXOYXC#Wj?P6q6dCtgj>e0K9
+z?w+p=+ZEJQ?D?njhpWcGY-A9=JZ*}G{haL_Vk%&76<iRNM6+}M)k#}VEuXgnRXf7w
+zwpkUw>KQk(Z2z$kVe>;LWiLiX`N?be=WyJ}XFKyl{pX@>sh~iWpMGJ#Xf(_LX~FwB
+zcI3P~0P!-T{B$f1uxP%?<UgA&4oyG81w6YH8n--EzqEZut{lwo(;qr1&znB~llU5_
+zE5zG>==EM|*}eV4XYnt5(~krzdox1Z!YaqWz>qTi!W88KUWRJXN+rR4kGS|BF)(j`
+z8=`!OAL=NuD!J)_Z|x+&alx*))c07T@tW=LKZ}3GX5NBw)oe)IG^_vU=ls7acl(dE
+zDDGRxrNGHx+bGJ}$jbpTIA*%WMlolodw;3R9lgzd<T{$K@7xnfmQ-M1VBlb2U|_H+
+zvInQ;wp@i$oBFF0u?M3RGe`p`0|NsmOv7r8RmQXKrAFg2oekOayMjMB^=|%Izdho$
+z3_N@r--_UMzjutpyZ6}){M!x6BvHegQEobRU%Zr(XPmp~X8d-KHp#90)90or3qb=P
+zo+Pn&<=pM(ZIL`H_v5z+#X~irLf3k=fA(+Rp)CvZ5POnQa-(>g;`ENUBD3&COo8tl
+zhxu!J3b#+#Ao_)mQE@u!K`}3AQo`xAo9b&rv=vraZ(nghbSuBGq9C&>Q%Y)CYF?RD
+zT4qjaF*91q$KuZ&KYlJ-{J0?&kG+fvZPn^+)f#Qpnr+ouZPnUs)jDm}x^2~ZZPog1
+z)dp?VhHceGZPmtY)h2D#rft<`ZPn&&)fR2lmTlEmZPnIo)i!O_w%e-heiQ)!OfL3y
+
+delta 1439
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsBBT?t`O03ZT$C|gYnm<iwD-t;ALQ7
+zVCK`=Uf;yn&byuMq`D0wmkuX`ZKEh>BQMAFz_)fWlQa088MUYL^k~dw_k1JpNg}3W
+zyFn1+7ryB#v(&vAS5My{qq$#l4FdxM2Ll5GgH@3|*oHpy-@P&`dK9;NBr$H~pT1XH
+zLx^$p^Z;E=bFf-Y1_lOBnA#)XEWf{P+mnmKTsCBLH8|>9#p>70-(Jzg*oWWAJzeT^
+zIFbznHoF+rKHVH3fN=7JXbmh*=DKApmV16i?B)ywgo_PwG_bh1SoTc8mN<^d*iA)o
+z@NteG{wLl{Qrv#y5KaeA=Xl6{n-?5zbsJrrB1Lr9ZvSwJ@e3d8S_TFN@5!F>Zj7s^
+zV|TTV)yDfNz4Iq;=XlJxm0uX7K`14)EH$spDlIc7wU}x3bnJdei>*84<>cay&n6U~
+z9N@VmZJd8oeWL}gfS>NsrT&0J`i4f~iH5gx!GW{A<(4`(BRI}c(nr$$4|g7K`gIf@
+z*j`{YDCxrVc<j8k%?;W}2FZaE8j7pls@WX%ojNCzm%o64d82J7jx>Q3#3^Mm32UzH
+zRz>#s_R4AvHZ0B*mJn%8J%4*QBy<_qPT!}er9Hj#wYnUpbG?GM2UMr^&c|UcimM;X
+zA1jo;m#I%EECadO-n*RMa1|*Cz!sx~WhH}Jl1iz>T6|&I#c$kmDp1%N-5?ZK{jN5=
+zed*tx*PCZJ^zm+A)}h|S#BoX`{6>;X^PcSn-Rl4O!Qqc$`3a`FcMT3vv0VI*7??Nb
+zDr^8}cHQY(tJP(}PDP2*;I3}{&$$J05Yxc&C@y%;JL8YGyrjwYirwl00vwkZP1592
+z%AdhqEyKtm(X(f(6wBQxxNoC5?tan8W{Tjy15vi+m%0pNyFj&iyFj%@yFj&OyFj&8
+zyFj&eyFj&0yFj&WyFj&GyFj&myFj%;yFj&JyFj&3yFj&ZyFj%`yFj&RyFj&ByFj&h
+iyFj%?yFj&NyFj&7yFj&dyFj%~yFj(=c7bZU7exRR74kFy
+
+diff --git a/Cargo.toml b/Cargo.toml
+index 63a9ff0..80af63b 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -14,6 +14,7 @@ members = [
+ 
+     # Compressor plugin
+     "crates/fts-comp/comp-dsp",
++    "crates/fts-comp/comp-dsp-v2",
+     "crates/fts-comp/comp-profiles",
+     "crates/fts-comp/comp-ui",
+     "crates/fts-comp/comp-plugin",
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index f1f5759..befebc3 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -32,6 +32,18 @@ use fts_dsp::db::{linear_to_db, DB_FLOOR};
+ /// Maximum number of stereo channels.
+ const MAX_CH: usize = 2;
+ 
++/// Pro-C 3 exponential perceptual weighting constant.
++/// Detection formula: level = exp(|sample| * PERCEPTUAL_WEIGHT)
++/// From Pro-C 3 binary @ gain_input_converter function.
++/// Approximately ln(10)/20 for dB conversion: 0.1151 ≈ 0.115129
++const PERCEPTUAL_WEIGHT: f64 = 0.1151;
++
++/// Pro-C 3 change detection threshold multiplier.
++/// Dynamic threshold computed as: threshold = gr_inst * CHANGE_THRESHOLD_MULTIPLIER
++/// From Pro-C 3 binary @ smooth_gr_with_hermite_cubic: param_2[8]
++/// Value of 0.01 = 1% of instantaneous GR
++const CHANGE_THRESHOLD_MULTIPLIER: f64 = 0.01;
++
+ /// Detection mode for the compressor.
+ #[derive(Debug, Clone, Copy, PartialEq)]
+ pub enum DetectorMode {
+@@ -378,7 +390,7 @@ impl Detector {
+ 
+     /// Feed a sample and return the detected level in dB.
+     ///
+-    /// In Peak mode: instantaneous 20*log10(|x|).
++    /// In Peak mode: exponential perceptual weighting level = exp(|x| * 0.1151).
+     /// In Smooth mode: 1-pole smoothed |x| in linear domain, then to dB.
+     #[inline]
+     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
+@@ -715,14 +727,16 @@ impl Detector {
+         alpha_rel: f64,
+     ) -> f64 {
+         const MIN_DENOMINATOR_CHECK: f64 = 1e-15;
+-        const CHANGE_DETECTION_THRESHOLD: f64 = 0.01;
+ 
+         // Step 1: Transform coefficients via log_safe_approx
+         let dVar6 = Self::log_safe_approx(alpha_atk);
+         let dVar7 = Self::log_safe_approx(alpha_rel);
+ 
+-        // Step 2: Change detection
+-        let threshold = gr_inst * CHANGE_DETECTION_THRESHOLD;
++        // Step 2: Change detection with dynamic threshold
++        // Pro-C 3 formula: threshold = gr_inst * multiplier
++        // This makes the threshold proportional to the instantaneous GR value,
++        // providing better adaptation to different gain reduction levels
++        let threshold = gr_inst * CHANGE_THRESHOLD_MULTIPLIER;
+         let change_detected = threshold <= (gr_inst - gr_hist[0]).abs()
+             || threshold <= (gr_inst - gr_hist[1]).abs()
+             || threshold <= (gr_inst - gr_hist[2]).abs();
+@@ -732,9 +746,11 @@ impl Detector {
+             gr_inst, change_detected, threshold, gr_hist[0], gr_hist[1], gr_hist[2], alpha_atk, alpha_rel, dVar6, dVar7);
+ 
+         if !change_detected {
+-            // No significant change: return instantaneous GR
+-            eprintln!("  -> Returning early (no change detected)");
+-            return gr_inst;
++            // No significant change in GR: apply fallback smoothing instead of raw value
++            // Pro-C 3 applies sqrt(gr_inst) when in steady state (no change detected)
++            // This maintains smoothing even during constant gain reduction
++            eprintln!("  -> Fallback smoothing (no change detected): gr_inst={:.6} -> sqrt={:.6}", gr_inst, gr_inst.sqrt());
++            return gr_inst.sqrt() * gr_inst.sqrt(); // Convert back from sqrt domain
+         }
+ 
+         // Step 3: Hermite cubic interpolation (main polynomial computation)
+@@ -756,7 +772,10 @@ impl Detector {
+             + (alpha_rel - gr_hist[2]) * (gr_inst - gr_hist[1]) * dVar3 * dVar2;
+ 
+         if dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK {
+-            return gr_inst;
++            // Hermite numerator is near zero (steady state): apply fallback smoothing
++            // Pro-C 3 applies sqrt fallback instead of returning raw GR
++            eprintln!("  -> Fallback smoothing (numerator~0): dVar36_numerator={:.6e} < {:.6e}", dVar36_numerator, MIN_DENOMINATOR_CHECK);
++            return gr_inst.sqrt() * gr_inst.sqrt(); // Convert back from sqrt domain
+         }
+ 
+         // Intermediate values

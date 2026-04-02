@@ -1,0 +1,91 @@
+diff --git a/crates/fts-comp/comp-dsp/src/compressor.rs b/crates/fts-comp/comp-dsp/src/compressor.rs
+index dd1a8b5..2723e76 100644
+--- a/crates/fts-comp/comp-dsp/src/compressor.rs
++++ b/crates/fts-comp/comp-dsp/src/compressor.rs
+@@ -186,6 +186,9 @@ impl Compressor {
+             let output_db = input_db - gr_db[ch];
+             let mut out = db_to_linear(output_db) * sign;
+ 
++            eprintln!("COMPRESSOR: input={:.6}, input_db={:.6}, gr_db={:.6}, output_db={:.6}, out={:.6}",
++                samples[ch], input_db, gr_db[ch], output_db, out);
++
+             // Output saturation: tanh soft clip with ceiling
+             if self.ceiling > 0.0 {
+                 out /= self.ceiling;
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 6332465..1372b3b 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -740,7 +740,10 @@ impl Detector {
+         let dVar12 = gr_inst.sqrt();
+         let _dVar20_raw = gr_inst.sqrt();
+ 
+-        eprintln!("HERMITE_POLY: dVar6={:.6}, dVar7={:.6}, dVar3={:.6}, dVar2={:.6}", dVar6, dVar7, dVar3, dVar2);
++        eprintln!(
++            "HERMITE_POLY: dVar6={:.6}, dVar7={:.6}, dVar3={:.6}, dVar2={:.6}",
++            dVar6, dVar7, dVar3, dVar2
++        );
+ 
+         // Main polynomial
+         let dVar23 = dVar3 - dVar2; // atk² - rel²
+@@ -751,8 +754,12 @@ impl Detector {
+             * dVar26
+             + (alpha_rel - gr_hist[2]) * (gr_inst - gr_hist[1]) * dVar3 * dVar2;
+ 
+-        eprintln!("HERMITE_NUMER: dVar36_numerator={:.6}, MIN_CHECK={:.2e}, bailing={}",
+-            dVar36_numerator, MIN_DENOMINATOR_CHECK, dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK);
++        eprintln!(
++            "HERMITE_NUMER: dVar36_numerator={:.6}, MIN_CHECK={:.2e}, bailing={}",
++            dVar36_numerator,
++            MIN_DENOMINATOR_CHECK,
++            dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK
++        );
+ 
+         if dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK {
+             eprintln!("  -> EARLY RETURN due to numerator check");
+diff --git a/crates/fts-eq/eq-dsp/src/coeff.rs b/crates/fts-eq/eq-dsp/src/coeff.rs
+index 1645648..725877b 100644
+--- a/crates/fts-eq/eq-dsp/src/coeff.rs
++++ b/crates/fts-eq/eq-dsp/src/coeff.rs
+@@ -377,12 +377,7 @@ fn peak_2_cascade(w0: f64, q: f64, g: f64, num_biquads: usize, section_index: us
+ }
+ 
+ /// Cascade-aware notch filter: per-section Nyquist compensation + Q distribution.
+-fn notch_2_cascade(
+-    w0: f64,
+-    q: f64,
+-    num_biquads: usize,
+-    section_index: usize,
+-) -> Coeffs {
++fn notch_2_cascade(w0: f64, q: f64, num_biquads: usize, section_index: usize) -> Coeffs {
+     // Butterworth Q distribution across cascade sections — Pro-Q 4 uses
+     // per-section Q values (extracted from type_case_n, different data sizes
+     // per cascade order: 64/32/16/8 bit).
+@@ -407,12 +402,7 @@ fn notch_2_cascade(
+ }
+ 
+ /// Cascade-aware bandpass: per-section Q distribution + Nyquist compensation.
+-fn bandpass_2_cascade(
+-    w0: f64,
+-    q: f64,
+-    num_biquads: usize,
+-    section_index: usize,
+-) -> Coeffs {
++fn bandpass_2_cascade(w0: f64, q: f64, num_biquads: usize, section_index: usize) -> Coeffs {
+     let q_section = if num_biquads <= 1 {
+         q
+     } else {
+@@ -433,12 +423,7 @@ fn bandpass_2_cascade(
+ }
+ 
+ /// Cascade-aware allpass: per-section Q distribution.
+-fn allpass_2_cascade(
+-    w0: f64,
+-    q: f64,
+-    num_biquads: usize,
+-    section_index: usize,
+-) -> Coeffs {
++fn allpass_2_cascade(w0: f64, q: f64, num_biquads: usize, section_index: usize) -> Coeffs {
+     let q_section = if num_biquads <= 1 {
+         q
+     } else {

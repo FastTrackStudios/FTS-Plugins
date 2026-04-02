@@ -32,6 +32,18 @@ use fts_dsp::db::{linear_to_db, DB_FLOOR};
 /// Maximum number of stereo channels.
 const MAX_CH: usize = 2;
 
+/// Pro-C 3 exponential perceptual weighting constant.
+/// Detection formula: level = exp(|sample| * PERCEPTUAL_WEIGHT)
+/// From Pro-C 3 binary @ gain_input_converter function.
+/// Approximately ln(10)/20 for dB conversion: 0.1151 ≈ 0.115129
+const PERCEPTUAL_WEIGHT: f64 = 0.1151;
+
+/// Pro-C 3 change detection threshold multiplier.
+/// Dynamic threshold computed as: threshold = gr_inst * CHANGE_THRESHOLD_MULTIPLIER
+/// From Pro-C 3 binary @ smooth_gr_with_hermite_cubic: param_2[8]
+/// Value of 0.01 = 1% of instantaneous GR
+const CHANGE_THRESHOLD_MULTIPLIER: f64 = 0.01;
+
 /// Detection mode for the compressor.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DetectorMode {
@@ -378,7 +390,7 @@ impl Detector {
 
     /// Feed a sample and return the detected level in dB.
     ///
-    /// In Peak mode: instantaneous 20*log10(|x|).
+    /// In Peak mode: exponential perceptual weighting level = exp(|x| * 0.1151).
     /// In Smooth mode: 1-pole smoothed |x| in linear domain, then to dB.
     #[inline]
     pub fn tick(&mut self, input_abs: f64, feedback: f64, ch: usize) -> f64 {
@@ -715,14 +727,16 @@ impl Detector {
         alpha_rel: f64,
     ) -> f64 {
         const MIN_DENOMINATOR_CHECK: f64 = 1e-15;
-        const CHANGE_DETECTION_THRESHOLD: f64 = 0.01;
 
         // Step 1: Transform coefficients via log_safe_approx
         let dVar6 = Self::log_safe_approx(alpha_atk);
         let dVar7 = Self::log_safe_approx(alpha_rel);
 
-        // Step 2: Change detection
-        let threshold = gr_inst * CHANGE_DETECTION_THRESHOLD;
+        // Step 2: Change detection with dynamic threshold
+        // Pro-C 3 formula: threshold = gr_inst * multiplier
+        // This makes the threshold proportional to the instantaneous GR value,
+        // providing better adaptation to different gain reduction levels
+        let threshold = gr_inst * CHANGE_THRESHOLD_MULTIPLIER;
         let change_detected = threshold <= (gr_inst - gr_hist[0]).abs()
             || threshold <= (gr_inst - gr_hist[1]).abs()
             || threshold <= (gr_inst - gr_hist[2]).abs();
@@ -732,9 +746,11 @@ impl Detector {
             gr_inst, change_detected, threshold, gr_hist[0], gr_hist[1], gr_hist[2], alpha_atk, alpha_rel, dVar6, dVar7);
 
         if !change_detected {
-            // No significant change: return instantaneous GR
-            eprintln!("  -> Returning early (no change detected)");
-            return gr_inst;
+            // No significant change in GR: apply fallback smoothing instead of raw value
+            // Pro-C 3 applies sqrt(gr_inst) when in steady state (no change detected)
+            // This maintains smoothing even during constant gain reduction
+            eprintln!("  -> Fallback smoothing (no change detected): gr_inst={:.6} -> sqrt={:.6}", gr_inst, gr_inst.sqrt());
+            return gr_inst.sqrt() * gr_inst.sqrt(); // Convert back from sqrt domain
         }
 
         // Step 3: Hermite cubic interpolation (main polynomial computation)
@@ -756,7 +772,10 @@ impl Detector {
             + (alpha_rel - gr_hist[2]) * (gr_inst - gr_hist[1]) * dVar3 * dVar2;
 
         if dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK {
-            return gr_inst;
+            // Hermite numerator is near zero (steady state): apply fallback smoothing
+            // Pro-C 3 applies sqrt fallback instead of returning raw GR
+            eprintln!("  -> Fallback smoothing (numerator~0): dVar36_numerator={:.6e} < {:.6e}", dVar36_numerator, MIN_DENOMINATOR_CHECK);
+            return gr_inst.sqrt() * gr_inst.sqrt(); // Convert back from sqrt domain
         }
 
         // Intermediate values

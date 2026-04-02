@@ -14,6 +14,7 @@ members = [
 
     # Compressor plugin
     "crates/fts-comp/comp-dsp",
+    "crates/fts-comp/comp-dsp-v2",
     "crates/fts-comp/comp-profiles",
     "crates/fts-comp/comp-ui",
     "crates/fts-comp/comp-plugin",

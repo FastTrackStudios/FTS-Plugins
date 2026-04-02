@@ -1,0 +1,212 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index dcbadf0cb09e773af65dc6ee9e14ab5b8dfaddb3..45bb51aa994ff71e840bf76a9f2f8194f83b34a7 100644
+GIT binary patch
+delta 354
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HGm>3v185kJcS2|5R*MGOds>ohDPi+06*34Z#
+z&c436q^bv*4Z;hU7#RK|0gxC20|OI7%f`lV&W$r17&qVGyyLd{OQ05`MkrGxQ!G;=
+zQz}y?Q!Y~>Qz=s=Q!P^?Q!7&^Q!mp*rm0LbndUMrWZL|Ya}DF>Pa#^28evRPOmR#}
+zOleG6OnFR2Ol3?}Om$36Ol?eEOnpp~n5Hq!Vw%Ua2&&~nxE7;EI8!uJJX11LI#V`N
+zK2tGMIa4)LJySDNJ5x7PKhtEU=}fbk<})pZYIzr>#i$X%6vLFjl){w3l*3fORKirj
+fRKwK3)WX!k)WbA^X$sQ}ra4Rtn3jOF98d-T{s3s?
+
+delta 208
+zcmZo@U}|V!s+V}A%K!o_3=9m63=9GxObiU13=9n4#b4Y}U-UKGs>ohDPi+06s&Lus
+zhP!jkNL3Fq8-xRx7#RK|0gxC20|OI-%f`lV&dn0scic7`a62$={t~FgxY;Rk4dY}3
+YZjH^KLXdeM!jXCJqM*FZ2HZAE0LLmqUjP6A
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index bad891326b4d01ed5c2bc46da609c3728d2931b5..aca959b56867db85de651646c762a68f763b3a0a 100644
+GIT binary patch
+delta 2963
+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
+a8|tmv8|tmw8|rP^8|rPhH`Loz<N*LX*ff0r
+
+delta 3527
+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
+
+diff --git a/crates/fts-comp/comp-dsp/src/compressor.rs b/crates/fts-comp/comp-dsp/src/compressor.rs
+index 2723e76..e3ef8cd 100644
+--- a/crates/fts-comp/comp-dsp/src/compressor.rs
++++ b/crates/fts-comp/comp-dsp/src/compressor.rs
+@@ -186,8 +186,10 @@ impl Compressor {
+             let output_db = input_db - gr_db[ch];
+             let mut out = db_to_linear(output_db) * sign;
+ 
+-            eprintln!("COMPRESSOR: input={:.6}, input_db={:.6}, gr_db={:.6}, output_db={:.6}, out={:.6}",
+-                samples[ch], input_db, gr_db[ch], output_db, out);
++            eprintln!(
++                "COMPRESSOR: input={:.6}, input_db={:.6}, gr_db={:.6}, output_db={:.6}, out={:.6}",
++                samples[ch], input_db, gr_db[ch], output_db, out
++            );
+ 
+             // Output saturation: tanh soft clip with ceiling
+             if self.ceiling > 0.0 {
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 1372b3b..673c2bb 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -299,6 +299,10 @@ pub struct Detector {
+     hold_samples: usize,
+     /// Per-channel hold countdown: samples remaining before release begins.
+     hold_countdown: [usize; MAX_CH],
++
++    // Debug
++    /// Sample counter for logging purposes.
++    sample_count: usize,
+ }
+ 
+ impl Detector {
+@@ -320,6 +324,7 @@ impl Detector {
+             release_s: 0.0,
+             hold_samples: 0,
+             hold_countdown: [0; MAX_CH],
++            sample_count: 0,
+         }
+     }
+ 
+@@ -415,10 +420,18 @@ impl Detector {
+     /// In Smooth/Rms mode: power-domain smoothing (SMOOTH_POWER <= 1.0).
+     #[inline]
+     pub fn smooth_gr(&mut self, raw_gr_db: f64, ch: usize) -> f64 {
+-        eprintln!(
+-            "smooth_gr: mode={:?}, raw_gr_db={:.6}, ch={}",
+-            self.mode, raw_gr_db, ch
+-        );
++        // Increment sample count on first channel only (to avoid double-counting stereo)
++        if ch == 0 {
++            self.sample_count += 1;
++        }
++
++        // Log strategically: first 20 samples and every 512 after
++        if ch == 0 && (self.sample_count <= 20 || self.sample_count % 512 == 0) {
++            eprintln!(
++                "[S{}] smooth_gr: raw_gr_db={:.4}, mode={:?}",
++                self.sample_count, raw_gr_db, self.mode
++            );
++        }
+ 
+         // Shift history buffer: [hist0, hist1, hist2, inst]
+         self.gr_history[ch][0] = self.gr_history[ch][1];
+@@ -450,8 +463,10 @@ impl Detector {
+ 
+             // Return smoothed GR in dB domain
+             let result = self.smooth_grp[ch].max(0.0).powf(1.0 / p);
+-            eprintln!("PEAK_RETURN: raw_gr_db={:.6}, p={:.6}, raw_grp={:.6}, smooth_grp={:.6}, result={:.6}",
+-                raw_gr_db, p, raw_grp, self.smooth_grp[ch], result);
++            // Log all first 20 samples and every 512 after
++            if ch == 0 && (self.sample_count <= 20 || self.sample_count % 512 == 0) {
++                eprintln!("  -> GR: {:.4} dB", result);
++            }
+             result
+         } else {
+             // Smooth/RMS mode: Use power-domain 1-pole IIR (original behavior)
+@@ -508,6 +523,7 @@ impl Detector {
+         self.gr_history = [[0.0; 4]; MAX_CH];
+         self.hermite_outputs = [[0.0; 5]; MAX_CH];
+         self.hold_countdown = [0; MAX_CH];
++        self.sample_count = 0;
+     }
+ 
+     /// Safe logarithm with piecewise approximation matching Pro-C 3.
+diff --git a/crates/fts-comp/comp-dsp/tests/compressor.rs b/crates/fts-comp/comp-dsp/tests/compressor.rs
+index d8d06f8..86c3c3f 100644
+--- a/crates/fts-comp/comp-dsp/tests/compressor.rs
++++ b/crates/fts-comp/comp-dsp/tests/compressor.rs
+@@ -33,13 +33,20 @@ fn loud_signal_is_reduced() {
+     let amplitude = 1.0_f64; // 0 dBFS
+     let mut peak_out = 0.0_f64;
+ 
+-    for _ in 0..4096 {
++    for i in 0..4096 {
+         let mut l = amplitude;
+         let mut r = amplitude;
+         comp.process_sample(&mut l, &mut r);
+         peak_out = peak_out.max(l.abs());
++
++        // Log first 20 samples and every 512 after
++        if i < 20 || i % 512 == 0 {
++            eprintln!("TEST[{}]: l={:.6}, peak_out={:.6}", i, l, peak_out);
++        }
+     }
+ 
++    eprintln!("TEST FINAL: peak_out={:.6}, expected < {:.6}", peak_out, amplitude * 0.8);
++
+     // Output should be significantly reduced
+     assert!(
+         peak_out < amplitude * 0.8,
+diff --git a/crates/fts-eq/eq-dsp/src/band.rs b/crates/fts-eq/eq-dsp/src/band.rs
+index d7d1aa4..5648427 100644
+--- a/crates/fts-eq/eq-dsp/src/band.rs
++++ b/crates/fts-eq/eq-dsp/src/band.rs
+@@ -395,8 +395,7 @@ impl Band {
+     }
+ 
+     /// Bandpass via cascaded 2nd-order BPF sections.
+-    /// Uses cascade-indexed coefficients with Butterworth Q distribution
+-    /// (Pro-Q 4 matching via bandpass_2_cascade).
++    /// Uses cascade-indexed coefficients (Pro-Q 4 matching).
+     fn update_bandpass(&mut self, order: usize, config: AudioConfig) {
+         if order == 0 {
+             self.num_sections = 0;

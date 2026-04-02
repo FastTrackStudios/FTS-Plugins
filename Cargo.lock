@@ -1314,6 +1314,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "comp-dsp-v2"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
+]
+
+[[package]]
 name = "comp-plugin"
 version = "0.1.0"
 dependencies = [

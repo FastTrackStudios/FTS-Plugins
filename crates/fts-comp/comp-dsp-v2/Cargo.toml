@@ -1,0 +1,9 @@
+[package]
+name = "comp-dsp-v2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fts-dsp = { path = "../../fts-dsp" }
+
+[dev-dependencies]
