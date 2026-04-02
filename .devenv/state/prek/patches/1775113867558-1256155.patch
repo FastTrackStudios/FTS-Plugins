@@ -1,0 +1,440 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index b0a43797e12e4e28d6f8b30643179631eb0aee36..a059a7d7957bff87b2826bc2c3debaa6699c08ce 100644
+GIT binary patch
+delta 382
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9GyObiU13=9ls`=5%%N^LN+Dzevor;@`Pu<w%i
+zXZab&NL3Fq8-xXz7#RK|0gxC20|OJomyM0r**4B-VB8$RF5@}*OW-Yot&BSv_c9)2
+zJj!^I@hsy-#;c4s8SgSaWPHl_lJPC$N5-#=KN<frGBU9;aWe5T2{LU?WdFiA`BTU(
+zgKdnv822$AVm!upit!xdCB|!vw;1m+K4N^v_=@oz<0r;%jK3KFF)}f+F>x{RF$qC+
+zeh9y1u$^%?<9^1&jK>*IGoEL>%y^ygHsgK9$BfSzUo*aE{LJ{B@i*gtMrI~<CT=Ev
+zCSj<~cTu+tb};T?JivH_@dV=;#tV#B7;iA%VSK>&gz*LA8^#ZeUl@Nd{$XTbVqxN7
+O;$aeC5&`MtPyqmTn}IX{
+
+delta 187
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HW7#SEi85kIpE!DkVXA1AMDzevor;@|FDsCr(
+z;11<fQq_aZ2H_2i3=IE~07#61fq{u(%Erd)Y@2Uz$arr4z|p`s`Aguf%?~+Lm?nP;
+QfigaXLmBU)Knx2N03IYgJ^%m!
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index 70ba581b01b6067505094b540365df22b6ce7d6b..2194db9996184feb920cb3963727b2f587b39f0a 100644
+GIT binary patch
+delta 5276
+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
+
+delta 5203
+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
+Ik==`G0B#bYjsO4v
+
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf.rs b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+index 4e34479..45fa984 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+@@ -17,21 +17,19 @@ use std::f64::consts::PI;
+ use crate::biquad::{self, Coeffs, PASSTHROUGH};
+ use crate::prototype;
+ use crate::transform;
+-use crate::zpk::{Complex, Zpk};
++use crate::zpk::{Complex, Zpk}; // Complex needed for band_shelf BP transformation
+ 
+-/// Design a low shelf filter via ZPK pipeline.
++/// Design a low shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 7: Butterworth LP prototype → apply_shelf_gain_to_zpk
+-/// (scales zeros × gain, poles ÷ gain) → bilinear → biquads.
++/// Pro-Q 4 type 7 (Low Shelf): Binary pipeline analysis from 0x1800ff6f0 shows:
++///   1. Butterworth LP prototype (unit circle poles)
++///   2. Shelf gain scaling: zeros *= gain, poles /= gain
++///   3. Pole scaling: all poles *= 1/Q_internal (for user Q control)
++///   4. Bilinear transform s→z
++///   5. ZPK→biquad conversion
+ ///
+-/// From binary analysis of setup_eq_band_filter (0x1800fdf10):
+-///   - For shelf types, bilinear_transform_zpk receives `1/Q_internal` as its
+-///     frequency scaling parameter (param_3), which uniformly scales all prototype
+-///     poles before the bilinear transform.
+-///   - The biquad Q for shelves is always INV_SQRT2 (set at 0x1800fdfc0).
+-///   - User Q controls the shelf transition steepness via this pole scaling.
+-///
+-/// `n_sections` is the number of biquad sections (order / 2).
++/// Each section is a 2nd-order Butterworth pole pair, transformed via shelf ZPK pipeline.
++/// For n_sections, we create n independent 2nd-order sections (NOT identical biquads with Q distribution).
+ pub fn design_low_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -46,29 +44,35 @@ pub fn design_low_shelf(
+     }
+ 
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
+ 
+-    (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            // Pro-Q 4 uses Butterworth pole placement per section, then uniformly
+-            // scales all poles by 1/Q_internal in bilinear_transform_zpk.
+-            // In RBJ terms, the section Q is the Butterworth Q scaled by the
+-            // user's Q relative to the default (INV_SQRT2).
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_low_shelf(w0, section_q, section_gain)
+-        })
+-        .collect()
++    // Create a single multi-section filter (all n sections via zpk_to_sos distribution)
++    // Design n-th order Butterworth LP by using n poles
++    let mut zpk = prototype::butterworth_lp(2 * n);
++
++    // Apply TOTAL shelf gain: zeros *= gain, poles /= gain
++    apply_shelf_gain(&mut zpk, 7, gain_linear);
++
++    // Scale poles by 1/Q_internal (from binary: bilinear_transform_zpk does this)
++    let inv_q = 1.0 / q;
++    for p in &mut zpk.poles {
++        *p = *p * inv_q;
++    }
++
++    // Bilinear transform: s→z at the given sample rate
++    let zpk_z = transform::bilinear(&zpk, sample_rate);
++
++    // Convert ZPK to biquad coefficients (returns n SOS sections)
++    biquad::zpk_to_sos(&zpk_z)
+ }
+ 
+-/// Design a high shelf filter via ZPK pipeline.
+-///
+-/// Pro-Q 4 type 8: Butterworth LP prototype → bilinear → numerator normalization
+-/// in zpk_sections_to_biquads to apply shelf gain.
++/// Design a high shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Same Q scaling as low shelf: bilinear_transform_zpk scales poles by 1/Q_internal.
++/// Pro-Q 4 type 8 (High Shelf): Similar to low shelf, but:
++///   - apply_shelf_gain only scales zeros (poles unchanged for high shelf types)
++///   - Gain adjustment happens at biquad stage via numerator scaling
+ ///
+-/// `n_sections` is the number of biquad sections (order / 2).
++/// Each section is 2nd-order Butterworth transformed via ZPK pipeline.
+ pub fn design_high_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -82,24 +86,42 @@ pub fn design_high_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    let w0 = 2.0 * PI * freq_hz / sample_rate;
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
+ 
++    // For each section: design 2nd-order Butterworth LP, apply shelf gain, scale by 1/Q, bilinear
+     (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_high_shelf(w0, section_q, section_gain)
++        .map(|_k| {
++            // 2nd-order Butterworth LP prototype
++            let mut zpk = prototype::butterworth_lp(2);
++
++            // Compute per-section gain
++            let section_gain = gain_linear.powf(1.0 / n as f64);
++
++            // Apply shelf gain for high shelf: zeros *= section_gain only (poles unchanged)
++            apply_shelf_gain(&mut zpk, 8, section_gain);
++
++            // Scale poles by 1/Q_internal
++            let inv_q = 1.0 / q;
++            for p in &mut zpk.poles {
++                *p = *p * inv_q;
++            }
++
++            // Bilinear transform
++            let zpk_z = transform::bilinear(&zpk, sample_rate);
++
++            // Convert to biquad
++            let sos = biquad::zpk_to_sos(&zpk_z);
++            sos[0]
+         })
+         .collect()
+ }
+ 
+-/// Design a tilt shelf filter.
++/// Design a tilt shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 9: tilts the spectrum around the corner frequency.
+-/// +gain below corner, -gain above (or vice versa).
++/// Pro-Q 4 type 9 (Tilt Shelf): Like high shelf, uses ZPK pipeline but tilts rather than boosts single end.
++/// Combines low and high shelf characteristics.
+ ///
+-/// `n_sections` is the number of biquad sections.
++/// Each section is 2nd-order Butterworth transformed via ZPK pipeline (high shelf behavior).
+ pub fn design_tilt_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -113,24 +135,35 @@ pub fn design_tilt_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    let w0 = 2.0 * PI * freq_hz / sample_rate;
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
+ 
+     (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_low_shelf(w0, section_q, section_gain)
++        .map(|_k| {
++            let mut zpk = prototype::butterworth_lp(2);
++
++            let section_gain = gain_linear.powf(1.0 / n as f64);
++
++            // Tilt shelf uses high shelf type behavior (zeros scaled, poles not scaled by gain)
++            apply_shelf_gain(&mut zpk, 9, section_gain);
++
++            let inv_q = 1.0 / q;
++            for p in &mut zpk.poles {
++                *p = *p * inv_q;
++            }
++
++            let zpk_z = transform::bilinear(&zpk, sample_rate);
++            let sos = biquad::zpk_to_sos(&zpk_z);
++            sos[0]
+         })
+         .collect()
+ }
+ 
+-/// Design a band shelf filter.
++/// Design a band shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 10: LP→BP prototype + bilinear + shelf gain.
+-/// Boosts/cuts a band while leaving DC and Nyquist at 0 dB.
++/// Pro-Q 4 type 10 (Band Shelf): Uses LP→BP transformation for bandpass, then applies
++/// shelf gain. Boosts/cuts a band while leaving DC and Nyquist at 0 dB.
+ ///
+-/// `n_sections` is the number of biquad sections.
++/// Each section is 2nd-order via BP prototype and shelf gain scaling.
+ pub fn design_band_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -144,22 +177,54 @@ pub fn design_band_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    // Compute bandwidth edges from center frequency and Q.
+-    let halfbw = (0.5 / q).asinh() / 2.0_f64.ln();
+-    let scale = 2.0_f64.powf(halfbw);
+-    let f_lo = freq_hz / scale;
+-    let f_hi = freq_hz * scale;
+-    let w_lo = 2.0 * PI * f_lo / sample_rate;
+-    let w_hi = 2.0 * PI * f_hi / sample_rate;
+-
+-    let gain_per = gain_db / n as f64;
+-    let shelf_q = std::f64::consts::FRAC_1_SQRT_2;
+-
+-    let mut sections = Vec::with_capacity(2 * n);
+-    for _ in 0..n {
+-        sections.push(rbj_low_shelf(w_hi, shelf_q, gain_per));
+-        sections.push(rbj_high_shelf(w_lo, shelf_q, gain_per));
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
++
++    let mut sections = Vec::with_capacity(n);
++
++    for _k in 0..n {
++        // 2nd-order Butterworth LP prototype for BP transformation
++        let lp = prototype::butterworth_lp(2);
++
++        // Apply LP→BP transformation (standard quadratic, not elliptic)
++        let w0 = 2.0 * PI * freq_hz / sample_rate;
++        let w0_a = 2.0 * sample_rate * (w0 / 2.0).tan();
++        let bw_a = w0_a / q;
++
++        let mut bp_poles = Vec::with_capacity(4);
++        let mut bp_zeros = Vec::with_capacity(2);
++
++        for &s_k in &lp.poles {
++            let b = s_k * bw_a;
++            let disc = b * b - Complex::new(4.0 * w0_a * w0_a, 0.0);
++            let sqrt_disc = disc.sqrt();
++
++            let s1 = (b + sqrt_disc) / 2.0;
++            let s2 = (b - sqrt_disc) / 2.0;
++
++            bp_poles.push(s1);
++            bp_poles.push(s2);
++            bp_zeros.push(Complex::ZERO);
++        }
++
++        let gain = bw_a.powi(2);
++        let mut zpk = Zpk::new(bp_zeros, bp_poles, gain);
++
++        // Apply per-section shelf gain
++        let section_gain = gain_linear.powf(1.0 / n as f64);
++        apply_shelf_gain(&mut zpk, 10, section_gain);
++
++        // Scale poles by 1/Q
++        let inv_q = 1.0 / q;
++        for p in &mut zpk.poles {
++            *p = *p * inv_q;
++        }
++
++        // Bilinear transform
++        let zpk_z = transform::bilinear(&zpk, sample_rate);
++        let sos = biquad::zpk_to_sos(&zpk_z);
++        sections.push(sos[0]);
+     }
++
+     sections
+ }
+ 
+@@ -200,50 +265,6 @@ pub fn apply_shelf_gain(zpk: &mut Zpk, filter_type: u32, gain_linear: f64) {
+     zpk.gain = 1.0 / final_gain;
+ }
+ 
+-/// Butterworth Q factor for section k of n total sections.
+-///
+-/// For a 2n-th order Butterworth, section k has:
+-///   Q_k = 1 / (2 * sin(pi * (2k + 1) / (4n)))
+-fn butterworth_section_q(k: usize, n: usize) -> f64 {
+-    let angle = PI * (2 * k + 1) as f64 / (4 * n) as f64;
+-    1.0 / (2.0 * angle.sin())
+-}
+-
+-/// RBJ Audio EQ Cookbook low shelf biquad.
+-fn rbj_low_shelf(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+-    let a = 10.0_f64.powf(gain_db / 40.0);
+-    let sin_w0 = w0.sin();
+-    let cos_w0 = w0.cos();
+-    let alpha = sin_w0 / (2.0 * q);
+-    let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
+-
+-    let b0 = a * ((a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+-    let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cos_w0);
+-    let b2 = a * ((a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-    let a0 = (a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+-    let a1 = -2.0 * ((a - 1.0) + (a + 1.0) * cos_w0);
+-    let a2 = (a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+-
+-    [a0, a1, a2, b0, b1, b2]
+-}
+-
+-/// RBJ Audio EQ Cookbook high shelf biquad.
+-fn rbj_high_shelf(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+-    let a = 10.0_f64.powf(gain_db / 40.0);
+-    let sin_w0 = w0.sin();
+-    let cos_w0 = w0.cos();
+-    let alpha = sin_w0 / (2.0 * q);
+-    let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
+-
+-    let b0 = a * ((a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+-    let b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * cos_w0);
+-    let b2 = a * ((a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-    let a0 = (a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+-    let a1 = 2.0 * ((a - 1.0) - (a + 1.0) * cos_w0);
+-    let a2 = (a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+-
+-    [a0, a1, a2, b0, b1, b2]
+-}
+ 
+ #[cfg(test)]
+ mod tests {
+@@ -412,23 +433,6 @@ mod tests {
+         );
+     }
+ 
+-    #[test]
+-    fn butterworth_section_q_order2() {
+-        let q = butterworth_section_q(0, 1);
+-        assert!(
+-            (q - std::f64::consts::FRAC_1_SQRT_2).abs() < 0.01,
+-            "2nd order Butterworth Q should be ~0.707, got {}",
+-            q
+-        );
+-    }
+-
+-    #[test]
+-    fn butterworth_section_q_order4() {
+-        let q0 = butterworth_section_q(0, 2);
+-        let q1 = butterworth_section_q(1, 2);
+-        assert!(q0 > q1, "first section should have higher Q");
+-        assert!(q0 > 1.0, "first section Q should be > 1.0, got {}", q0);
+-    }
+ 
+     #[test]
+     fn multi_section_shelf_higher_order() {

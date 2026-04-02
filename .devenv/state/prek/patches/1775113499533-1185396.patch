@@ -1,0 +1,14 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index f40b1df..e48839b 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -110,7 +110,8 @@ impl HermiteCubicSmoother {
+             };
+ 
+             // Exponential smoothing: weighted average of old and new
+-            coeff * hist0 + (1.0 - coeff) * gr_instant_sqrt
++            // Try inverted weighting: (1-coeff)*hist + coeff*current
++            (1.0 - coeff) * hist0 + coeff * gr_instant_sqrt
+         } else {
+             // Steady state: just return sqrt
+             gr_instant_sqrt

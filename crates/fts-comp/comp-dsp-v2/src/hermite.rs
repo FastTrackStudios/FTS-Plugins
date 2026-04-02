@@ -96,21 +96,24 @@ impl HermiteCubicSmoother {
         }
 
         // Step 4: Route to algorithm
-        // Use exponential smoothing based on attack/release
+        // Try smoothing in dB domain (more typical for compressors)
         let gr_instant_sqrt = gr_inst.sqrt();
+        let gr_instant_db = fts_dsp::db::linear_to_db(gr_instant_sqrt.max(1e-10));
+        let hist0_db = fts_dsp::db::linear_to_db(hist0.max(1e-10));
 
         let result = if has_change {
             // Transition detected: smoothly interpolate between history and current GR
-            // Use attack during compression increase (GR decrease), release during decrease
-            let gr_change = gr_instant_sqrt - hist0;
-            let coeff = if gr_change < 0.0 {
+            // Use attack during compression increase (more negative dB), release otherwise
+            let gr_change_db = gr_instant_db - hist0_db;
+            let coeff = if gr_change_db < 0.0 {
                 attack_coeff // Compressing more: use attack time
             } else {
                 release_coeff // Releasing: use release time
             };
 
-            // Exponential smoothing: weighted average of old and new
-            coeff * hist0 + (1.0 - coeff) * gr_instant_sqrt
+            // Exponential smoothing in dB domain
+            let smoothed_db = coeff * hist0_db + (1.0 - coeff) * gr_instant_db;
+            fts_dsp::db::db_to_linear(smoothed_db)
         } else {
             // Steady state: just return sqrt
             gr_instant_sqrt

@@ -1,0 +1,54 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index 37e8ef7..d2963e0 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -96,34 +96,21 @@ impl HermiteCubicSmoother {
+         }
+ 
+         // Step 4: Route to algorithm
+-        let result = if has_change {
+-            // Change detected: use Hermite cubic interpolation
+-            let hc_result = self.hermite_cubic(
+-                hist0,
+-                hist1,
+-                hist2,
+-                hist3,
+-                gr_inst,
+-                attack_coeff,
+-                release_coeff,
+-                log_atk,
+-                log_rel,
+-                log_atk_sq,
+-                log_rel_sq,
+-            );
+-
+-            // Check for NaN
+-            if hc_result.is_nan() {
+-                eprintln!("[HERMITE-NAN] Hermite cubic produced NaN!");
+-                // Fallback to sqrt on NaN
+-                gr_inst.sqrt()
+-            } else {
+-                hc_result
+-            }
+-        } else {
+-            // Steady state: use simple sqrt fallback (from binary)
+-            gr_inst.sqrt()
+-        };
++        // TEMPORARY: Disable Hermite cubic, use sqrt for all cases to debug
++        let result = gr_inst.sqrt();
++
++        // Original code (disabled):
++        // let result = if has_change {
++        //     // Change detected: use Hermite cubic interpolation
++        //     let hc_result = self.hermite_cubic(...);
++        //     if hc_result.is_nan() {
++        //         gr_inst.sqrt()
++        //     } else {
++        //         hc_result
++        //     }
++        // } else {
++        //     gr_inst.sqrt()
++        // };
+ 
+         // DEBUG: Log result
+         unsafe {

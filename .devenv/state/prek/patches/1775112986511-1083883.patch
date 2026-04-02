@@ -1,0 +1,199 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index 606c7dc..526d10a 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -2,17 +2,21 @@
+ //!
+ //! This is the core algorithm from Pro-C 3: a hybrid approach that uses change detection
+ //! to choose between two paths:
+-//! 1. **No change**: Return sqrt(state_value) - simple, fast
++//! 1. **No change**: Return sqrt(gr_inst) - simple, fast
+ //! 2. **Change detected**: Use Hermite cubic with 4 control points - smooth
+ //!
+-//! The mystery `state_func` transforms history values. Hypothesis testing framework
+-//! allows testing different implementations without binary reverse engineering.
++//! State buffer (5 doubles per channel) stores:
++//! - [0]: Smoothed result (becomes hist0 next sample)
++//! - [1]: Tangent m0 = (hist0 - hist1) * log_atk²
++//! - [2]: Tangent m1 = (hist1 - hist2) * log_rel²
++//! - [3]: Raw polynomial (before sqrt)
++//! - [4]: Reserved/unused
+ 
+ /// Hermite cubic smoother with change detection
+ pub struct HermiteCubicSmoother {
+-    /// Per-channel state for state_func calls
+-    /// For hypotheses that need history (exponential, history lookup)
+-    state_func_history: [[f64; 4]; 2],
++    /// Per-channel state: [5 doubles per channel, 2 channels]
++    /// Each sample writes back 5 values that become inputs for next sample
++    state_history: [[f64; 5]; 2],
+ 
+     /// Change detection threshold (0.001 = 0.1%)
+     change_threshold: f64,
+@@ -41,58 +45,107 @@ pub enum StateFuncHypothesis {
+ impl HermiteCubicSmoother {
+     pub fn new(hypothesis: StateFuncHypothesis) -> Self {
+         Self {
+-            state_func_history: [[1.0; 4]; 2],
++            state_history: [[1.0; 5]; 2],
+             change_threshold: 0.001,
+             state_func_hypothesis: hypothesis,
+         }
+     }
+ 
+     /// Core algorithm from Pro-C 3 (verified in binary at 18010d3e0):
+-    /// 1. Read GR history (prior smoothed GR values from state buffer)
++    /// 1. Extract 4-sample history from state buffer
+     /// 2. Detect change: threshold = gr_inst * 0.001, compare with history
+     /// 3. Route: Hermite cubic if change detected, sqrt(gr_inst) if steady state
+-    /// 4. Update history buffer with smoothed output for next sample
++    /// 4. Compute full 5-element state (result, m0, m1, poly, reserved)
++    /// 5. Store state for next sample
++    ///
++    /// CRITICAL: State buffer contains [result, m0, m1, poly, reserved]:
++    /// - state[0]: Smoothed result → becomes hist0 next sample
++    /// - state[1]: Tangent m0 = (hist0 - hist1) * log_atk²
++    /// - state[2]: Tangent m1 = (hist1 - hist2) * log_rel²
++    /// - state[3]: Raw polynomial (before sqrt)
++    /// - state[4]: Reserved
+     pub fn process(
+         &mut self,
+         gr_inst: f64,
+-        _attack_coeff: f64,
+-        _release_coeff: f64,
++        attack_coeff: f64,
++        release_coeff: f64,
+         log_rel: f64,
+         log_atk: f64,
+-        sqrt_h0: f64,
+-        sqrt_h1: f64,
++        _sqrt_h0: f64,
++        _sqrt_h1: f64,
+         ch: usize,
+     ) -> f64 {
+-        // Step 1: Get history buffer for this channel (4 prior GR values)
+-        let hist = self.state_func_history[ch];
+-
+-        // Step 2: Change detection threshold (0.1% as per binary)
++        // Step 1: Extract history from state buffer
++        // state[0] = hist0 (most recent), history shifts: [hist0, hist1, hist2, hist3]
++        let state = self.state_history[ch];
++        let hist0 = state[0];
++        let hist1 = if ch == 0 { 1.0 } else { state[0] }; // TODO: proper history tracking
++        let hist2 = if ch == 0 { 1.0 } else { state[0] };
++        let hist3 = if ch == 0 { 1.0 } else { state[0] };
++
++        // Step 2: Change detection threshold (0.1% as per binary spec)
+         let threshold = gr_inst * self.change_threshold;
+ 
+         // Step 3: Check if ANY history value differs significantly
+-        let has_change = hist.iter().any(|&h| (gr_inst - h).abs() >= threshold);
++        let has_change = (gr_inst - hist0).abs() >= threshold
++            || (gr_inst - hist1).abs() >= threshold
++            || (gr_inst - hist2).abs() >= threshold
++            || (gr_inst - hist3).abs() >= threshold;
++
++        // Precompute log-space coefficients (per binary spec)
++        let log_atk_sq = log_atk * log_atk;
++        let log_rel_sq = log_rel * log_rel;
+ 
+         // Step 4: Route to algorithm
+-        let result = if has_change {
++        let (result, m0, m1, poly) = if has_change {
+             // Change detected: use Hermite cubic interpolation
+-            // Hermite cubic expects history values in gr_inst domain
+-            let hc_result = self.hermite_cubic(hist, log_rel, log_atk, sqrt_h0, sqrt_h1);
+-            hc_result
++            let (hc_result, m0_val, m1_val, poly_val) =
++                self.hermite_cubic(hist0, hist1, hist2, hist3, gr_inst, log_atk, log_rel, log_atk_sq, log_rel_sq, attack_coeff);
++
++            // Check for NaN
++            if hc_result.is_nan() {
++                eprintln!("[HERMITE-NAN] Hermite cubic produced NaN!");
++                // Fallback to sqrt on NaN
++                let fallback = gr_inst.sqrt();
++                (fallback, 0.0, 0.0, 0.0)
++            } else {
++                (hc_result, m0_val, m1_val, poly_val)
++            }
+         } else {
+-            // Steady state: use simple sqrt fallback (from binary)
+-            gr_inst.sqrt()
++            // Steady state: use simple sqrt fallback (from binary spec)
++            let fallback = gr_inst.sqrt();
++            (fallback, 0.0, 0.0, 0.0)
+         };
+ 
+-        // Step 5: Update history buffer with new smoothed value
+-        // Shift history: [h1, h2, h3, result]
+-        self.state_func_history[ch][0] = hist[1];
+-        self.state_func_history[ch][1] = hist[2];
+-        self.state_func_history[ch][2] = hist[3];
+-        self.state_func_history[ch][3] = result;
++        // Step 5: Store full 5-element state for next sample
++        self.state_history[ch][0] = result;
++        self.state_history[ch][1] = m0;
++        self.state_history[ch][2] = m1;
++        self.state_history[ch][3] = poly;
++        self.state_history[ch][4] = 0.0; // Reserved
+ 
+         result
+     }
+ 
++    /// Store smoothed GR for next sample's history
++    /// Replicates the binary's store_gr_smoothing_state behavior
++    fn store_state(&mut self, smoothed_gr: f64, ch: usize) {
++        let before = self.state_func_history[ch];
++        // Shift history left and append new value
++        self.state_func_history[ch][0] = self.state_func_history[ch][1];
++        self.state_func_history[ch][1] = self.state_func_history[ch][2];
++        self.state_func_history[ch][2] = self.state_func_history[ch][3];
++        self.state_func_history[ch][3] = smoothed_gr;
++
++        static mut STORE_COUNT: u64 = 0;
++        unsafe {
++            STORE_COUNT += 1;
++            if ch == 0 && STORE_COUNT <= 3 {
++                eprintln!("[HERMITE-STORE] Call {}: {:?} → {:?}", STORE_COUNT, before, self.state_func_history[ch]);
++            }
++        }
++    }
++
+     /// Branch A: Main Hermite cubic path (lines 18010d63b-18010d734)
+     ///
+     /// Extracted from 53 FMA operations in Pro-C 3 assembly.
+@@ -184,6 +237,7 @@ impl HermiteCubicSmoother {
+     }
+ 
+     pub fn reset(&mut self) {
++        eprintln!("[HERMITE-RESET] Resetting history buffer");
+         self.state_func_history = [[1.0; 4]; 2];
+     }
+ }
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index 5d94677..40c1b1c 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -236,12 +236,22 @@ impl ProC3Compressor {
+ 
+     /// Set attack time in milliseconds
+     pub fn set_attack_ms(&mut self, attack_ms: f64) {
++        // CRITICAL: Only reset Hermite smoother if value ACTUALLY changed!
++        // We're called every sample from sync_params, so must check before reset
++        if (self.attack_ms - attack_ms).abs() > 1e-6 {
++            self.hermite_smoother.reset();
++        }
+         self.attack_ms = attack_ms;
+         self.gain_curve.set_attack_ms(attack_ms);
+     }
+ 
+     /// Set release time in milliseconds
+     pub fn set_release_ms(&mut self, release_ms: f64) {
++        // CRITICAL: Only reset Hermite smoother if value ACTUALLY changed!
++        // We're called every sample from sync_params, so must check before reset
++        if (self.release_ms - release_ms).abs() > 1e-6 {
++            self.hermite_smoother.reset();
++        }
+         self.release_ms = release_ms;
+         self.gain_curve.set_release_ms(release_ms);
+     }

@@ -1,0 +1,50 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index 37e8ef7..9945311 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -96,32 +96,22 @@ impl HermiteCubicSmoother {
+         }
+ 
+         // Step 4: Route to algorithm
++        // Apply exponential smoothing in linear GR domain, then sqrt
+         let result = if has_change {
+-            // Change detected: use Hermite cubic interpolation
+-            let hc_result = self.hermite_cubic(
+-                hist0,
+-                hist1,
+-                hist2,
+-                hist3,
+-                gr_inst,
+-                attack_coeff,
+-                release_coeff,
+-                log_atk,
+-                log_rel,
+-                log_atk_sq,
+-                log_rel_sq,
+-            );
+-
+-            // Check for NaN
+-            if hc_result.is_nan() {
+-                eprintln!("[HERMITE-NAN] Hermite cubic produced NaN!");
+-                // Fallback to sqrt on NaN
+-                gr_inst.sqrt()
++            // Transition detected: apply exponential smoothing
++            // Determine whether we're attacking (GR decreasing) or releasing (GR increasing)
++            let gr_change = gr_inst - hist0 * hist0; // Convert back to linear for comparison
++            let coeff = if gr_change < 0.0 {
++                attack_coeff // Compressing more: use attack time
+             } else {
+-                hc_result
+-            }
++                release_coeff // Releasing: use release time
++            };
++
++            // Exponential smoothing in linear domain
++            let smoothed_gr_linear = coeff * (hist0 * hist0) + (1.0 - coeff) * gr_inst;
++            smoothed_gr_linear.sqrt()
+         } else {
+-            // Steady state: use simple sqrt fallback (from binary)
++            // Steady state: just return sqrt
+             gr_inst.sqrt()
+         };
+ 

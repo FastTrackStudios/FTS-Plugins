@@ -1,0 +1,534 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index b0a43797e12e4e28d6f8b30643179631eb0aee36..0aa498804c9516b399a7e77d0e8e34dc87213a81 100644
+GIT binary patch
+delta 574
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9G#ObiU13=9kbLZ1}fHG1Ay71`^)Q_0~~xP1I^
+zz_HR`Qq_aZ24Rr7|B(PljDdlHnW2PfW79RZg)^8pN3hRvpZq28R>D@sos4@K4>BHQ
+zJjr;L@gn0@#+!_H86Pq}Wqir_mhmIwSH_==e;FB>SeZDPc$oy5M42R+WSJD1RGBoH
+zbeRm9Oqnd1Y?&OHT$wzXe3=57LYX3&Vwn<|QkgQDa+wO5HYc(lVVwLa<W|Bq#$Am2
+z7!NTXV?4!pj`0%XHO5<v_ZS~BK4W~v_>S=t<2S}%jQ<#!nAn)OnE054n8cW*nB<t0
+znADiGnDm&8n9P{0nCzIGnB17WnEaT6n8KK%nBtg{n9`WCnDUs4pf-I7zm>3^aW~_B
+z#>0%q8Ba5wXS~dKo$)r~ea6R(&lz7czGwW*_?_`L<9|kGCUz!nCVnPiCUGWdCV3`h
+zCUqulCVeJjCUYihCVM7lCU+)pCV!@2rf{Zcrg)}grgWxkrhKMis7>#pZYAts+{1W)
+z@d)Dy#xsl;7_TtiV7$Zlfbj|A3&uB$9~i$d{$TvW$iT$H#KFYFB)}xXB*7%Zq`;)Y
+wq`{=aWWZ#?WWi*^<iO;@<iX^_6u=b16u}h3l)#k2l);q4RKQdMvgw900QPpAvH$=8
+
+delta 187
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HW7#SEi85kIpE!DkVXA1AMDzevor;@|FDsCr(
+z;11<fQq_aZ2H_2i3=IE~07#61fq|J}3ggD6Yiye%xaPPoF5qIG{3Y<#=0q+Prpcc|
+Qpo|aUP{z9`5W_+R0L<w+JOBUy
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index 70ba581b01b6067505094b540365df22b6ce7d6b..e2836a2dfc7e426d4c4674fc5d8d8ee544ccafe9 100644
+GIT binary patch
+delta 10880
+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
+Dn=zk#
+
+delta 10563
+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
+
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index f40b1df..68a37e0 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -96,21 +96,24 @@ impl HermiteCubicSmoother {
+         }
+ 
+         // Step 4: Route to algorithm
+-        // Use exponential smoothing based on attack/release
++        // Try smoothing in dB domain (more typical for compressors)
+         let gr_instant_sqrt = gr_inst.sqrt();
++        let gr_instant_db = fts_dsp::db::linear_to_db(gr_instant_sqrt.max(1e-10));
++        let hist0_db = fts_dsp::db::linear_to_db(hist0.max(1e-10));
+ 
+         let result = if has_change {
+             // Transition detected: smoothly interpolate between history and current GR
+-            // Use attack during compression increase (GR decrease), release during decrease
+-            let gr_change = gr_instant_sqrt - hist0;
+-            let coeff = if gr_change < 0.0 {
++            // Use attack during compression increase (more negative dB), release otherwise
++            let gr_change_db = gr_instant_db - hist0_db;
++            let coeff = if gr_change_db < 0.0 {
+                 attack_coeff // Compressing more: use attack time
+             } else {
+                 release_coeff // Releasing: use release time
+             };
+ 
+-            // Exponential smoothing: weighted average of old and new
+-            coeff * hist0 + (1.0 - coeff) * gr_instant_sqrt
++            // Exponential smoothing in dB domain
++            let smoothed_db = coeff * hist0_db + (1.0 - coeff) * gr_instant_db;
++            fts_dsp::db::db_to_linear(smoothed_db)
+         } else {
+             // Steady state: just return sqrt
+             gr_instant_sqrt
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf.rs b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+index 4e34479..c9ce08c 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+@@ -17,21 +17,19 @@ use std::f64::consts::PI;
+ use crate::biquad::{self, Coeffs, PASSTHROUGH};
+ use crate::prototype;
+ use crate::transform;
+-use crate::zpk::{Complex, Zpk};
++use crate::zpk::{Complex, Zpk}; // Complex needed for band_shelf BP transformation
+ 
+-/// Design a low shelf filter via ZPK pipeline.
++/// Design a low shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 7: Butterworth LP prototype → apply_shelf_gain_to_zpk
+-/// (scales zeros × gain, poles ÷ gain) → bilinear → biquads.
++/// Pro-Q 4 type 7 (Low Shelf): Binary pipeline analysis from 0x1800ff6f0 shows:
++///   1. Butterworth LP prototype (unit circle poles)
++///   2. Shelf gain scaling: zeros *= gain, poles /= gain
++///   3. Pole scaling: all poles *= 1/Q_internal (for user Q control)
++///   4. Bilinear transform s→z
++///   5. ZPK→biquad conversion
+ ///
+-/// From binary analysis of setup_eq_band_filter (0x1800fdf10):
+-///   - For shelf types, bilinear_transform_zpk receives `1/Q_internal` as its
+-///     frequency scaling parameter (param_3), which uniformly scales all prototype
+-///     poles before the bilinear transform.
+-///   - The biquad Q for shelves is always INV_SQRT2 (set at 0x1800fdfc0).
+-///   - User Q controls the shelf transition steepness via this pole scaling.
+-///
+-/// `n_sections` is the number of biquad sections (order / 2).
++/// Each section is a 2nd-order Butterworth pole pair, transformed via shelf ZPK pipeline.
++/// For n_sections, we create n independent 2nd-order sections (NOT identical biquads with Q distribution).
+ pub fn design_low_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -46,32 +44,47 @@ pub fn design_low_shelf(
+     }
+ 
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
++
++    // Create a single multi-section filter (all n sections via zpk_to_sos distribution)
++    // Design n-th order Butterworth LP by using 2n poles (n 2nd-order sections)
++    let mut zpk = prototype::butterworth_lp(2 * n);
+ 
+-    (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            // Pro-Q 4 uses Butterworth pole placement per section, then uniformly
+-            // scales all poles by 1/Q_internal in bilinear_transform_zpk.
+-            // In RBJ terms, the section Q is the Butterworth Q scaled by the
+-            // user's Q relative to the default (INV_SQRT2).
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_low_shelf(w0, section_q, section_gain)
+-        })
+-        .collect()
++    // Apply TOTAL shelf gain manually (avoid apply_shelf_gain which inverts the gain)
++    // For low shelf: zeros *= gain, poles /= gain
++    for z in &mut zpk.zeros {
++        *z = *z * gain_linear;
++    }
++    for p in &mut zpk.poles {
++        *p = *p / gain_linear;
++    }
++    // Set zpk.gain: the overall filter gain should be gain_linear^(number_of_zeros - number_of_poles)
++    // For equal zero/pole counts, zpk.gain stays 1.0
++    zpk.gain = gain_linear;
++
++    // Scale poles by 1/Q_internal (from binary: bilinear_transform_zpk does this)
++    let inv_q = 1.0 / q;
++    for p in &mut zpk.poles {
++        *p = *p * inv_q;
++    }
++
++    // Bilinear transform: s→z at the given sample rate
++    let zpk_z = transform::bilinear(&zpk, sample_rate);
++
++    // Convert ZPK to biquad coefficients (returns n SOS sections)
++    biquad::zpk_to_sos(&zpk_z)
+ }
+ 
+-/// Design a high shelf filter via ZPK pipeline.
++/// Design a high shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 8: Butterworth LP prototype → bilinear → numerator normalization
+-/// in zpk_sections_to_biquads to apply shelf gain.
++/// Pro-Q 4 type 8 (High Shelf): Similar to low shelf, but:
++///   - apply_shelf_gain only scales zeros (poles unchanged for high shelf types)
++///   - Gain adjustment happens at biquad stage via numerator scaling
+ ///
+-/// Same Q scaling as low shelf: bilinear_transform_zpk scales poles by 1/Q_internal.
+-///
+-/// `n_sections` is the number of biquad sections (order / 2).
++/// Each section is 2nd-order Butterworth transformed via ZPK pipeline.
+ pub fn design_high_shelf(
+     n_sections: usize,
+-    freq_hz: f64,
++    _freq_hz: f64,
+     q: f64,
+     gain_db: f64,
+     sample_rate: f64,
+@@ -82,27 +95,33 @@ pub fn design_high_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    let w0 = 2.0 * PI * freq_hz / sample_rate;
++    // For high shelf: DON'T apply shelf gain at ZPK stage (it's applied at biquad stage)
++    // Just use Butterworth LP poles with 1/Q scaling
++    let mut zpk = prototype::butterworth_lp(2 * n);
++
++    // Scale poles by 1/Q_internal ONLY (no shelf gain scaling for high shelf types)
++    let inv_q = 1.0 / q;
++    for p in &mut zpk.poles {
++        *p = *p * inv_q;
++    }
+ 
+-    (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_high_shelf(w0, section_q, section_gain)
+-        })
+-        .collect()
++    // Bilinear transform
++    let zpk_z = transform::bilinear(&zpk, sample_rate);
++
++    // Convert to biquad - note: this doesn't apply shelf gain for type 8
++    // That happens in zpk_to_biquad_coefficients in the binary
++    biquad::zpk_to_sos(&zpk_z)
+ }
+ 
+-/// Design a tilt shelf filter.
++/// Design a tilt shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 9: tilts the spectrum around the corner frequency.
+-/// +gain below corner, -gain above (or vice versa).
++/// Pro-Q 4 type 9 (Tilt Shelf): Like high shelf, uses ZPK pipeline but tilts rather than boosts single end.
++/// Combines low and high shelf characteristics.
+ ///
+-/// `n_sections` is the number of biquad sections.
++/// Each section is 2nd-order Butterworth transformed via ZPK pipeline (high shelf behavior).
+ pub fn design_tilt_shelf(
+     n_sections: usize,
+-    freq_hz: f64,
++    _freq_hz: f64,
+     q: f64,
+     gain_db: f64,
+     sample_rate: f64,
+@@ -113,24 +132,24 @@ pub fn design_tilt_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    let w0 = 2.0 * PI * freq_hz / sample_rate;
++    // Tilt shelf: like high shelf, don't apply shelf gain at ZPK stage
++    let mut zpk = prototype::butterworth_lp(2 * n);
++
++    let inv_q = 1.0 / q;
++    for p in &mut zpk.poles {
++        *p = *p * inv_q;
++    }
+ 
+-    (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_low_shelf(w0, section_q, section_gain)
+-        })
+-        .collect()
++    let zpk_z = transform::bilinear(&zpk, sample_rate);
++    biquad::zpk_to_sos(&zpk_z)
+ }
+ 
+-/// Design a band shelf filter.
++/// Design a band shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 10: LP→BP prototype + bilinear + shelf gain.
+-/// Boosts/cuts a band while leaving DC and Nyquist at 0 dB.
++/// Pro-Q 4 type 10 (Band Shelf): Uses LP→BP transformation for bandpass, then applies
++/// shelf gain. Boosts/cuts a band while leaving DC and Nyquist at 0 dB.
+ ///
+-/// `n_sections` is the number of biquad sections.
++/// Each section is 2nd-order via BP prototype and shelf gain scaling.
+ pub fn design_band_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -144,23 +163,43 @@ pub fn design_band_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    // Compute bandwidth edges from center frequency and Q.
+-    let halfbw = (0.5 / q).asinh() / 2.0_f64.ln();
+-    let scale = 2.0_f64.powf(halfbw);
+-    let f_lo = freq_hz / scale;
+-    let f_hi = freq_hz * scale;
+-    let w_lo = 2.0 * PI * f_lo / sample_rate;
+-    let w_hi = 2.0 * PI * f_hi / sample_rate;
+-
+-    let gain_per = gain_db / n as f64;
+-    let shelf_q = std::f64::consts::FRAC_1_SQRT_2;
+-
+-    let mut sections = Vec::with_capacity(2 * n);
+-    for _ in 0..n {
+-        sections.push(rbj_low_shelf(w_hi, shelf_q, gain_per));
+-        sections.push(rbj_high_shelf(w_lo, shelf_q, gain_per));
++    // Band shelf: LP→BP transformation, but NO shelf gain at ZPK stage (type 10 not in [1,7])
++    // Create BP prototype for all sections at once (2n-th order BP from n-th order LP)
++    let lp = prototype::butterworth_lp(2 * n);
++
++    // Apply LP→BP transformation (standard quadratic, not elliptic)
++    let w0 = 2.0 * PI * freq_hz / sample_rate;
++    let w0_a = 2.0 * sample_rate * (w0 / 2.0).tan();
++    let bw_a = w0_a / q;
++
++    let mut bp_poles = Vec::with_capacity(4 * n);
++    let mut bp_zeros = Vec::with_capacity(2 * n);
++
++    for &s_k in &lp.poles {
++        let b = s_k * bw_a;
++        let disc = b * b - Complex::new(4.0 * w0_a * w0_a, 0.0);
++        let sqrt_disc = disc.sqrt();
++
++        let s1 = (b + sqrt_disc) / 2.0;
++        let s2 = (b - sqrt_disc) / 2.0;
++
++        bp_poles.push(s1);
++        bp_poles.push(s2);
++        bp_zeros.push(Complex::ZERO);
++    }
++
++    let gain = bw_a.powi((2 * n) as i32);
++    let mut zpk = Zpk::new(bp_zeros, bp_poles, gain);
++
++    // Scale poles by 1/Q (but NO shelf gain application for type 10)
++    let inv_q = 1.0 / q;
++    for p in &mut zpk.poles {
++        *p = *p * inv_q;
+     }
+-    sections
++
++    // Bilinear transform
++    let zpk_z = transform::bilinear(&zpk, sample_rate);
++    biquad::zpk_to_sos(&zpk_z)
+ }
+ 
+ /// Apply shelf gain to a ZPK filter representation.
+@@ -200,50 +239,6 @@ pub fn apply_shelf_gain(zpk: &mut Zpk, filter_type: u32, gain_linear: f64) {
+     zpk.gain = 1.0 / final_gain;
+ }
+ 
+-/// Butterworth Q factor for section k of n total sections.
+-///
+-/// For a 2n-th order Butterworth, section k has:
+-///   Q_k = 1 / (2 * sin(pi * (2k + 1) / (4n)))
+-fn butterworth_section_q(k: usize, n: usize) -> f64 {
+-    let angle = PI * (2 * k + 1) as f64 / (4 * n) as f64;
+-    1.0 / (2.0 * angle.sin())
+-}
+-
+-/// RBJ Audio EQ Cookbook low shelf biquad.
+-fn rbj_low_shelf(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+-    let a = 10.0_f64.powf(gain_db / 40.0);
+-    let sin_w0 = w0.sin();
+-    let cos_w0 = w0.cos();
+-    let alpha = sin_w0 / (2.0 * q);
+-    let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
+-
+-    let b0 = a * ((a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+-    let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cos_w0);
+-    let b2 = a * ((a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-    let a0 = (a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+-    let a1 = -2.0 * ((a - 1.0) + (a + 1.0) * cos_w0);
+-    let a2 = (a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+-
+-    [a0, a1, a2, b0, b1, b2]
+-}
+-
+-/// RBJ Audio EQ Cookbook high shelf biquad.
+-fn rbj_high_shelf(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+-    let a = 10.0_f64.powf(gain_db / 40.0);
+-    let sin_w0 = w0.sin();
+-    let cos_w0 = w0.cos();
+-    let alpha = sin_w0 / (2.0 * q);
+-    let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
+-
+-    let b0 = a * ((a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+-    let b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * cos_w0);
+-    let b2 = a * ((a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-    let a0 = (a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+-    let a1 = 2.0 * ((a - 1.0) - (a + 1.0) * cos_w0);
+-    let a2 = (a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+-
+-    [a0, a1, a2, b0, b1, b2]
+-}
+ 
+ #[cfg(test)]
+ mod tests {
+@@ -412,23 +407,6 @@ mod tests {
+         );
+     }
+ 
+-    #[test]
+-    fn butterworth_section_q_order2() {
+-        let q = butterworth_section_q(0, 1);
+-        assert!(
+-            (q - std::f64::consts::FRAC_1_SQRT_2).abs() < 0.01,
+-            "2nd order Butterworth Q should be ~0.707, got {}",
+-            q
+-        );
+-    }
+-
+-    #[test]
+-    fn butterworth_section_q_order4() {
+-        let q0 = butterworth_section_q(0, 2);
+-        let q1 = butterworth_section_q(1, 2);
+-        assert!(q0 > q1, "first section should have higher Q");
+-        assert!(q0 > 1.0, "first section Q should be > 1.0, got {}", q0);
+-    }
+ 
+     #[test]
+     fn multi_section_shelf_higher_order() {

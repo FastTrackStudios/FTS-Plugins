@@ -1,0 +1,100 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index 606c7dc..d87c7e7 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -48,10 +48,13 @@ impl HermiteCubicSmoother {
+     }
+ 
+     /// Core algorithm from Pro-C 3 (verified in binary at 18010d3e0):
+-    /// 1. Read GR history (prior smoothed GR values from state buffer)
++    /// 1. Read GR history (prior transformed intermediate values from state buffer)
+     /// 2. Detect change: threshold = gr_inst * 0.001, compare with history
+     /// 3. Route: Hermite cubic if change detected, sqrt(gr_inst) if steady state
+-    /// 4. Update history buffer with smoothed output for next sample
++    /// 4. Update history buffer with transformed state for next sample
++    ///
++    /// CRITICAL: History buffer contains TRANSFORMED values from store_gr_smoothing_state,
++    /// not raw smoothed GR values! This is what allows the algorithm to converge.
+     pub fn process(
+         &mut self,
+         gr_inst: f64,
+@@ -63,7 +66,7 @@ impl HermiteCubicSmoother {
+         sqrt_h1: f64,
+         ch: usize,
+     ) -> f64 {
+-        // Step 1: Get history buffer for this channel (4 prior GR values)
++        // Step 1: Get history buffer for this channel
+         let hist = self.state_func_history[ch];
+ 
+         // Step 2: Change detection threshold (0.1% as per binary)
+@@ -77,22 +80,40 @@ impl HermiteCubicSmoother {
+             // Change detected: use Hermite cubic interpolation
+             // Hermite cubic expects history values in gr_inst domain
+             let hc_result = self.hermite_cubic(hist, log_rel, log_atk, sqrt_h0, sqrt_h1);
+-            hc_result
++
++            // DEBUG: Check for NaN
++            if hc_result.is_nan() {
++                eprintln!("[HERMITE-NAN] Hermite cubic produced NaN! gr_inst={}, hist={:?}, log_atk={}, log_rel={}",
++                    gr_inst, hist, log_atk, log_rel);
++                // Fallback to sqrt on NaN
++                gr_inst.sqrt()
++            } else {
++                hc_result
++            }
+         } else {
+             // Steady state: use simple sqrt fallback (from binary)
+             gr_inst.sqrt()
+         };
+ 
+-        // Step 5: Update history buffer with new smoothed value
+-        // Shift history: [h1, h2, h3, result]
+-        self.state_func_history[ch][0] = hist[1];
+-        self.state_func_history[ch][1] = hist[2];
+-        self.state_func_history[ch][2] = hist[3];
+-        self.state_func_history[ch][3] = result;
++        // Step 5: Store state for next sample
++        // CRITICAL: Must replicate store_gr_smoothing_state transformation!
++        // For now, use simple history: just replace first element with result
++        // This matches the "no change" case in the binary where it stores sqrt(gr_inst)
++        self.store_state(result, ch);
+ 
+         result
+     }
+ 
++    /// Store smoothed GR for next sample's history
++    /// Replicates the binary's store_gr_smoothing_state behavior
++    fn store_state(&mut self, smoothed_gr: f64, ch: usize) {
++        // Shift history left and append new value
++        self.state_func_history[ch][0] = self.state_func_history[ch][1];
++        self.state_func_history[ch][1] = self.state_func_history[ch][2];
++        self.state_func_history[ch][2] = self.state_func_history[ch][3];
++        self.state_func_history[ch][3] = smoothed_gr;
++    }
++
+     /// Branch A: Main Hermite cubic path (lines 18010d63b-18010d734)
+     ///
+     /// Extracted from 53 FMA operations in Pro-C 3 assembly.
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index 5d94677..16834a9 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -238,12 +238,18 @@ impl ProC3Compressor {
+     pub fn set_attack_ms(&mut self, attack_ms: f64) {
+         self.attack_ms = attack_ms;
+         self.gain_curve.set_attack_ms(attack_ms);
++        // CRITICAL: Reset Hermite smoother when attack changes!
++        // Old history values are no longer valid with new coefficient
++        self.hermite_smoother.reset();
+     }
+ 
+     /// Set release time in milliseconds
+     pub fn set_release_ms(&mut self, release_ms: f64) {
+         self.release_ms = release_ms;
+         self.gain_curve.set_release_ms(release_ms);
++        // CRITICAL: Reset Hermite smoother when release changes!
++        // Old history values are no longer valid with new coefficient
++        self.hermite_smoother.reset();
+     }
+ 
+     /// Set attack time in seconds (for compatibility)

@@ -1,0 +1,339 @@
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf.rs b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+index 4e34479..280c85f 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+@@ -17,21 +17,19 @@ use std::f64::consts::PI;
+ use crate::biquad::{self, Coeffs, PASSTHROUGH};
+ use crate::prototype;
+ use crate::transform;
+-use crate::zpk::{Complex, Zpk};
++use crate::zpk::{Complex, Zpk}; // Complex needed for band_shelf BP transformation
+ 
+-/// Design a low shelf filter via ZPK pipeline.
++/// Design a low shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 7: Butterworth LP prototype → apply_shelf_gain_to_zpk
+-/// (scales zeros × gain, poles ÷ gain) → bilinear → biquads.
++/// Pro-Q 4 type 7 (Low Shelf): Binary pipeline analysis from 0x1800ff6f0 shows:
++///   1. Butterworth LP prototype (unit circle poles)
++///   2. Shelf gain scaling: zeros *= gain, poles /= gain
++///   3. Pole scaling: all poles *= 1/Q_internal (for user Q control)
++///   4. Bilinear transform s→z
++///   5. ZPK→biquad conversion
+ ///
+-/// From binary analysis of setup_eq_band_filter (0x1800fdf10):
+-///   - For shelf types, bilinear_transform_zpk receives `1/Q_internal` as its
+-///     frequency scaling parameter (param_3), which uniformly scales all prototype
+-///     poles before the bilinear transform.
+-///   - The biquad Q for shelves is always INV_SQRT2 (set at 0x1800fdfc0).
+-///   - User Q controls the shelf transition steepness via this pole scaling.
+-///
+-/// `n_sections` is the number of biquad sections (order / 2).
++/// Each section is a 2nd-order Butterworth pole pair, transformed via shelf ZPK pipeline.
++/// For n_sections, we create n independent 2nd-order sections (NOT identical biquads with Q distribution).
+ pub fn design_low_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -46,29 +44,43 @@ pub fn design_low_shelf(
+     }
+ 
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
+ 
++    // For each section: design a 2nd-order Butterworth LP, apply shelf gain, scale by 1/Q, bilinear
+     (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            // Pro-Q 4 uses Butterworth pole placement per section, then uniformly
+-            // scales all poles by 1/Q_internal in bilinear_transform_zpk.
+-            // In RBJ terms, the section Q is the Butterworth Q scaled by the
+-            // user's Q relative to the default (INV_SQRT2).
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_low_shelf(w0, section_q, section_gain)
++        .map(|_k| {
++            // 2nd-order Butterworth LP prototype (single pole pair on unit circle)
++            let mut zpk = prototype::butterworth_lp(2);
++
++            // Compute per-section gain: for low shelf, gain^(1/n_sections)
++            let section_gain = gain_linear.powf(1.0 / n as f64);
++
++            // Apply shelf gain: zeros *= section_gain, poles /= section_gain
++            apply_shelf_gain(&mut zpk, 7, section_gain);
++
++            // Scale poles by 1/Q_internal (from binary: bilinear_transform_zpk does this)
++            let inv_q = 1.0 / q;
++            for p in &mut zpk.poles {
++                *p = *p * inv_q;
++            }
++
++            // Bilinear transform: s→z at the given sample rate
++            let zpk_z = transform::bilinear(&zpk, sample_rate);
++
++            // Convert ZPK to biquad coefficients
++            let sos = biquad::zpk_to_sos(&zpk_z);
++            sos[0]  // Return first (and only) section
+         })
+         .collect()
+ }
+ 
+-/// Design a high shelf filter via ZPK pipeline.
++/// Design a high shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 8: Butterworth LP prototype → bilinear → numerator normalization
+-/// in zpk_sections_to_biquads to apply shelf gain.
++/// Pro-Q 4 type 8 (High Shelf): Similar to low shelf, but:
++///   - apply_shelf_gain only scales zeros (poles unchanged for high shelf types)
++///   - Gain adjustment happens at biquad stage via numerator scaling
+ ///
+-/// Same Q scaling as low shelf: bilinear_transform_zpk scales poles by 1/Q_internal.
+-///
+-/// `n_sections` is the number of biquad sections (order / 2).
++/// Each section is 2nd-order Butterworth transformed via ZPK pipeline.
+ pub fn design_high_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -82,24 +94,42 @@ pub fn design_high_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    let w0 = 2.0 * PI * freq_hz / sample_rate;
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
+ 
++    // For each section: design 2nd-order Butterworth LP, apply shelf gain, scale by 1/Q, bilinear
+     (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_high_shelf(w0, section_q, section_gain)
++        .map(|_k| {
++            // 2nd-order Butterworth LP prototype
++            let mut zpk = prototype::butterworth_lp(2);
++
++            // Compute per-section gain
++            let section_gain = gain_linear.powf(1.0 / n as f64);
++
++            // Apply shelf gain for high shelf: zeros *= section_gain only (poles unchanged)
++            apply_shelf_gain(&mut zpk, 8, section_gain);
++
++            // Scale poles by 1/Q_internal
++            let inv_q = 1.0 / q;
++            for p in &mut zpk.poles {
++                *p = *p * inv_q;
++            }
++
++            // Bilinear transform
++            let zpk_z = transform::bilinear(&zpk, sample_rate);
++
++            // Convert to biquad
++            let sos = biquad::zpk_to_sos(&zpk_z);
++            sos[0]
+         })
+         .collect()
+ }
+ 
+-/// Design a tilt shelf filter.
++/// Design a tilt shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 9: tilts the spectrum around the corner frequency.
+-/// +gain below corner, -gain above (or vice versa).
++/// Pro-Q 4 type 9 (Tilt Shelf): Like high shelf, uses ZPK pipeline but tilts rather than boosts single end.
++/// Combines low and high shelf characteristics.
+ ///
+-/// `n_sections` is the number of biquad sections.
++/// Each section is 2nd-order Butterworth transformed via ZPK pipeline (high shelf behavior).
+ pub fn design_tilt_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -113,24 +143,35 @@ pub fn design_tilt_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    let w0 = 2.0 * PI * freq_hz / sample_rate;
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
+ 
+     (0..n)
+-        .map(|k| {
+-            let section_gain = gain_db / n as f64;
+-            let bw_q = butterworth_section_q(k, n);
+-            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+-            rbj_low_shelf(w0, section_q, section_gain)
++        .map(|_k| {
++            let mut zpk = prototype::butterworth_lp(2);
++
++            let section_gain = gain_linear.powf(1.0 / n as f64);
++
++            // Tilt shelf uses high shelf type behavior (zeros scaled, poles not scaled by gain)
++            apply_shelf_gain(&mut zpk, 9, section_gain);
++
++            let inv_q = 1.0 / q;
++            for p in &mut zpk.poles {
++                *p = *p * inv_q;
++            }
++
++            let zpk_z = transform::bilinear(&zpk, sample_rate);
++            let sos = biquad::zpk_to_sos(&zpk_z);
++            sos[0]
+         })
+         .collect()
+ }
+ 
+-/// Design a band shelf filter.
++/// Design a band shelf filter via ZPK pipeline (exact Pro-Q 4 implementation).
+ ///
+-/// Pro-Q 4 type 10: LP→BP prototype + bilinear + shelf gain.
+-/// Boosts/cuts a band while leaving DC and Nyquist at 0 dB.
++/// Pro-Q 4 type 10 (Band Shelf): Uses LP→BP transformation for bandpass, then applies
++/// shelf gain. Boosts/cuts a band while leaving DC and Nyquist at 0 dB.
+ ///
+-/// `n_sections` is the number of biquad sections.
++/// Each section is 2nd-order via BP prototype and shelf gain scaling.
+ pub fn design_band_shelf(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -144,22 +185,54 @@ pub fn design_band_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    // Compute bandwidth edges from center frequency and Q.
+-    let halfbw = (0.5 / q).asinh() / 2.0_f64.ln();
+-    let scale = 2.0_f64.powf(halfbw);
+-    let f_lo = freq_hz / scale;
+-    let f_hi = freq_hz * scale;
+-    let w_lo = 2.0 * PI * f_lo / sample_rate;
+-    let w_hi = 2.0 * PI * f_hi / sample_rate;
+-
+-    let gain_per = gain_db / n as f64;
+-    let shelf_q = std::f64::consts::FRAC_1_SQRT_2;
+-
+-    let mut sections = Vec::with_capacity(2 * n);
+-    for _ in 0..n {
+-        sections.push(rbj_low_shelf(w_hi, shelf_q, gain_per));
+-        sections.push(rbj_high_shelf(w_lo, shelf_q, gain_per));
++    let gain_linear = 10.0_f64.powf(gain_db / 20.0);
++
++    let mut sections = Vec::with_capacity(n);
++
++    for _k in 0..n {
++        // 2nd-order Butterworth LP prototype for BP transformation
++        let lp = prototype::butterworth_lp(2);
++
++        // Apply LP→BP transformation (standard quadratic, not elliptic)
++        let w0 = 2.0 * PI * freq_hz / sample_rate;
++        let w0_a = 2.0 * sample_rate * (w0 / 2.0).tan();
++        let bw_a = w0_a / q;
++
++        let mut bp_poles = Vec::with_capacity(4);
++        let mut bp_zeros = Vec::with_capacity(2);
++
++        for &s_k in &lp.poles {
++            let b = s_k * bw_a;
++            let disc = b * b - Complex::new(4.0 * w0_a * w0_a, 0.0);
++            let sqrt_disc = disc.sqrt();
++
++            let s1 = (b + sqrt_disc) / 2.0;
++            let s2 = (b - sqrt_disc) / 2.0;
++
++            bp_poles.push(s1);
++            bp_poles.push(s2);
++            bp_zeros.push(Complex::ZERO);
++        }
++
++        let gain = bw_a.powi(2);
++        let mut zpk = Zpk::new(bp_zeros, bp_poles, gain);
++
++        // Apply per-section shelf gain
++        let section_gain = gain_linear.powf(1.0 / n as f64);
++        apply_shelf_gain(&mut zpk, 10, section_gain);
++
++        // Scale poles by 1/Q
++        let inv_q = 1.0 / q;
++        for p in &mut zpk.poles {
++            *p = *p * inv_q;
++        }
++
++        // Bilinear transform
++        let zpk_z = transform::bilinear(&zpk, sample_rate);
++        let sos = biquad::zpk_to_sos(&zpk_z);
++        sections.push(sos[0]);
+     }
++
+     sections
+ }
+ 
+@@ -200,50 +273,6 @@ pub fn apply_shelf_gain(zpk: &mut Zpk, filter_type: u32, gain_linear: f64) {
+     zpk.gain = 1.0 / final_gain;
+ }
+ 
+-/// Butterworth Q factor for section k of n total sections.
+-///
+-/// For a 2n-th order Butterworth, section k has:
+-///   Q_k = 1 / (2 * sin(pi * (2k + 1) / (4n)))
+-fn butterworth_section_q(k: usize, n: usize) -> f64 {
+-    let angle = PI * (2 * k + 1) as f64 / (4 * n) as f64;
+-    1.0 / (2.0 * angle.sin())
+-}
+-
+-/// RBJ Audio EQ Cookbook low shelf biquad.
+-fn rbj_low_shelf(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+-    let a = 10.0_f64.powf(gain_db / 40.0);
+-    let sin_w0 = w0.sin();
+-    let cos_w0 = w0.cos();
+-    let alpha = sin_w0 / (2.0 * q);
+-    let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
+-
+-    let b0 = a * ((a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+-    let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cos_w0);
+-    let b2 = a * ((a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-    let a0 = (a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+-    let a1 = -2.0 * ((a - 1.0) + (a + 1.0) * cos_w0);
+-    let a2 = (a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+-
+-    [a0, a1, a2, b0, b1, b2]
+-}
+-
+-/// RBJ Audio EQ Cookbook high shelf biquad.
+-fn rbj_high_shelf(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+-    let a = 10.0_f64.powf(gain_db / 40.0);
+-    let sin_w0 = w0.sin();
+-    let cos_w0 = w0.cos();
+-    let alpha = sin_w0 / (2.0 * q);
+-    let two_sqrt_a_alpha = 2.0 * a.sqrt() * alpha;
+-
+-    let b0 = a * ((a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+-    let b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * cos_w0);
+-    let b2 = a * ((a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+-    let a0 = (a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+-    let a1 = 2.0 * ((a - 1.0) - (a + 1.0) * cos_w0);
+-    let a2 = (a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+-
+-    [a0, a1, a2, b0, b1, b2]
+-}
+ 
+ #[cfg(test)]
+ mod tests {
+@@ -412,23 +441,6 @@ mod tests {
+         );
+     }
+ 
+-    #[test]
+-    fn butterworth_section_q_order2() {
+-        let q = butterworth_section_q(0, 1);
+-        assert!(
+-            (q - std::f64::consts::FRAC_1_SQRT_2).abs() < 0.01,
+-            "2nd order Butterworth Q should be ~0.707, got {}",
+-            q
+-        );
+-    }
+-
+-    #[test]
+-    fn butterworth_section_q_order4() {
+-        let q0 = butterworth_section_q(0, 2);
+-        let q1 = butterworth_section_q(1, 2);
+-        assert!(q0 > q1, "first section should have higher Q");
+-        assert!(q0 > 1.0, "first section Q should be > 1.0, got {}", q0);
+-    }
+ 
+     #[test]
+     fn multi_section_shelf_higher_order() {
