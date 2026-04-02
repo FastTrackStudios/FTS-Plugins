@@ -436,8 +436,8 @@ impl Detector {
                     self.gr_history[ch][1],
                     self.gr_history[ch][2],
                 ],
-                self.attack_s,
-                self.release_s,
+                self.attack_coeff,
+                self.release_coeff,
             );
 
             // Apply hold logic
