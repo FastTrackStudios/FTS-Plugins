@@ -1,0 +1,18 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index 06b5d0b..33bfe90 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -15,11 +15,13 @@ pub mod chain;
+ pub mod detector;
+ pub mod gain_curve;
+ pub mod smoother;
++pub mod hermite;
+ 
+ pub use chain::CompChain;
+ pub use detector::Detector;
+ pub use gain_curve::GainCurve;
+ pub use smoother::GainReductionSmoother;
++pub use hermite::{HermiteCubicSmoother, StateFuncHypothesis};
+ 
+ /// Main compressor combining detection, gain curve, and smoothing.
+ pub struct ProC3Compressor {

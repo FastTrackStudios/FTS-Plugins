@@ -1,0 +1,58 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index 30f64c1..e548e17 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -89,9 +89,7 @@ impl HermiteCubicSmoother {
+         // Step 5: Route to algorithm
+         if changes.iter().any(|&c| c) {
+             // Change detected: use Hermite cubic
+-            self.hermite_cubic(
+-                hist, log_rel, log_atk, log_third, sqrt_h0, sqrt_h1,
+-            )
++            self.hermite_cubic(hist, log_rel, log_atk, log_third, sqrt_h0, sqrt_h1)
+         } else {
+             // No change: use sqrt fallback
+             state_value.sqrt()
+@@ -111,9 +109,9 @@ impl HermiteCubicSmoother {
+         sqrt_h1: f64,
+     ) -> f64 {
+         // Phase 1: Initial products
+-        let prod1 = hist[0] * hist[2];          // h0 * h2
+-        let _prod2 = hist[0] * hist[3];         // h0 * h3 (not used in Branch A)
+-        let prod3 = hist[3] * hist[2];          // h3 * h2
++        let prod1 = hist[0] * hist[2]; // h0 * h2
++        let _prod2 = hist[0] * hist[3]; // h0 * h3 (not used in Branch A)
++        let prod3 = hist[3] * hist[2]; // h3 * h2
+ 
+         let diff1 = log_rel * log_rel - log_rel * log_third;
+         let log_rel_sq = log_rel * log_rel;
+@@ -130,7 +128,7 @@ impl HermiteCubicSmoother {
+         if sqrt_intermediate > 1e-15 {
+             let numerator_inner = (diff1 * log_rel_sq * prod3).sqrt();
+             let numerator = numerator_inner * sqrt_h0 / sqrt_intermediate;
+-            let numerator = numerator * log_third;  // mystery_factor
++            let numerator = numerator * log_third; // mystery_factor
+ 
+             let _clamped = numerator.min(2.0 * sqrt_h1);
+ 
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index 33bfe90..fb762e5 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -14,14 +14,14 @@
+ pub mod chain;
+ pub mod detector;
+ pub mod gain_curve;
+-pub mod smoother;
+ pub mod hermite;
++pub mod smoother;
+ 
+ pub use chain::CompChain;
+ pub use detector::Detector;
+ pub use gain_curve::GainCurve;
+-pub use smoother::GainReductionSmoother;
+ pub use hermite::{HermiteCubicSmoother, StateFuncHypothesis};
++pub use smoother::GainReductionSmoother;
+ 
+ /// Main compressor combining detection, gain curve, and smoothing.
+ pub struct ProC3Compressor {

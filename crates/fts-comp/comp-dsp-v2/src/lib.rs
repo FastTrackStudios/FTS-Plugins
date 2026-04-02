@@ -14,11 +14,13 @@
 pub mod chain;
 pub mod detector;
 pub mod gain_curve;
+pub mod hermite;
 pub mod smoother;
 
 pub use chain::CompChain;
 pub use detector::Detector;
 pub use gain_curve::GainCurve;
+pub use hermite::{HermiteCubicSmoother, StateFuncHypothesis};
 pub use smoother::GainReductionSmoother;
 
 /// Main compressor combining detection, gain curve, and smoothing.
