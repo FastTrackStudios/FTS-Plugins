@@ -109,8 +109,10 @@ impl ProC3Compressor {
 
         // Debug: Check for NaN
         if gr_instant.is_nan() {
-            eprintln!("[COMP-NAN] gr_instant=NaN! level_db={}, threshold={}, ratio={}",
-                level_db, self.gain_curve.threshold_db, self.gain_curve.ratio);
+            eprintln!(
+                "[COMP-NAN] gr_instant=NaN! level_db={}, threshold={}, ratio={}",
+                level_db, self.gain_curve.threshold_db, self.gain_curve.ratio
+            );
         }
 
         // DEBUG: Log first sample per channel
@@ -236,12 +238,22 @@ impl ProC3Compressor {
 
     /// Set attack time in milliseconds
     pub fn set_attack_ms(&mut self, attack_ms: f64) {
+        // CRITICAL: Only reset Hermite smoother if value ACTUALLY changed!
+        // We're called every sample from sync_params, so must check before reset
+        if (self.attack_ms - attack_ms).abs() > 1e-6 {
+            self.hermite_smoother.reset();
+        }
         self.attack_ms = attack_ms;
         self.gain_curve.set_attack_ms(attack_ms);
     }
 
     /// Set release time in milliseconds
     pub fn set_release_ms(&mut self, release_ms: f64) {
+        // CRITICAL: Only reset Hermite smoother if value ACTUALLY changed!
+        // We're called every sample from sync_params, so must check before reset
+        if (self.release_ms - release_ms).abs() > 1e-6 {
+            self.hermite_smoother.reset();
+        }
         self.release_ms = release_ms;
         self.gain_curve.set_release_ms(release_ms);
     }
