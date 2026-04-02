@@ -1,0 +1,21 @@
+diff --git a/crates/fts-eq/eq-pro-dsp/tests/shelf_debug_test.rs b/crates/fts-eq/eq-pro-dsp/tests/shelf_debug_test.rs
+index 5f4003a..47ea0e4 100644
+--- a/crates/fts-eq/eq-pro-dsp/tests/shelf_debug_test.rs
++++ b/crates/fts-eq/eq-pro-dsp/tests/shelf_debug_test.rs
+@@ -75,11 +75,11 @@ fn debug_shelf_gain_parameter() {
+ fn debug_high_shelf_parameter() {
+     // Test case 2: High shelf type 8 (NOT using apply_shelf_gain_to_zpk)
+ 
+-    let order = 2;
+-    let freq_hz = 1000.0;
+-    let q = 0.707;
+-    let gain_db = 6.0;
+-    let sample_rate = 48000.0;
++    let order = 2_usize;
++    let freq_hz = 1000.0_f64;
++    let q = 0.707_f64;
++    let gain_db = 6.0_f64;
++    let sample_rate = 48000.0_f64;
+ 
+     println!("\n=== High Shelf (Type 8) Debug ===");
+     println!("Order: {}", order);
