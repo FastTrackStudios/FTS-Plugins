@@ -1,0 +1,75 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index 68a37e0..2efb45a 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -59,8 +59,8 @@ impl HermiteCubicSmoother {
+         gr_inst: f64,
+         attack_coeff: f64,
+         release_coeff: f64,
+-        log_rel: f64,
+-        log_atk: f64,
++        _log_rel: f64,
++        _log_atk: f64,
+         _sqrt_h0: f64,
+         _sqrt_h1: f64,
+         ch: usize,
+@@ -81,22 +81,8 @@ impl HermiteCubicSmoother {
+             || (gr_inst - hist2).abs() >= threshold
+             || (gr_inst - hist3).abs() >= threshold;
+ 
+-        // Precompute log-space coefficients
+-        let log_atk_sq = log_atk * log_atk;
+-        let log_rel_sq = log_rel * log_rel;
+-
+-        // DEBUG logging
+-        static mut SAMPLE_COUNT: u64 = 0;
+-        unsafe {
+-            SAMPLE_COUNT += 1;
+-            if ch == 0 && SAMPLE_COUNT <= 5 {
+-                eprintln!("[HERMITE-DETAIL] Sample {}: gr_inst={:.6}, hist=[{:.6},{:.6},{:.6},{:.6}], threshold={:.6}, has_change={}",
+-                    SAMPLE_COUNT, gr_inst, hist0, hist1, hist2, hist3, threshold, has_change);
+-            }
+-        }
+-
+         // Step 4: Route to algorithm
+-        // Try smoothing in dB domain (more typical for compressors)
++        // Smooth in dB domain for better frequency response matching
+         let gr_instant_sqrt = gr_inst.sqrt();
+         let gr_instant_db = fts_dsp::db::linear_to_db(gr_instant_sqrt.max(1e-10));
+         let hist0_db = fts_dsp::db::linear_to_db(hist0.max(1e-10));
+@@ -119,18 +105,6 @@ impl HermiteCubicSmoother {
+             gr_instant_sqrt
+         };
+ 
+-        // DEBUG: Log result
+-        unsafe {
+-            if ch == 0 && SAMPLE_COUNT <= 5 {
+-                eprintln!(
+-                    "[HERMITE-RESULT] Sample {}: result={:.6} ({:.2} dB)",
+-                    SAMPLE_COUNT,
+-                    result,
+-                    fts_dsp::db::linear_to_db(result.max(1e-10))
+-                );
+-            }
+-        }
+-
+         // Step 5: Shift history and add new result
+         // Next sample: hist[0] (new result), hist[1] (old hist[0]), hist[2] (old hist[1]), hist[3] (old hist[2])
+         self.history[ch][3] = self.history[ch][2];
+@@ -141,6 +115,16 @@ impl HermiteCubicSmoother {
+         result
+     }
+ 
++    /// Update change detection threshold for tuning
++    pub fn set_change_threshold(&mut self, threshold: f64) {
++        self.change_threshold = threshold;
++    }
++
++    /// Get current change detection threshold
++    pub fn get_change_threshold(&self) -> f64 {
++        self.change_threshold
++    }
++
+     /// Hermite cubic interpolation with 4 history points
+     /// Based on Pro-C 3 binary reverse engineering (0x18010d3e0)
+     ///

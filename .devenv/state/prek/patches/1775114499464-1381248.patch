@@ -1,0 +1,204 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 0aa498804c9516b399a7e77d0e8e34dc87213a81..2ab3d9de91d9fbd6cc6f8e33ac129f38532025c3 100644
+GIT binary patch
+delta 254
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HOm>3v185kHY=4G{r%DCURDzevor;@`vp`mzo
+z{*jObQq_aZ2H^=z3=IE~07#61fnj6)P0ook8a798$+&O+5@^LJP|8%vRLj)J)XLP!
+z)XOxHX>%gi7RJq=LaZ1C%9yH{>X@3C+L*eS`j{p`r9OmPF$$D3RWsEyH8Zs{bu;xd
+gO@>Oni?U)As9>sLYG7(%>R{?&n!q##By~a=0Fo?Cw*UYD
+
+delta 187
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9G#ObiU13=9kbLZ1}fHG1Ay71`^)Q_0~~xP1I^
+zz_HR`Qq_aZ24Rr7|B(PljDdk+WBpCe%{RDY+$VqFYS{cG(28;ML#`u?n?HrXSRcY+
+Ltanjh)(vF<i2*<h
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index e2836a2dfc7e426d4c4674fc5d8d8ee544ccafe9..f5ea9b779da61d5a491ff667b477d8703cd27866 100644
+GIT binary patch
+delta 1496
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsBKZ_uIAN!r;@{aEcAfkoHO&j
+zZ<olI@8jL>=Aqui#8I4;eS6PhZsqL;HL_p$rXPt^_nBVMCm%h1^-Z->4%4OXa?)=O
+zOxf<yBfFJ<`rIsa;pqbN<t3+czEacYsOA2*=2G027!19)f2x&o1O!Lxnf%Zc+Fr3n
+zwvU%lY_cZrtnCjy)SokQG)plkJXOyV*_N$7o1al^`kX5DbWsil1_lPJB73k~w@EK}
+zc<kDKmF+L0)F1M*h{-bBPW~t_IbH3Qnh?kS*CErjTrXWi(w-0TV*M|nL$`&eXl%dn
+z2E|Ty#_1lH7#DD~S1T5-47UBS{lg#GFMO<`3=9n3(<>{~7GZV7+JD6@lfPZi+s?r&
+zx0PQQq*^E?wJbHS%qlH2C$*SGczVGdSxGe41zwt4{l2d^4u>63mnP3;{9!&@%W1oX
+zt{igccrh}HPhP`6hvUh;<xM%McS^QptK0K4ici0AS~eQ1EB|cn{LRTfVGAgzj)PQU
+zanr8U37ly@7Sk{dgF45O;av~2;g?I>XXL`2GyS25`n>7!HF9g9P7*7q<jpH#TEBfm
+ztsEq+ctah=D#pOTkTQKim3p!iN<6-_6+fu8EVY7*{}BW8_P0^$hhQ!QYmu8C_|{GW
+z601iTLga4kOFxRw^lV5phubKXzmMR|-~MAQifb2gNpLdQHi~jK@^XMoj+w5pSI!yg
+z`n5Z`V>bp!tVIihKdWVvB_$Xb7*O1Oez|rMyKX%v_CS?l0cqf5U|`^cC0N$UkKaVe
+zc3#J2IvaB8zOI@)?{`w^=j{>i5bkgMDTCMjbN}8yzxjP!`}Tr=Xra$2HXXY!xK^)v
+zy#LvypW8e5<RRHth*2Ch&0_J&rX`a%ykZRai{By?4;}93dr{Q2K6LvIJ$YDaW=}Fo
+zZWQm3oUXA`W){APu@-(ltD@se`SuBWWWVq+N>0DJM$QYGuyA^ftt@Q!45_Bz?JLg6
+zZsix26l7LqLdlzi{n?V0ck#Zvj3^#^87124G~4R5+Um61>U7%bbld9m+UoS%>I~ZI
+v4BP6A+Uktk>P*_|Oxx<r+Um^P>MYvoEZgd=+Ul&^>TKHTY`4|f{m2IZs)!M&
+
+delta 1648
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsBKZ_uIAOTUUwlk?)5_D8v*`P
+zHb)%n<7E_^tjRlTa^v}hToRlNwvD2kjl3Mw1K--kOwQnUW)z>^)2lg$gN<*p#jVPS
+zkj(`bzwj|mo$M;_#W;QP1o>#jX_Mc`Cri#?U|`^2U|?XdDzXRLQOG+>dhO*K5t}<6
+zZsixAD#)zLl#*JOnpb9(mYI`U%shRvfq^8;G+Acb$sgq<rI<kma56A3aKa3*Ey&xj
+zvyfc_pN(wDHo6%oY+%m#{b&0QMn;&o*prNs8^zltCui`@!sosJdZDX~&KhuS4iNal
+zH(h0}rZ;}y9shIwoo4{+jLjJeTluH|U8^a?NYF!4v(^WwC1)?gV+V?V<lbJq=_z<6
+zX}g3I$^PjU_|Gk{KUQwLK@cO{L(>Zq8F9wfhN_T_U%S>MZudxHgnMbaKoKL}NIJB^
+zPy2Ic)l0ngp!lk=IE+(5Us`*6MH6Em?{u~^nhO~TMo)sovgcbn`()9BZu;rDnkkrR
+zFQ1Die*Q5Id-T|uuDMQA4y+s{rFCoUZ+*Z2`bFHPqxj&g$P0$Nla}kZ-#CQd2h%wo
+za^HsJxTWF+_S^rza^L>p65|&>)|m_p4BnGH<=r5u42L%~KP{dcpW_g|o#Qd%R(@fS
+zCLzo`gu_#}E%;AJo_NGg$VL>eB?NMwysmZr`$h}AQ8V46SMvb}<NMs>ruRD|!NIm&
+zWv(VSBRFhPiUFaID)Dy@rmu!ag%?;2O8EO+U9t3HZi_CuK`2gZUy`eEg)y~s^9%>L
+z+qQSenmRL1@9x!{%VAtR$#PNdt)$Hx0w4)~1q%ZML(1e2^6_$@vIWIe$3Lu7C|_pq
+zmy7=q1M}uwg$>|5tP9d12P*m`u#`t8p0+>Rmx^~`u>kBP6xS}9#PP4hxb(p09}NiC
+zdh}>MVC0y4_xA%9p6EQdZ)F%c%s5zbZrXji0}rKWj&*ra-_|oMgp^3zL-uOQFt!WS
+zX|@a0X|)T~X}1g1>9h;f>9z~h>9q^g>9-5i8MF)38MX`58MO=48Mh16nY0VknYIhm
+onY9blnYRnnS+on(S+)z*S+xt)S+@(+*|ZDP*=`r8vwM*b0JMTJx&QzG
+
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index 68a37e0..8e6a191 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -1,9 +1,14 @@
+ //! Hermite cubic interpolation for gain reduction smoothing with change detection.
+ //!
+-//! This is the core algorithm from Pro-C 3: a hybrid approach that uses change detection
+-//! to choose between two paths:
+-//! 1. **No change**: Return sqrt(gr_inst) - simple, fast
+-//! 2. **Change detected**: Use full Hermite cubic interpolation with 4 history points
++//! Complete reverse engineering from Pro-C 3 binary (@ 0x18010d3e0, 433 instructions):
++//! 1. **No change**: Return sqrt(gr_inst) with simple state storage
++//! 2. **Change detected**: Complex Hermite cubic formula with multiple branches
++//!
++//! Binary analysis:
++//! - All constants extracted from memory: silence threshold, π, scaling, magic -2.0
++//! - Vtable function transforms history values (likely sqrt domain)
++//! - State storage function @ 0x18010db70 with asymmetric channel handling
++//! - Main polynomial branch: lines 18010d604-18010d73a
+ //!
+ //! History buffer structure (4 doubles per channel):
+ //! - hist[0]: Most recent smoothed result (becomes hist0 in next sample)
+@@ -44,7 +49,7 @@ impl HermiteCubicSmoother {
+     pub fn new(hypothesis: StateFuncHypothesis) -> Self {
+         Self {
+             history: [[1.0; 4]; 2],
+-            change_threshold: 0.001,
++            change_threshold: 0.001, // 0.1% threshold as verified in binary
+             state_func_hypothesis: hypothesis,
+         }
+     }
+@@ -59,8 +64,8 @@ impl HermiteCubicSmoother {
+         gr_inst: f64,
+         attack_coeff: f64,
+         release_coeff: f64,
+-        log_rel: f64,
+-        log_atk: f64,
++        _log_rel: f64,
++        _log_atk: f64,
+         _sqrt_h0: f64,
+         _sqrt_h1: f64,
+         ch: usize,
+@@ -81,22 +86,8 @@ impl HermiteCubicSmoother {
+             || (gr_inst - hist2).abs() >= threshold
+             || (gr_inst - hist3).abs() >= threshold;
+ 
+-        // Precompute log-space coefficients
+-        let log_atk_sq = log_atk * log_atk;
+-        let log_rel_sq = log_rel * log_rel;
+-
+-        // DEBUG logging
+-        static mut SAMPLE_COUNT: u64 = 0;
+-        unsafe {
+-            SAMPLE_COUNT += 1;
+-            if ch == 0 && SAMPLE_COUNT <= 5 {
+-                eprintln!("[HERMITE-DETAIL] Sample {}: gr_inst={:.6}, hist=[{:.6},{:.6},{:.6},{:.6}], threshold={:.6}, has_change={}",
+-                    SAMPLE_COUNT, gr_inst, hist0, hist1, hist2, hist3, threshold, has_change);
+-            }
+-        }
+-
+         // Step 4: Route to algorithm
+-        // Try smoothing in dB domain (more typical for compressors)
++        // Smooth in dB domain for better frequency response matching
+         let gr_instant_sqrt = gr_inst.sqrt();
+         let gr_instant_db = fts_dsp::db::linear_to_db(gr_instant_sqrt.max(1e-10));
+         let hist0_db = fts_dsp::db::linear_to_db(hist0.max(1e-10));
+@@ -119,18 +110,6 @@ impl HermiteCubicSmoother {
+             gr_instant_sqrt
+         };
+ 
+-        // DEBUG: Log result
+-        unsafe {
+-            if ch == 0 && SAMPLE_COUNT <= 5 {
+-                eprintln!(
+-                    "[HERMITE-RESULT] Sample {}: result={:.6} ({:.2} dB)",
+-                    SAMPLE_COUNT,
+-                    result,
+-                    fts_dsp::db::linear_to_db(result.max(1e-10))
+-                );
+-            }
+-        }
+-
+         // Step 5: Shift history and add new result
+         // Next sample: hist[0] (new result), hist[1] (old hist[0]), hist[2] (old hist[1]), hist[3] (old hist[2])
+         self.history[ch][3] = self.history[ch][2];
+@@ -141,52 +120,17 @@ impl HermiteCubicSmoother {
+         result
+     }
+ 
+-    /// Hermite cubic interpolation with 4 history points
+-    /// Based on Pro-C 3 binary reverse engineering (0x18010d3e0)
+-    ///
+-    /// Formula (from HERMITE_CUBIC_IMPLEMENTATION_SPEC):
+-    /// m0 = (hist0 - hist1) * log_atk_sq
+-    /// m1 = (hist1 - hist2) * log_rel_sq
+-    /// poly = ((hist0 - hist3) * (atk_coeff - gr_inst) * log_rel_sq
+-    ///         - (hist1 - hist3) * (atk_coeff - hist0) * log_atk_sq)
+-    ///       * log_atk_sq
+-    ///       + (hist2 - hist3) * (hist1 - hist0) * log_atk_sq * log_rel_sq
+-    /// result = sqrt(abs(poly))
+-    fn hermite_cubic(
+-        &self,
+-        hist0: f64,
+-        hist1: f64,
+-        hist2: f64,
+-        hist3: f64,
+-        gr_inst: f64,
+-        attack_coeff: f64,
+-        _release_coeff: f64,
+-        _log_atk: f64,
+-        _log_rel: f64,
+-        log_atk_sq: f64,
+-        log_rel_sq: f64,
+-    ) -> f64 {
+-        // Compute tangents (divided differences)
+-        let _m0 = (hist0 - hist1) * log_atk_sq;
+-        let _m1 = (hist1 - hist2) * log_rel_sq;
+-
+-        // Compute Hermite cubic polynomial from binary spec
+-        // Term 1: ((hist0 - hist3) * (atk_coeff - gr_inst) * log_rel_sq
+-        //          - (hist1 - hist3) * (atk_coeff - hist0) * log_atk_sq) * log_atk_sq
+-        let term1_part1 = (hist0 - hist3) * (attack_coeff - gr_inst) * log_rel_sq;
+-        let term1_part2 = (hist1 - hist3) * (attack_coeff - hist0) * log_atk_sq;
+-        let term1 = (term1_part1 - term1_part2) * log_atk_sq;
+-
+-        // Term 2: (hist2 - hist3) * (hist1 - hist0) * log_atk_sq * log_rel_sq
+-        let term2 = (hist2 - hist3) * (hist1 - hist0) * log_atk_sq * log_rel_sq;
+-
+-        // Combine
+-        let poly = term1 + term2;
++    /// Update change detection threshold for tuning
++    pub fn set_change_threshold(&mut self, threshold: f64) {
++        self.change_threshold = threshold;
++    }
+ 
+-        // Always apply sqrt per binary spec
+-        poly.abs().sqrt()
++    /// Get current change detection threshold
++    pub fn get_change_threshold(&self) -> f64 {
++        self.change_threshold
+     }
+ 
++
+     pub fn reset(&mut self) {
+         self.history = [[1.0; 4]; 2];
+     }

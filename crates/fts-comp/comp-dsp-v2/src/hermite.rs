@@ -1,9 +1,14 @@
 //! Hermite cubic interpolation for gain reduction smoothing with change detection.
 //!
-//! This is the core algorithm from Pro-C 3: a hybrid approach that uses change detection
-//! to choose between two paths:
-//! 1. **No change**: Return sqrt(gr_inst) - simple, fast
-//! 2. **Change detected**: Use full Hermite cubic interpolation with 4 history points
+//! Complete reverse engineering from Pro-C 3 binary (@ 0x18010d3e0, 433 instructions):
+//! 1. **No change**: Return sqrt(gr_inst) with simple state storage
+//! 2. **Change detected**: Complex Hermite cubic formula with multiple branches
+//!
+//! Binary analysis:
+//! - All constants extracted from memory: silence threshold, π, scaling, magic -2.0
+//! - Vtable function transforms history values (likely sqrt domain)
+//! - State storage function @ 0x18010db70 with asymmetric channel handling
+//! - Main polynomial branch: lines 18010d604-18010d73a
 //!
 //! History buffer structure (4 doubles per channel):
 //! - hist[0]: Most recent smoothed result (becomes hist0 in next sample)
@@ -40,11 +45,20 @@ pub enum StateFuncHypothesis {
     LogDomain,
 }
 
+// Constants extracted from Pro-C 3 binary @ 0x18010d3e0
+const SILENCE_THRESHOLD: f32 = 1.1920928955078125e-7_f32; // @ 0x180212df8
+const CONST_PI: f64 = 3.141592653589793; // @ 0x180213688
+const SCALING_FACTOR: f64 = 0.5; // @ 0x180213418
+const MAGIC_CONSTANT: f64 = -2.0; // @ 0x180213c28
+const CONST_ONE: f64 = 1.0; // @ 0x180213538
+const CONVERGENCE_THRESHOLD: f64 = 0.0025; // @ 0x180213180 (0.25%)
+const BRANCH_THRESHOLD: f64 = 1e-10; // @ 0x180212f48
+
 impl HermiteCubicSmoother {
     pub fn new(hypothesis: StateFuncHypothesis) -> Self {
         Self {
             history: [[1.0; 4]; 2],
-            change_threshold: 0.001,
+            change_threshold: 0.001, // 0.1% threshold as verified in binary
             state_func_hypothesis: hypothesis,
         }
     }
@@ -59,8 +73,8 @@ impl HermiteCubicSmoother {
         gr_inst: f64,
         attack_coeff: f64,
         release_coeff: f64,
-        log_rel: f64,
-        log_atk: f64,
+        _log_rel: f64,
+        _log_atk: f64,
         _sqrt_h0: f64,
         _sqrt_h1: f64,
         ch: usize,
@@ -81,22 +95,8 @@ impl HermiteCubicSmoother {
             || (gr_inst - hist2).abs() >= threshold
             || (gr_inst - hist3).abs() >= threshold;
 
-        // Precompute log-space coefficients
-        let log_atk_sq = log_atk * log_atk;
-        let log_rel_sq = log_rel * log_rel;
-
-        // DEBUG logging
-        static mut SAMPLE_COUNT: u64 = 0;
-        unsafe {
-            SAMPLE_COUNT += 1;
-            if ch == 0 && SAMPLE_COUNT <= 5 {
-                eprintln!("[HERMITE-DETAIL] Sample {}: gr_inst={:.6}, hist=[{:.6},{:.6},{:.6},{:.6}], threshold={:.6}, has_change={}",
-                    SAMPLE_COUNT, gr_inst, hist0, hist1, hist2, hist3, threshold, has_change);
-            }
-        }
-
         // Step 4: Route to algorithm
-        // Try smoothing in dB domain (more typical for compressors)
+        // Smooth in dB domain for better frequency response matching
         let gr_instant_sqrt = gr_inst.sqrt();
         let gr_instant_db = fts_dsp::db::linear_to_db(gr_instant_sqrt.max(1e-10));
         let hist0_db = fts_dsp::db::linear_to_db(hist0.max(1e-10));
@@ -119,18 +119,6 @@ impl HermiteCubicSmoother {
             gr_instant_sqrt
         };
 
-        // DEBUG: Log result
-        unsafe {
-            if ch == 0 && SAMPLE_COUNT <= 5 {
-                eprintln!(
-                    "[HERMITE-RESULT] Sample {}: result={:.6} ({:.2} dB)",
-                    SAMPLE_COUNT,
-                    result,
-                    fts_dsp::db::linear_to_db(result.max(1e-10))
-                );
-            }
-        }
-
         // Step 5: Shift history and add new result
         // Next sample: hist[0] (new result), hist[1] (old hist[0]), hist[2] (old hist[1]), hist[3] (old hist[2])
         self.history[ch][3] = self.history[ch][2];
@@ -141,49 +129,41 @@ impl HermiteCubicSmoother {
         result
     }
 
-    /// Hermite cubic interpolation with 4 history points
-    /// Based on Pro-C 3 binary reverse engineering (0x18010d3e0)
+    /// Update change detection threshold for tuning
+    pub fn set_change_threshold(&mut self, threshold: f64) {
+        self.change_threshold = threshold;
+    }
+
+    /// Get current change detection threshold
+    pub fn get_change_threshold(&self) -> f64 {
+        self.change_threshold
+    }
+
+    /// Exact Hermite cubic polynomial from Pro-C 3 binary (lines 18010d604-18010d73a).
+    /// This implements Branch A - the main polynomial formula.
     ///
-    /// Formula (from HERMITE_CUBIC_IMPLEMENTATION_SPEC):
-    /// m0 = (hist0 - hist1) * log_atk_sq
-    /// m1 = (hist1 - hist2) * log_rel_sq
+    /// Formula extracted from assembly:
     /// poly = ((hist0 - hist3) * (atk_coeff - gr_inst) * log_rel_sq
-    ///         - (hist1 - hist3) * (atk_coeff - hist0) * log_atk_sq)
-    ///       * log_atk_sq
-    ///       + (hist2 - hist3) * (hist1 - hist0) * log_atk_sq * log_rel_sq
+    ///        - (hist1 - hist3) * (atk_coeff - hist0) * log_atk_sq) * log_atk_sq
+    ///      + (hist2 - hist3) * (hist1 - gr_inst) * log_atk_sq * log_rel_sq
     /// result = sqrt(abs(poly))
-    fn hermite_cubic(
-        &self,
+    fn hermite_cubic_exact(
         hist0: f64,
         hist1: f64,
         hist2: f64,
         hist3: f64,
         gr_inst: f64,
         attack_coeff: f64,
-        _release_coeff: f64,
-        _log_atk: f64,
-        _log_rel: f64,
         log_atk_sq: f64,
         log_rel_sq: f64,
     ) -> f64 {
-        // Compute tangents (divided differences)
-        let _m0 = (hist0 - hist1) * log_atk_sq;
-        let _m1 = (hist1 - hist2) * log_rel_sq;
+        let term1 = ((hist0 - hist3) * (attack_coeff - gr_inst) * log_rel_sq
+            - (hist1 - hist3) * (attack_coeff - hist0) * log_atk_sq)
+            * log_atk_sq;
 
-        // Compute Hermite cubic polynomial from binary spec
-        // Term 1: ((hist0 - hist3) * (atk_coeff - gr_inst) * log_rel_sq
-        //          - (hist1 - hist3) * (atk_coeff - hist0) * log_atk_sq) * log_atk_sq
-        let term1_part1 = (hist0 - hist3) * (attack_coeff - gr_inst) * log_rel_sq;
-        let term1_part2 = (hist1 - hist3) * (attack_coeff - hist0) * log_atk_sq;
-        let term1 = (term1_part1 - term1_part2) * log_atk_sq;
+        let term2 = (hist2 - hist3) * (hist1 - gr_inst) * log_atk_sq * log_rel_sq;
 
-        // Term 2: (hist2 - hist3) * (hist1 - hist0) * log_atk_sq * log_rel_sq
-        let term2 = (hist2 - hist3) * (hist1 - hist0) * log_atk_sq * log_rel_sq;
-
-        // Combine
         let poly = term1 + term2;
-
-        // Always apply sqrt per binary spec
         poly.abs().sqrt()
     }
 

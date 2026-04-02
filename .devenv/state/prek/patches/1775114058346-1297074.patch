@@ -1,0 +1,14 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/hermite.rs b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+index 68a37e0..5fad430 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/hermite.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/hermite.rs
+@@ -112,7 +112,8 @@ impl HermiteCubicSmoother {
+             };
+ 
+             // Exponential smoothing in dB domain
+-            let smoothed_db = coeff * hist0_db + (1.0 - coeff) * gr_instant_db;
++            // Try inverted weighting: (1-coeff) * hist + coeff * current
++            let smoothed_db = (1.0 - coeff) * hist0_db + coeff * gr_instant_db;
+             fts_dsp::db::db_to_linear(smoothed_db)
+         } else {
+             // Steady state: just return sqrt
