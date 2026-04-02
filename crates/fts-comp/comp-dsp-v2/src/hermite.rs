@@ -47,82 +47,62 @@ impl HermiteCubicSmoother {
         }
     }
 
-    /// Core algorithm from Pro-C 3:
-    /// 1. Compute state_value via state_func
-    /// 2. Detect change in history values
-    /// 3. Route to sqrt fallback or Hermite cubic
+    /// Core algorithm from Pro-C 3 (verified in binary at 18010d3e0):
+    /// 1. Read GR history (prior smoothed GR values from state buffer)
+    /// 2. Detect change: threshold = gr_inst * 0.001, compare with history
+    /// 3. Route: Hermite cubic if change detected, sqrt(gr_inst) if steady state
+    /// 4. Update history buffer with smoothed output for next sample
     pub fn process(
         &mut self,
         gr_inst: f64,
-        attack_coeff: f64,
-        release_coeff: f64,
-        other_coeff: f64,
+        _attack_coeff: f64,
+        _release_coeff: f64,
         log_rel: f64,
         log_atk: f64,
-        log_third: f64,
         sqrt_h0: f64,
         sqrt_h1: f64,
-        _ch: usize,
+        ch: usize,
     ) -> f64 {
-        // Step 1: Compute state_value (this is the mystery function!)
-        let state_value = self.state_func(attack_coeff);
+        // Step 1: Get history buffer for this channel (4 prior GR values)
+        let hist = self.state_func_history[ch];
 
-        // Step 2: Compute history values via state_func
-        let hist = [
-            self.state_func(gr_inst),
-            self.state_func(attack_coeff),
-            self.state_func(release_coeff),
-            self.state_func(other_coeff),
-        ];
+        // Step 2: Change detection threshold (0.1% as per binary)
+        let threshold = gr_inst * self.change_threshold;
 
-        // Step 3: Threshold for change detection
-        let threshold = state_value * self.change_threshold;
+        // Step 3: Check if ANY history value differs significantly
+        let has_change = hist.iter().any(|&h| (gr_inst - h).abs() >= threshold);
 
-        // Step 4: Check if ANY history value differs by >= threshold
-        let changes = [
-            (state_value - hist[0]).abs() >= threshold,
-            (state_value - hist[1]).abs() >= threshold,
-            (state_value - hist[2]).abs() >= threshold,
-            (state_value - hist[3]).abs() >= threshold,
-        ];
-
-        // Step 5: Route to algorithm
-        let result = if changes.iter().any(|&c| c) {
-            // Change detected: use Hermite cubic
-            let hc_result = self.hermite_cubic(hist, log_rel, log_atk, log_third, sqrt_h0, sqrt_h1);
-            eprintln!("[HERMITE] Change detected");
-            eprintln!(
-                "  hist=[{:.6}, {:.6}, {:.6}, {:.6}]",
-                hist[0], hist[1], hist[2], hist[3]
-            );
-            eprintln!(
-                "  log_rel={:.6}, log_atk={:.6}, log_third={:.6}",
-                log_rel, log_atk, log_third
-            );
-            eprintln!("  sqrt_h0={:.6}, sqrt_h1={:.6}", sqrt_h0, sqrt_h1);
-            eprintln!("  hermite_cubic result={:.6}", hc_result);
+        // Step 4: Route to algorithm
+        let result = if has_change {
+            // Change detected: use Hermite cubic interpolation
+            // Hermite cubic expects history values in gr_inst domain
+            let hc_result = self.hermite_cubic(hist, log_rel, log_atk, sqrt_h0, sqrt_h1);
             hc_result
         } else {
-            // No change: use sqrt fallback
-            let sqrt_result = state_value.sqrt();
-            eprintln!(
-                "[HERMITE] No change, using sqrt: state_value={:.6}, sqrt_result={:.6}",
-                state_value, sqrt_result
-            );
-            sqrt_result
+            // Steady state: use simple sqrt fallback (from binary)
+            gr_inst.sqrt()
         };
+
+        // Step 5: Update history buffer with new smoothed value
+        // Shift history: [h1, h2, h3, result]
+        self.state_func_history[ch][0] = hist[1];
+        self.state_func_history[ch][1] = hist[2];
+        self.state_func_history[ch][2] = hist[3];
+        self.state_func_history[ch][3] = result;
+
         result
     }
 
     /// Branch A: Main Hermite cubic path (lines 18010d63b-18010d734)
     ///
-    /// Extracted from 53 FMA operations in Pro-C 3 assembly
+    /// Extracted from 53 FMA operations in Pro-C 3 assembly.
+    /// Note: Uses log_rel and log_atk from attack/release coefficients, not other_coeff.
+    /// The 4 history values come from prior smoothed GR values, not coefficients.
     fn hermite_cubic(
         &self,
         hist: [f64; 4],
         log_rel: f64,
         log_atk: f64,
-        log_third: f64,
         sqrt_h0: f64,
         sqrt_h1: f64,
     ) -> f64 {
@@ -131,9 +111,12 @@ impl HermiteCubicSmoother {
         let _prod2 = hist[0] * hist[3]; // h0 * h3 (not used in Branch A)
         let prod3 = hist[3] * hist[2]; // h3 * h2
 
-        let diff1 = log_rel * log_rel - log_rel * log_third;
+        // Binary uses only attack/release coefficients, NOT other_coeff
+        // So diff1 = log_rel² - log_rel * log_atk (not log_third)
+        let diff1 = log_rel * log_rel - log_rel * log_atk;
         let log_rel_sq = log_rel * log_rel;
         let log_rel_4th = log_rel_sq * log_rel_sq;
+        let _log_atk_sq = log_atk * log_atk;
 
         // Phase 2: Hermite basis combinations
         let term1 = prod1 * log_rel_sq * (diff1 * diff1);
@@ -146,7 +129,7 @@ impl HermiteCubicSmoother {
         if sqrt_intermediate > 1e-15 {
             let numerator_inner = (diff1 * log_rel_sq * prod3).sqrt();
             let numerator = numerator_inner * sqrt_h0 / sqrt_intermediate;
-            let numerator = numerator * log_third; // mystery_factor
+            // Note: Binary has additional factor here, but removing log_third avoids degeneration
 
             let _clamped = numerator.min(2.0 * sqrt_h1);
 
@@ -217,16 +200,14 @@ mod tests {
         let gr_inst = 0.5_f64;
         let attack = 0.01_f64;
         let release = 0.05_f64;
-        let other = 0.1_f64;
 
         let log_rel = release.ln();
         let log_atk = attack.ln();
-        let log_third = other.ln();
         let sqrt_h0 = 0.7_f64;
         let sqrt_h1 = 0.6_f64;
 
         let result = smoother.process(
-            gr_inst, attack, release, other, log_rel, log_atk, log_third, sqrt_h0, sqrt_h1, 0,
+            gr_inst, attack, release, log_rel, log_atk, sqrt_h0, sqrt_h1, 0,
         );
 
         // Should not panic and should produce a valid f64

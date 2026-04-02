@@ -1,0 +1,42 @@
+diff --git a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055 b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+index 6d71961..367497c 100644
+--- a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
++++ b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+@@ -2,8 +2,8 @@
+   "version": 1,
+   "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+   "created_at": {
+-    "secs_since_epoch": 1775103988,
+-    "nanos_since_epoch": 371742424
++    "secs_since_epoch": 1775108465,
++    "nanos_since_epoch": 128850064
+   },
+   "config_files": [
+     {
+@@ -13,6 +13,14 @@
+         "nanos_since_epoch": 0
+       },
+       "size": 824
++    },
++    {
++      "path": "/home/cody/Development/FastTrackStudio/FTS-Plugins/crates/fts-eq/eq-pro-dsp/.pre-commit-config.yaml",
++      "modified": {
++        "secs_since_epoch": 1,
++        "nanos_since_epoch": 0
++      },
++      "size": 824
+     }
+   ]
+ }
+\ No newline at end of file
+diff --git a/.devenv/state/prek/config-tracking.json b/.devenv/state/prek/config-tracking.json
+index 23a0f06..28847bc 100644
+--- a/.devenv/state/prek/config-tracking.json
++++ b/.devenv/state/prek/config-tracking.json
+@@ -1,4 +1,5 @@
+ [
+   "/home/cody/Development/FastTrackStudio/FTS-Plugins/.pre-commit-config.yaml",
++  "/home/cody/Development/FastTrackStudio/FTS-Plugins/crates/fts-eq/eq-pro-dsp/.pre-commit-config.yaml",
+   ".pre-commit-config.yaml"
+ ]
+\ No newline at end of file

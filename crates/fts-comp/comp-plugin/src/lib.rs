@@ -369,6 +369,19 @@ impl Default for FtsComp {
 impl FtsComp {
     /// Sync nih-plug params → comp-dsp parameters.
     fn sync_params(&mut self) {
+        static mut SYNC_COUNT: u64 = 0;
+        unsafe {
+            SYNC_COUNT += 1;
+            if SYNC_COUNT == 1 {
+                eprintln!(
+                    "[PLUGIN] sync_params: threshold={}, attack={} ms, release={} ms",
+                    self.params.threshold_db.value(),
+                    self.params.attack_ms.value(),
+                    self.params.release_ms.value()
+                );
+            }
+        }
+
         let c = &mut self.chain.comp;
         c.set_threshold(self.params.threshold_db.value() as f64);
         c.set_ratio(self.params.ratio.value() as f64);

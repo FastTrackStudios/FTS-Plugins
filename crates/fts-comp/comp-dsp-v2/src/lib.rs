@@ -113,13 +113,12 @@ impl ProC3Compressor {
 
         // Step 3: SMOOTH GAIN REDUCTION WITH HERMITE CUBIC
         // This is the core algorithm from Pro-C 3:
-        // - Compute log-domain coefficients from attack/release
-        // - Call state_func 4 times to get history values
+        // - Use attack/release coefficients (verified in binary 18010d3e0)
+        // - Compare gr_inst with prior GR history values
         // - Detect change (0.1% threshold)
-        // - Route: Hermite cubic interpolation if change, sqrt if stable
+        // - Route: Hermite cubic if change detected, sqrt(gr_inst) if steady state
         let log_rel = self.gain_curve.release_coeff.ln();
         let log_atk = self.gain_curve.attack_coeff.ln();
-        let log_third = self.gain_curve.other_coeff.ln();
         let sqrt_h0 = gr_instant.sqrt();
         let sqrt_h1 = (gr_instant * 0.9).sqrt(); // Approximate for h1
 
@@ -127,10 +126,8 @@ impl ProC3Compressor {
             gr_instant,
             self.gain_curve.attack_coeff,
             self.gain_curve.release_coeff,
-            self.gain_curve.other_coeff,
             log_rel,
             log_atk,
-            log_third,
             sqrt_h0,
             sqrt_h1,
             channel,

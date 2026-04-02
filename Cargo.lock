@@ -2774,13 +2774,20 @@ version = "0.1.0"
 dependencies = [
  "atomic_float 1.1.0",
  "audio-gui",
- "eq-dsp-v2",
+ "eq-pro-dsp",
  "eq-profiles",
  "eq-ui",
  "fts-dsp",
  "fts-plugin-core",
  "nih_plug",
  "rustfft",
+]
+
+[[package]]
+name = "eq-pro-dsp"
+version = "0.1.0"
+dependencies = [
+ "fts-dsp",
 ]
 
 [[package]]
