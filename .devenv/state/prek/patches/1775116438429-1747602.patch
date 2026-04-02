@@ -1,0 +1,87 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 2ab3d9de91d9fbd6cc6f8e33ac129f38532025c3..743946fd27c2787ad870c9de466a09cf3e6580b3 100644
+GIT binary patch
+delta 257
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HWm>3v185kHYJ?3gw4tm07Rb;RGP9=xeVPW8b
+zz6k}ZNmUOr8-zD7F);i`0w6I41_maEDH|KZxhBqN*nER)j@#xhfnJOPQ<-Km&1G81
+zw3KNj(^{sDOq(BaEn(dJDa4CWU>egbrg=<@n3gfEVp_+v2`cp=+>23QI@4^X`AmzM
+nmNTtpTF<l@D)lbPi&0<((;TJ+OiP$nFs)(Qz_bM<wL=*IWQkR?
+
+delta 190
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HOm>3v185kHY=4G{r%DCURDzevor;@`vp`mzo
+z{*jObQq_aZ2H^=z3=IE~07#61fq{vkWMgAE*X9WBIc}2+xEnTq3G`yzoXEX}ar37T
+Q80$kgjP))G%sQbA0JV8NM*si-
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index f5ea9b779da61d5a491ff667b477d8703cd27866..7e3d37c2297be94b068d98539c59a8c9446dab87 100644
+GIT binary patch
+delta 1494
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXl&8suH)5xr;@`Pvx#M1
+z!~Nf-+a>bl`*^pzd22Q?aRmHge==S0EbDfI8rd&=(~rbx`b;nAlaHRh`i@2^N9?6D
+zm+yZM`nKJpM|La!^trj3!qWxj%S%q@e5;|)QM2fl?Xn{RMi_c;|IsMrsI6bG{jke#
+z$M%XfvVFXaQj;}#XKjDzt@)gh<GHx6Wo-z@zHND$v-ugNrq8L>Oc&)~U|?XdDzXQ=
+zb)(rMwa3RU<!yfvtND<hMM{?0cJfDg$?0luHH0{#IF4KNS}U0#Y0rmv(Zqa_|Ev0z
+zvh6qCpxEioINjqC;{uN5OXX+vWHmh6{^5`87d}==1_lQ2>6O(Qi?BN4>K2zs)kez)
+z+c|jUw(<*uR12k~mZj#ES*2y>q!zP?PcOJ5D~aa1jXwQ4CoG(g;IISgQnpr4(M;~V
+z9osE*<&Z<ii;+=!`kURdbJ@SB?T(YQ*V~q-Y0u9nJ^jLI*=Ve;oO_lpq2y$qA1J7f
+zgH&R1Q>^=rQ}xk?EtrNuo%8zdPRk2Aav!$O$b~y+`a^HcdDG)-<km1sPhP`6hvS@$
+zWLU~?m5tjs)XG89iZ|3@tWpdN3@OtW)M_S6p~U0=|A)8bU71tG#s7$bdHdT~%|kF3
+zg0;v^4}5DU0g2T&4%Y9ZT+?>rGd&v;%}3>XwyfG<v~~NBwJ5G#$R)$cVB09l*~rTQ
+zGC5|t#$GvRsOzh1ZMHr5<XDat27gw|CQHgNFfgFF`|XuO&kygh`HVeKrC2~3I2jli
+zIAIBP+mc6T@2uMuipz91<kTHE^JaF*wfzsbN4!J0zwxIGUiW{Lcw{km%HNsW3;v;n
+zKBLrh?7nE4<@h7klh=ED2cJA7`wB5iqo!FbUWsbHxbUO!v1a@hp?Jth-N)7Y*x~H$
+zJM`pXshK^=D7jI*Lw35xPMKNwBIZ-`X<_E8ih<iF?2-M#$0$4f>KZvOXu`tjHF=M~
+zgdKrpz1vruk=@EKEGx*Y%7l_P3H!5|>+vPFCqc@1>}8Z`Yt(LQ)M;zfZEMtPYt(OR
+yG-zuyY-==XYcy_aG-+!zZEG}ZYcy|bv}kLzY-_Y?YqV}_v}tR!-PUOLBL@Id#1~Hh
+
+delta 1683
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXl&8suH)6QUUwn)QsjLP
+z;gU6*Hb)%n<7JeZtjRlTa^v}hTr!*twvD2kjl3Mw1K--kOwQnUW|W@3CQxS%$E`CS
+zk}J)Xrfn{`_=S&g=44lSFUHxEC&))L&YJv2K3Q@O0|NsG0|NttRgpc|j$@xsdWcLG
+zxV5?C;Z}a(nS#u!Oev{lsd;5qX_+~x#muuO8yHBk%#vlco%~T=Qi>U504D<j11HRY
+z`9AqK+2`-LhtEbfWE&$}i=WC&zUs7n2O}fQTkJ_j$&KRevXe9TX5sUm{=#JG;0J6X
+zn*#*C@J&})pzV#{cjXiIXj|kfF>TIJ*vc<FmvrC7CI04A?F)W_$3hg(#YWi49r)-S
+zuwBB5WY2w^ewT-r`CY+wgCIt@@1_?dGUAN97`DuRHzk#fw|gWpV)x&4fg(n{(f4Q*
+zOUbh@x%zl5Me(9R#`?Ie;Wr((S2Qv9@lIzuuf33wV8k7mEn8u-!^j*x9H*aNpq+x5
+zDt$h*?a8#7@)K{oP1oG0EeF<%k{}cO1LA@o@z2L?6^eJRO}mu(rSU`V_8W)rduKYw
+zL+;y<jOng7J>emr!piL*E-`-LW1Y*uz~DXEQ{D}d7;*UNtYtsf#V?ta+c_SCBa4B7
+zK?pOe;qcVHoz{k@4mI5+WFv~#9vt{-_kI43yBjU=#?$nSK%EC1&t%tD{Lidx1_#@A
+zl?B?|jNq_EDJ}HlV(w(`__Y-rFVp{S(DnkWK?(n7pX%mKa+T~xHweXPY?qfV-MIe{
+z^X3^2aJOymkTrE?oZdY_doIVK7mKRaFTZ?c^M(LOR#?Hpz`&3)`Gb7C9H<CFaaGpA
+z`)lRG4(D_6KVo3soU5>bALKM$kPbOe2`Pc4*pjW1YtrHs`GCa&u$NF=JGF4$<lVgd
+zWt)FAAY7Xfp!0x{BTwqd#@#ldE8xDBVdRKCwVHFz@gy^NC`EJFy!*!gAm!l?h_a9a
+z+A@so0*%`30*yND0*$)u0*!j@0*(6Z0*wak0*!|40*yxP0*%J)0*xl^0*$8a0*z+v
+m0*&VF0*w~!0*#jK0*zMf0*%(~0*yB90*$uY1sd&M<NyE)gF?sv
+
+diff --git a/crates/fts-eq/eq-pro-dsp/src/design.rs b/crates/fts-eq/eq-pro-dsp/src/design.rs
+index c647eca..da2846d 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/design.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/design.rs
+@@ -16,6 +16,7 @@ use std::f64::consts::PI;
+ use crate::biquad::{self, Coeffs};
+ use crate::cascade;
+ use crate::prototype;
++use crate::shelf;
+ use crate::shelf_zpk;
+ use crate::transform;
+ 
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs b/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
+index 021f962..aea7965 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
+@@ -302,7 +302,11 @@ fn compute_effective_q(user_q: f64, filter_type: u32) -> f64 {
+             let exponent = cos_q * C1_POWER + C2_POWER;
+             BASE_POWER.powf(exponent) * C3_POWER
+         }
+-        // Formula 2: Simple scaling by INV_SQRT2 for shelf/tilt/allpass
+-        8 | 9 | 11 | _ => user_q * INV_SQRT2,
++        // Formula 2: For shelf/tilt/allpass
++        // The binary shows Q_transformed = Q * INV_SQRT2, but this is the final parameter.
++        // For the ZPK apply_shelf_gain_to_zpk stage, we need to scale differently.
++        // Based on RBJ equivalence: section_q = bw_q * (user_q / INV_SQRT2)
++        // This means effective Q for ZPK should be inverted
++        8 | 9 | 11 | _ => user_q / INV_SQRT2,
+     }
+ }

@@ -1,0 +1,12 @@
+diff --git a/crates/fts-eq/eq-pro-dsp/src/design.rs b/crates/fts-eq/eq-pro-dsp/src/design.rs
+index 01a148a..5468392 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/design.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/design.rs
+@@ -17,6 +17,7 @@ use crate::biquad::{self, Coeffs};
+ use crate::cascade;
+ use crate::prototype;
+ use crate::shelf;
++use crate::shelf_zpk;
+ use crate::transform;
+ 
+ /// Filter types matching Pro-Q 4's type codes (0-12).

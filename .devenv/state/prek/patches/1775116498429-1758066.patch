@@ -1,0 +1,137 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 2ab3d9de91d9fbd6cc6f8e33ac129f38532025c3..155f9b062fec388ad3b7d8ef5ebc4ddbd7f2a8c8 100644
+GIT binary patch
+delta 321
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HSm>3v185kIX3tKG;SCxFQDzevor;@{KAbMS7
+z?JI`)q^bv*4Z<LE|04mA7y|<X6T_8_jp1AiXE1KQ!6oCi`AeV|qrz0CnM`w;7BVem
+zTFJDQX(Q8CrkzZCnGP}?Wje`pmgyqX=7(HU7&m_k@nTe%#x#p*9@8SGWlXD>)-i2j
+z+QzhtX&=)erejQ}n9ea>f-3zG?!~AuooP1He5S=r%b8X)t!LWIw4G@;(|)GIOvjl{
+zGo5F;3|0Cr%8OB92Gbm-1x!nrRxqt$+Q77hX$R9DrUOhzm`*UAVY<L{1*CL^G5|(}
+BZEOGl
+
+delta 190
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HOm>3v185kHY=4G{r%DCURDzevor;@`vp`mzo
+z{*jObQq_aZ2H^=z3=IE~07#61fq{vkWMgAE*XA4CGH#1Ma5HZH66nRa`62ff#?7BX
+QV5|?}FxI;$FzbXe0N`RjSO5S3
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index f5ea9b779da61d5a491ff667b477d8703cd27866..9cfb517b62868422fa7e47f8657acd096340e8ac 100644
+GIT binary patch
+delta 3347
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXl&8suH)5xr;@`Pvx#M1
+z!~Nf-+a>bl`*^pzd22Q?aRmHge==S0EbDfI8rd&=(~rbx`b;nAlaHRh`i@2^N9?6D
+zm+yZM`nKJpM|La!^trj3!qWxj%S%q@e5;|)QM2fl?Xn{RMi_c;|IsMrsI6bG{jke#
+z$M%XfvVFXaQj;}#XKjDzt@)gh<GHx6Wo-z@zHND$v-ugNrq8L>Oc&)~U|?XdDzXQ=
+zb)(rMwa3RU<!yfvtND<hMM{?0cJfDg$?0luHH0{#IF4KNS}U0#Y0rmv(Zqa_|Ev0z
+zvh6qCpxEioINjqC;{uN5OXX+vWHmh6{^5`87d}==1_lQ2>6O(Qi?BN4>K2zs)kez)
+z+c|jUw(<*uR12k~mZj#ES*2y>q!zP?PcOJ5D~aa1jXwQ4CoG(g;IISgQnpr4(M;~V
+z9osE*<&Z<ii;+=!`kURdbJ@SB?T(YQ*V~q-Y0u9nJ^jLI*=Ve;oO_lpq2y$qA1J7f
+zgH&R1Q>^=rQ}xk?EtrNuo%8zdPRk2Aav!$O$b~y+`a^HcdDG)-<km1sPhP`6hvS@$
+zWLU~?m5tjs)XG89iZ|3@tWpdN3@OtW)M_S6p~U0=|A)8bU71tG#s7$bdHdT~%|kF3
+zg0;v^4}5DU0g2T&4%Y9ZT+?>rGd&v;%}3>XwyfG<v~~NBwJ5G#$R)$cVB09l*~rTQ
+zGC5|t#$GvRsOzh1ZMHr5<XDat27gw|CQHgNFfgFF`|XuO&kygh`HVeKrC2~3I2jli
+zIAIBP+mc6T@2uMuipz91<kTHE^JaF*wfzsbN4!J0zwxIGUiW{Lcw{km%HNsW3;v;n
+zKBLrh?7nE4<@h7klh=ED2cJA7`wB5iqo!FbUWsbHxbUO!v1a@hp?Jth-N)7Y*x~H$
+zJM`pXshK^=D7jI*Lw35xPMKNwBIZ-`X<_E8ih<iF?2-M#$0$4f>KZvOXu`tjHF=M~
+zgdKrpz1vruk=@EKEGx*Y%7l_P3H!5|>+vPFCqc@D>_zeE)32i4(>=P4A%!TUR3qA_
+z5jtyf_cb3^hZL9ypMnZpoIZ`_y3g@CiERd?494nHP>~ETg|Niv+*UuoleSqNgzQD}
+zsR+ya73T^j&x4lVa-i~?XrHd~O1kv7VEYQJVJn9tx$cPJf2|}r=?9@Wm4ns>SbX|A
+z`BG%m^6X25>_zcu$EAHS`)v-eKx+*me9G~V`vFJ!H8p3++%F=~f?gI}ncQ3>=LSo=
+zxcn){`f%NzRGCZAdIh8rwO)ayT|EBWab#xfO-q9;V(doo>%}IUO-EX?@}Tt&5q<?1
+zq4MAgU~fWRiS-6O4b;$;hty5Dd~3$G-}Ua|iyAm%RUT3z;qfh(*)Q&<Rd+TKvKPgt
+z6C^IAZJe{lZ#$$)L-FbM6LkvCjEoRpwY@nc&(o6k8B+1UawWu9ta6}=ZQ2^ycsWp!
+zk5WfyTh?elxVB^uq;6Y#Ms@?XatPu(usM+04oj-N@@kL6n$wp*;&%bKmO}C3{JF`6
+zlJ{0yL+e2lFG7l41#I;p#M=SJX8pw;d5!o2RRO(T<YGGZ#ziVZmiWj78G%w$F7m0;
+zTW~*An2^0FJ{2;L-eL8=l^<GTf_*w2Tw`MQ;q;tcGIQAr-YN#)-}4$$k)cK`BQ&{!
+zoQD#tBC4vrl2HYBA$2B};uaF2EQsU^G6KbiW?wXfrcQd~NyuIlA1+$CO-Xb9zJt&z
+z6zoH2ajQr$F5mnr=Xw6<R5mnB6(Ln9Bnjj6sq2v+t)kZ#utVcg5u*wv>{E-@!r%`j
+zs|xYh%c#)SqTAM@*Vdxn)?(1sV%XMV)Yf9$)?(7uV%pYX*4AR))?(4tV%gSW)z)I&
+P)?(AvV!N%y?nfp7G1_cB
+
+delta 3420
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXl&8suH)6QUUwn)QsjLP
+z;gU6*Hb)%n<7JeZtjRlTa^v}hTr!*twvD2kjl3Mw1K--kOwQnUW|W@3CPZ%z$E`CS
+zk}J)Xrfn{`_=S&g=44lSFUHxEC&))L&YJv2K3Q@O0|NsG0|NttRgpc|j$@xsdWcLG
+zxV5?C;Z}a(nS#u!Oev{lsd;5qX_+~x#muuO8yHBk%#vlco%~T=Qi>U504D<j11HRY
+z`9AqK+2`-LhtEbfWE&$}i=WC&zUs7n2O}fQTkJ_j$&KRevXe9TX5sUm{=#JG;0J6X
+zn*#*C@G;IM?7i{{d$cX`m6$eXC~V~yo=dv-;u3#zs`dpx!Dl0i_hKXL<PLoF4%jZ?
+zM6&ljPQS~;%lxijyFm~m!hh2X5*cyEUkqF3znhXu#@juT7_s|sx<C;l-WYteiKXP(
+zmt1}PwxW2_AY*;p*6^E-+bfzto|FS6O=9Elz--wHlO0Cpm?1h3dlL2e(6%SjYRXUi
+zaX1fm5>4<AhzowiKOdisDBim^?NaKO#t*sMZyX}Zd($}{a^HsJS$DnZ2@m-cR&M`r
+ziSY{`>s$r~2Jgw9@@~*vh{KC#E&I7He#xxd&hZ!=iwq15LRhjP9zX8eX>EAwP}5z4
+z_M&+7!GWK4-{<eRyV0VLmyx(wl!p{F&t%tD{LidxMh?^Y;DQE+7xm*}?qu)ywG~$^
+z&IcDXczpQmQ{B8tu9DsOY(()K+vTN8H|{^gym^KLy6?7k$eKDcGD7{b=*6O{^~*0`
+z*}NeDp6kGVVV%doz>qTegM7RksN6#-II|AkUn>`OIG>CE5d-t)T!jtTiWjh_z^2H7
+zifRcg<)>_wT$2{B$Ok-@gG+4`uT3qSH+eTNf7#|A4d`A27oiGRY6z%j^Q4|^+-(!O
+z0#`6DK(8TUPp#&hb3Dn6*oXrefKo%)y!*!gAm!l?d^V!^Za>r3w^z7B1t9evI9Y=0
+zJv_cj_@7v{+{{)2QVT&U25=NILXsoMQ7F-u`_<s<`t3|}AoU(*#Q=^u7DRFc8Gz!e
+z>GO{^Ev{y`g3m@2U(HOgpLN{l=?Q4P2lf`U%v2;4X?v4Gc}i6{;=n;TU1hPZHzQu(
+z`MhIz5!2Va1{`P8|8CY5VkGFHi`$}|HnN{f!ea-De=H6*J-)nAwGLX*k>sC)`SW`Z
+zZ8*UMsdAtmg4A<3;_K~<^3(s{uXKgfb5Jiqsx~~4^z0+QZBMK2R=oD0_{#suL1W*g
+zY11J!+jO=|x(gWzMo;bRADzc`R!u|?y6LAE>!wJ8k`7ARQ#m0y^Tu(z&*-r;U2}`B
+z99TI@N=vo<x?SYZ#I?9hNAW@B)T>^zCn;q^Dla@fK&rLm=O{A<?3nHitvwdPYb|gp
+z!{Lo*tBt<LaQwavt+YUzP%ABPlEdMt8S1;GWEW_DCS)Uu*UUdXH2!*$lNnT9;qzEV
+zh~5K^ohlbsPE%=p3l6sJDvNcw8Np$T5*6+9a&NBM*z_MB6<%O9DB*wjPo}ut{*9XG
+z2BA3Z=MJ+~wWb>{f-4)S+aR^f^zO;Jb2&O5Pq!A6XKe!)^PmL3f(2f;U?h-bGM&5b
+zNQx^W>K0If*9GZ-)gvH1D6X7j6x{t_Prx)R7J$8k;@W>5IV(;vugC${A28Qu1nWIu
+z<S5x{#MCD7L<#O&8AguRzh9}jzM6Ld9!k+17THTzTv5HN22mDrSXYLzU7$s`U7$s;
+zU7$t3U7*FFU7*FVU7*FNU7*FdU7*FJU7*FZU7*FRU7*FhU7*FHU7*FXU7*FPU7*Ff
+SU7*FLU7*EwyFiQGi%bCU5{z#E
+
+diff --git a/crates/fts-eq/eq-pro-dsp/src/design.rs b/crates/fts-eq/eq-pro-dsp/src/design.rs
+index c647eca..da2846d 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/design.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/design.rs
+@@ -16,6 +16,7 @@ use std::f64::consts::PI;
+ use crate::biquad::{self, Coeffs};
+ use crate::cascade;
+ use crate::prototype;
++use crate::shelf;
+ use crate::shelf_zpk;
+ use crate::transform;
+ 
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs b/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
+index 021f962..27afe28 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
+@@ -68,8 +68,10 @@ pub fn design_low_shelf_zpk(
+     // Transform Q based on filter type (type 7 uses Formula 2)
+     let q_transformed = compute_effective_q(user_q, 7);
+ 
+-    // Convert gain_db to linear gain (applies to all types)
+-    let linear_gain = (user_gain_db * LN10_OVER_20).exp();
++    // Divide gain across sections (like RBJ implementation)
++    let section_gain_db = user_gain_db / n as f64;
++    // Convert section gain_db to linear gain
++    let linear_gain = (section_gain_db * LN10_OVER_20).exp();
+ 
+     let mut sections = Vec::new();
+ 
+@@ -127,8 +129,9 @@ pub fn design_high_shelf_zpk(
+     // Transform Q based on filter type (type 8 uses Formula 2)
+     let q_transformed = compute_effective_q(user_q, 8);
+ 
+-    // Convert gain_db to linear gain
+-    let linear_gain = (user_gain_db * LN10_OVER_20).exp();
++    // Divide gain across sections
++    let section_gain_db = user_gain_db / n as f64;
++    let linear_gain = (section_gain_db * LN10_OVER_20).exp();
+ 
+     let mut sections = Vec::new();
+ 
+@@ -302,7 +305,11 @@ fn compute_effective_q(user_q: f64, filter_type: u32) -> f64 {
+             let exponent = cos_q * C1_POWER + C2_POWER;
+             BASE_POWER.powf(exponent) * C3_POWER
+         }
+-        // Formula 2: Simple scaling by INV_SQRT2 for shelf/tilt/allpass
+-        8 | 9 | 11 | _ => user_q * INV_SQRT2,
++        // Formula 2: For shelf/tilt/allpass
++        // The binary shows Q_transformed = Q * INV_SQRT2, but this is the final parameter.
++        // For the ZPK apply_shelf_gain_to_zpk stage, we need to scale differently.
++        // Based on RBJ equivalence: section_q = bw_q * (user_q / INV_SQRT2)
++        // This means effective Q for ZPK should be inverted
++        8 | 9 | 11 | _ => user_q / INV_SQRT2,
+     }
+ }

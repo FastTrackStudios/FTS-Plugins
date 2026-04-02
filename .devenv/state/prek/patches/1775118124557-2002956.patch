@@ -1,0 +1,293 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 2ab3d9de91d9fbd6cc6f8e33ac129f38532025c3..071bcb8ace4a66b0536ec257ab318044182ca359 100644
+GIT binary patch
+delta 449
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9Gy%nS^i3=9lcuYQO*>*%ClRb;RGP9=x;LRoe1
+zYma-`q^bv*4Z;G<3=IE~07#61fq{wP%f`lVu7xw0Hs9cqaozkS(2LPwD$`7+xl9Y0
+zmNKnmTFbPNX)DuCroBuDnT|4@WID@qk?AVaO{Tj{51F1ay<~dJ^pWW+(@&<qOpMH|
+z%$&@;%!16DA99s2ZvGVF#pp1NX%^EwrbSH4m{u{ZW7@>DjcFItKBhxV$CyqronyMh
+zbdBj2(><m~OwX8JF}-8@#Pp5n7t=o`CT2EfE@nPvA*fLw!o3(BrZdfEn$NVDX*tts
+zru9slnYJ_SX4=nmnCUpvX{Pf`mzl0J-DbMa^qA>6(`%;pOrM#)GyP`z&&15k&dkls
+z&nyfz>Rpr<qr(iQIZO+fmN2bgTEnz~X$#X1raeptn2s==U^>Hef$0j<4W>Ix515`X
+gy<mF7^nvLM(+{RUObpB{%pA--%mU0JAfq~z0e#PxlmGw#
+
+delta 190
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HOm>3v185kHY=4G{r%DCURDzevor;@`vp`mzo
+z{*jObQq_aZ2H^=z3=IE~07#61fq{vkWMgAE*XA2MGOmk1@Gx!u66nRa`6161#?7BX
+QV5|?}FxI;$FzbXe0O0>WUH||9
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index f5ea9b779da61d5a491ff667b477d8703cd27866..3619927e16829293c7e05c604ad2aec001a5c4b7 100644
+GIT binary patch
+delta 7053
+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
+O%ciZ%c3YR-k7NKB_Zn9K
+
+delta 6970
+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
+zVznmZGec^&>1;O)7c%0Do->N(bJ+v#Xg^(C!HOPo(@(E7Opyeo9F(MITh?*8Bra<?
+zdgM&k++`>SR*sU;Sc7X{`UHOI#BDl?2V&-{OtDs~P>0lAcszhqX{j=$AKv@(s6Vvw
+zSP8GRz=;fpH-fpA1WpOL6A!JkK$=kNEO3g$;i*M`cH~qrbKNIoBZ}9u8D`BjTNTd_
+zs;%&OEF;S30f*Dn<K6#qiyOhgwq0eVAvYs9Y*C^jD_Jtw`qk%PcvN_S)u4p`obc+-
+zzQ%M_bc0Zw_U~$viIwANU2t6kbsMCTnch9qa4v_=WIbD!H4|5XOL<UwU%>*eS}+pG
+zOD^}2?+Hz=h^hsY-gQAbVATjn4~i=<bL^H?v|(C=#R9OGP+a>oep8T^XM_Z}`hdAM
+zBhu&rBgenWUn&XDZLh(7E5pd4CuaEIZrJ}L@KB28kg9Zwa`@Qf1W^`p(olx6U7*Xb
+zU7*XTU7*XjU7*XPU7*XfU7*XXU7*XnU7*XNU7*XdU7*XVU7*XlU7*XRU7*W$yFi!S
+Gi(~+Ns3WQX
+
+diff --git a/crates/fts-eq/eq-pro-dsp/src/design.rs b/crates/fts-eq/eq-pro-dsp/src/design.rs
+index c647eca..bcbc538 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/design.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/design.rs
+@@ -16,7 +16,7 @@ use std::f64::consts::PI;
+ use crate::biquad::{self, Coeffs};
+ use crate::cascade;
+ use crate::prototype;
+-use crate::shelf_zpk;
++use crate::shelf;
+ use crate::transform;
+ 
+ /// Filter types matching Pro-Q 4's type codes (0-12).
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs b/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
+index 021f962..8bc8fef 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
+@@ -44,11 +44,12 @@ const CONST_LOW_SHELF: f64 = 0.5; // At 0x180231a00
+ /// Design a low shelf filter (type 7) via actual ZPK pipeline.
+ ///
+ /// Type 7 is low shelf: gain is applied by scaling poles via apply_shelf_gain_to_zpk.
++/// CRITICAL: Poles are DIVIDED by gain_param (not multiplied)
+ ///
+ /// Pipeline:
+ /// 1. Create Butterworth LP prototype (order 2 for 1 biquad section)
+-/// 2. Transform Q based on filter type (type 7 uses INV_SQRT2 scaling)
+-/// 3. Apply shelf gain scaling to poles
++/// 2. Transform Q: Q * INV_SQRT2 (Formula 2 for shelf types)
++/// 3. Apply shelf gain scaling: divide poles, multiply zeros
+ /// 4. Apply bilinear transform
+ /// 5. Convert ZPK to biquad coefficients
+ /// 6. Apply linear gain to numerator coefficients
+@@ -65,11 +66,16 @@ pub fn design_low_shelf_zpk(
+         return vec![crate::biquad::PASSTHROUGH; n];
+     }
+ 
+-    // Transform Q based on filter type (type 7 uses Formula 2)
+-    let q_transformed = compute_effective_q(user_q, 7);
++    // Apply Formula 2: Q * INV_SQRT2 for shelf types
++    let q_transformed = user_q * INV_SQRT2;
+ 
+-    // Convert gain_db to linear gain (applies to all types)
+-    let linear_gain = (user_gain_db * LN10_OVER_20).exp();
++    // Divide gain across sections
++    let section_gain_db = user_gain_db / n as f64;
++    // Convert section gain_db to linear gain
++    let linear_gain = (section_gain_db * LN10_OVER_20).exp();
++
++    // For apply_shelf_gain_to_zpk, use square root of linear gain
++    let gain_param = linear_gain.sqrt();
+ 
+     let mut sections = Vec::new();
+ 
+@@ -77,8 +83,8 @@ pub fn design_low_shelf_zpk(
+         // Create order-2 Butterworth prototype
+         let mut zpk = prototype::butterworth_lp(2);
+ 
+-        // Apply shelf gain scaling (Type 7 uses const_low = 0.5)
+-        apply_shelf_gain_to_zpk_type7(&mut zpk, q_transformed);
++        // Apply shelf gain scaling (Type 7: divide poles, multiply zeros)
++        apply_shelf_gain_to_zpk_type7(&mut zpk, gain_param);
+ 
+         // Apply bilinear transform
+         zpk = transform::bilinear(&zpk, sample_rate);
+@@ -102,15 +108,17 @@ pub fn design_low_shelf_zpk(
+ 
+ /// Design a high shelf filter (type 8) via ZPK pipeline.
+ ///
+-/// Type 8 is high shelf: gain is applied via linear gain scaling in biquad coefficients.
+-/// Unlike type 7, this type does NOT call apply_shelf_gain_to_zpk.
++/// Type 8 is high shelf: gain is applied via pole/zero magnitude ratio in biquad domain.
++/// CRITICAL: Type 8 does NOT call apply_shelf_gain_to_zpk (unlike type 7)
++/// Instead, gain scaling happens AFTER biquad conversion via magnitude ratio.
+ ///
+ /// Pipeline:
+ /// 1. Create Butterworth LP prototype (order 2)
+-/// 2. Transform Q based on filter type (type 8 uses Formula 2)
++/// 2. Transform Q: Q * INV_SQRT2 (Formula 2 for shelf types)
+ /// 3. Apply bilinear transform directly (NO pole scaling)
+ /// 4. Convert ZPK to biquad coefficients
+-/// 5. Apply linear gain to numerator coefficients
++/// 5. SPECIAL TYPE 8: Scale numerator by 1 / sqrt(|zero|² / |pole|²)
++/// 6. Apply linear gain to numerator coefficients
+ pub fn design_high_shelf_zpk(
+     n_sections: usize,
+     _freq_hz: f64,
+@@ -124,11 +132,12 @@ pub fn design_high_shelf_zpk(
+         return vec![crate::biquad::PASSTHROUGH; n];
+     }
+ 
+-    // Transform Q based on filter type (type 8 uses Formula 2)
+-    let q_transformed = compute_effective_q(user_q, 8);
++    // Apply Formula 2: Q * INV_SQRT2 for shelf types
++    let q_transformed = user_q * INV_SQRT2;
+ 
+-    // Convert gain_db to linear gain
+-    let linear_gain = (user_gain_db * LN10_OVER_20).exp();
++    // Divide gain across sections
++    let section_gain_db = user_gain_db / n as f64;
++    let linear_gain = (section_gain_db * LN10_OVER_20).exp();
+ 
+     let mut sections = Vec::new();
+ 
+@@ -137,17 +146,25 @@ pub fn design_high_shelf_zpk(
+         let mut zpk = prototype::butterworth_lp(2);
+ 
+         // Type 8 does NOT call apply_shelf_gain_to_zpk!
+-        // Instead, poles are scaled by q_transformed (without the gain_param exponent)
+-        for pole in zpk.poles.iter_mut() {
+-            *pole = *pole * q_transformed;
+-        }
++        // Poles and zeros remain at prototype positions
++        // Gain is applied later via magnitude ratio scaling
+ 
+         // Apply bilinear transform
+         zpk = transform::bilinear(&zpk, sample_rate);
+ 
+-        // Convert to biquad and apply gain
++        // Convert to biquad
+         let mut sos = biquad::zpk_to_sos(&zpk);
+ 
++        // Type 8 SPECIAL CASE: Scale numerator by pole/zero magnitude ratio
++        // From zpk_sections_to_biquads in binary (0x1800fca50):
++        // ratio = sqrt(|zero|² / |pole|²)
++        // numerator *= (1.0 / ratio)
++        //
++        // NOTE: This requires access to original poles/zeros which are lost after bilinear.
++        // Current biquad::zpk_to_sos doesn't preserve this info.
++        // TODO: Implement special Type 8 biquad conversion that applies magnitude ratio scaling.
++        // For now, we apply linear gain directly (approximation).
++
+         // Apply linear gain to numerator
+         // Coeffs format: [a0, a1, a2, b0, b1, b2]
+         for coeffs in sos.iter_mut() {
+@@ -187,11 +204,12 @@ pub fn design_tilt_shelf_zpk(
+         return vec![crate::biquad::PASSTHROUGH; n];
+     }
+ 
+-    // Transform Q based on filter type (type 9 uses Formula 2)
+-    let q_transformed = compute_effective_q(user_q, 9);
++    // For ZPK pipeline, use raw user_Q without formula transformation
++    let q_transformed = user_q;
+ 
+-    // Convert gain_db to linear gain
+-    let linear_gain = (user_gain_db * LN10_OVER_20).exp();
++    // Divide gain across sections
++    let section_gain_db = user_gain_db / n as f64;
++    let linear_gain = (section_gain_db * LN10_OVER_20).exp();
+ 
+     // Post-bilinear scaling for type 9: Q * sqrt(2)
+     let post_bilinear_scale = q_transformed * std::f64::consts::SQRT_2;
+@@ -302,7 +320,11 @@ fn compute_effective_q(user_q: f64, filter_type: u32) -> f64 {
+             let exponent = cos_q * C1_POWER + C2_POWER;
+             BASE_POWER.powf(exponent) * C3_POWER
+         }
+-        // Formula 2: Simple scaling by INV_SQRT2 for shelf/tilt/allpass
+-        8 | 9 | 11 | _ => user_q * INV_SQRT2,
++        // Formula 2: For shelf/tilt/allpass
++        // The binary shows Q_transformed = Q * INV_SQRT2, but this is the final parameter.
++        // For the ZPK apply_shelf_gain_to_zpk stage, we need to scale differently.
++        // Based on RBJ equivalence: section_q = bw_q * (user_q / INV_SQRT2)
++        // This means effective Q for ZPK should be inverted
++        8 | 9 | 11 | _ => user_q / INV_SQRT2,
+     }
+ }

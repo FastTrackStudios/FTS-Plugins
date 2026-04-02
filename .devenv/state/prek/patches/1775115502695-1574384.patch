@@ -1,0 +1,107 @@
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs b/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
+index 82d1301..d3ac508 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf_zpk.rs
+@@ -12,9 +12,20 @@
+ //!   4. Convert ZPK to biquad coefficients
+ //!   5. For type 9 (tilt): apply scale_zpk_coefficients_by_gain post-bilinear
+ //!
+-//! MYSTERY: The relationship between (user_Q, user_gain_dB) → effective_Q is unknown!
+-//! The dB gain parameter is NOT directly used in apply_shelf_gain_to_zpk.
+-//! Hypothesis: Gain is pre-computed into Q by the plugin parameter interface.
++//! DISCOVERED FORMULAS (from apply_eq_band_parameters_full at 0x1801110b0):
++//!
++//! For types 1, 2, 4, 5, 6, 12 (peak, notch filters):
++//!   Q_transformed = 32^(cos(user_Q) * 0.1355425119 + 0.5) * 0.125
++//!
++//! For types 8, 9, 11+ (shelf, tilt, allpass):
++//!   Q_transformed = user_Q * 0.7071067812 (INV_SQRT2)
++//!
++//! For ALL types (gain application):
++//!   linear_gain = exp(gain_db * 0.115129254649702)
++//!                = 10^(gain_db / 20)  [mathematically equivalent]
++//!
++//! KEY DISCOVERY: gain_db and Q are applied INDEPENDENTLY!
++//! Gain is NOT encoded into Q, but applied separately via biquad numerator coefficients.
+ 
+ use std::f64::consts::PI;
+ 
+@@ -23,15 +34,26 @@ use crate::prototype;
+ use crate::transform;
+ use crate::zpk::Zpk;
+ 
++// Constants extracted from Pro-Q 4 binary via reverse engineering
++const LN10_OVER_20: f64 = 0.115129254649702;  // At 0x180231988
++const BASE_POWER: f64 = 32.0;                  // At 0x180231df4
++const C1_POWER: f64 = 0.1355425119;            // At 0x180231764
++const C2_POWER: f64 = 0.5;                     // At 0x180231804
++const C3_POWER: f64 = 0.125;                   // At 0x180231760
++const INV_SQRT2: f64 = std::f64::consts::FRAC_1_SQRT_2;  // 0x18028737c
++const CONST_LOW_SHELF: f64 = 0.5;              // At 0x180231a00
++
+ /// Design a low shelf filter (type 7) via actual ZPK pipeline.
+ ///
+-/// Input: user_Q and user_gain_dB
+-/// Output: Biquad coefficients
++/// Type 7 is low shelf: gain is applied by scaling poles via apply_shelf_gain_to_zpk.
+ ///
+-/// # WARNING
+-/// The actual dB gain formula (user_Q, user_gain_dB) → effective_Q is not yet known!
+-/// This implementation currently uses user_Q directly, which will NOT produce correct gain.
+-/// The missing formula is likely in the plugin parameter processing layer.
++/// Pipeline:
++/// 1. Create Butterworth LP prototype (order 2 for 1 biquad section)
++/// 2. Transform Q based on filter type (type 7 uses INV_SQRT2 scaling)
++/// 3. Apply shelf gain scaling to poles
++/// 4. Apply bilinear transform
++/// 5. Convert ZPK to biquad coefficients
++/// 6. Apply linear gain to numerator coefficients
+ pub fn design_low_shelf_zpk(
+     n_sections: usize,
+     freq_hz: f64,
+@@ -45,29 +67,34 @@ pub fn design_low_shelf_zpk(
+         return vec![crate::biquad::PASSTHROUGH; n];
+     }
+ 
+-    // TODO: This is the missing piece!
+-    // We need to find: effective_Q = f(user_Q, user_gain_dB, shelf_type=7)
+-    // For now, use user_Q directly (WRONG but shows the structure)
+-    let effective_q = user_q;
++    // Transform Q based on filter type (type 7 uses Formula 2)
++    let q_transformed = compute_effective_q(user_q, 7);
++
++    // Convert gain_db to linear gain (applies to all types)
++    let linear_gain = (user_gain_db * LN10_OVER_20).exp();
+ 
+     let mut sections = Vec::new();
+ 
+-    for k in 0..n {
++    for _k in 0..n {
+         // Create order-2 Butterworth prototype
+         let mut zpk = prototype::butterworth_lp(2);
+ 
+         // Apply shelf gain scaling (Type 7 uses const_low = 0.5)
+-        apply_shelf_gain_to_zpk_type7(&mut zpk, effective_q);
++        apply_shelf_gain_to_zpk_type7(&mut zpk, q_transformed);
+ 
+         // Apply bilinear transform
+         let w0 = 2.0 * PI * freq_hz / sample_rate;
+-        // TODO: apply bilinear transform
++        transform::bilinear_transform_zpk(&mut zpk, w0);
++
++        // Convert to biquad and apply gain
++        let mut coeffs = crate::zpk::zpk_to_biquad_coefficients(&zpk);
+ 
+-        // Convert to biquad
+-        // TODO: convert ZPK to biquad coefficients
++        // Apply linear gain to numerator (shelf gain in biquad domain)
++        coeffs.b0 *= linear_gain;
++        coeffs.b1 *= linear_gain;
++        coeffs.b2 *= linear_gain;
+ 
+-        // Placeholder
+-        sections.push(crate::biquad::PASSTHROUGH);
++        sections.push(coeffs);
+     }
+ 
+     sections
