@@ -39,6 +39,7 @@ pub struct ProC3Compressor {
     pub attack_ms: f64,
     pub release_ms: f64,
     pub knee_db: f64,
+    pub style: i32,
 
     // I/O parameters
     pub input_gain_db: f64,
@@ -69,6 +70,7 @@ impl ProC3Compressor {
             attack_ms: 10.0,
             release_ms: 50.0,
             knee_db: 2.0,
+            style: 0,
             input_gain_db: 0.0,
             output_gain_db: 0.0,
             fold: 1.0,

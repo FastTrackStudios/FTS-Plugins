@@ -119,6 +119,9 @@ pub struct FtsCompParams {
     #[id = "lookahead"]
     pub lookahead_ms: FloatParam,
 
+    #[id = "style"]
+    pub style: IntParam,
+
     /// Read-only gain reduction output for host metering.
     #[id = "gr_out"]
     pub gr_output_db: FloatParam,
@@ -315,6 +318,8 @@ impl Default for FtsCompParams {
             .with_unit(" ms")
             .with_value_to_string(formatters::v2s_f32_rounded(1)),
 
+            style: IntParam::new("Style", 0, IntRange::Linear { min: 0, max: 4 }),
+
             gr_output_db: FloatParam::new(
                 "GR",
                 0.0,
@@ -388,6 +393,7 @@ impl FtsComp {
         c.set_attack_ms(self.params.attack_ms.value() as f64);
         c.set_release_ms(self.params.release_ms.value() as f64);
         c.set_knee(self.params.knee_db.value() as f64);
+        c.style = self.params.style.value();
         c.auto_makeup = self.params.auto_makeup.value() > 0.5;
         c.feedback = self.params.feedback.value() as f64;
         c.channel_link = self.params.channel_link.value() as f64;

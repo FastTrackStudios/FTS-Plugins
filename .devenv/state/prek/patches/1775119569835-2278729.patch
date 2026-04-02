@@ -1,0 +1,104 @@
+diff --git a/.claude/scheduled_tasks.lock b/.claude/scheduled_tasks.lock
+index 313db54..8dffad2 100644
+--- a/.claude/scheduled_tasks.lock
++++ b/.claude/scheduled_tasks.lock
+@@ -1 +1 @@
+-{"sessionId":"6b6c613e-da24-4bbc-af3f-19d35e0d90de","pid":20199,"acquiredAt":1775117031694}
+\ No newline at end of file
++{"sessionId":"28995a96-976b-4352-849d-38a47674e054","pid":2170216,"acquiredAt":1775119396819}
+\ No newline at end of file
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 16577b1346356c299a14bfd2b34455fce9f21e74..6f573fd1baf3c34a9197be96383387a65591650c 100644
+GIT binary patch
+delta 321
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9Ham>3v185kHs#C59wvqZ*O71`^)Q_0~?*u%kb
+zX3}0KQq_aZ2H_7(3=IE~07#61fq{wP%Erd)TnlF~ZjRud<GT4vU=*XmR;HaydzlV0
+z9c4Pnbe8EN(^aOMOm~?cGCgH_$@G@#Bh%(Y?iR+)pF*M-6}B<$V%o=ai0K&9DW-Ew
+zmzb_G-D0}O^oZ#h(<`QTOrM}iKZHjyDr{%k&9tBCFw=3S(@f`?E;C(cy3KT-=`quD
+zrq@jGnLb06zKe=tRM^3^hv@**5vCJNXP7Q9U17Sxbcg8y(-Wo_OmCPzFns|jouLc>
+D0-|y%
+
+delta 190
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HWm>3v185kHYJ?3gw4tm07Rb;RGP9=xeVPW8b
+zz6k}ZNmUOr8-zjT{zn2JF$M+(CWb8=8?SS1j^LT&y10Ocar2kJD8|i+JWCiie+q%I
+OK7_+q@1nr09m)VZ3qFSc
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index 7e3d37c2297be94b068d98539c59a8c9446dab87..cc57fba70677841449918adf67fdef646ae6d541 100644
+GIT binary patch
+delta 3330
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXtZdyXl>EvZsgT{r;@|_
+z^s8w1bdPT1?GpL&eZ1S<{Ir{xI3je`<nC)euD;!%M)nKe^ds@wKGO^O<fEsrzOPlv
+z5zTd<<8>0-jO`vhvRnD5&n?gvo-Qz7UUE9;2Q7V$xvhSFCvCGlF!bL3uT{z+!t#E_
+zxq`{_wpXl??c-&Xo2<z@Yx_e#?dOaftGtpf{VmwOV*7;v?b-Z{a?^7Xv`aX4#PGjX
+zlAQEo`-=qahx{yZvdp%VKgvr^SNotP#PK@$Qe@Qf>`Ta6(nZ-A7#J9=itNGu>$tQp
+zX1~n=mhCs*pjhb6INjqO=R)>tYR;0mUqrTl_#^v;k5!g|fx&yaXPnj|nEi6B57+HU
+zmASN?gI8`Vzc5IFP)cf9YF?RDT4qjaF^lx{f;+O3Xb#(PWM=G5OM@&N#-h3LVw26L
+zBQ05Z+bwkEkORewkx_o~8vZ#PdlT|XtT*Usfc$CC&nQ3r!fDxPm<!F=_PgF)d{F}w
+zLdQXpSlq*9_KUk|)tyaP3_x?s1c?i28|SR?+dd-~?w08f{j}#zkFSwi19eZ^n?v$E
+zEqR}}Z>W`nqz`YXqgdq_7#LEf7bIvG@M>GuXg|2NWDghrBL?Q}Zxgf+!CVJcB{x0r
+zt(^oUBCovK<FMxR<&XFbOh%2^`E!#CCGV}a-u`1PibEH2DR45_Hi~jK@^XM|h?%aj
+zSI(JHetJ)@=3I7Tv;Ja_yhikJ__JCzSyF+4fq?@#?Qk(2d*dP%A&Wg^rC2~3I2jli
+zIAMuxkx!N0g8QMuIE_b1nnLE$JFMQf@^6oLhwwq;PZ^v($k`<`m%ZSvV(|SvueTTc
+zLkoIFx#`%wA)>0<D;ZUAcY6n)JS4vgG0LN+S}cAs`=TK<b<!hG{1%~jXwk}TN}BWc
+z9o)V{Pac+z*^`Wt8^t>mr)%t#nS~>2z-j!=uX3K}k4|N8pRh;v3m>E6^s8&+yr8KH
+zr`KGM{Ad-uzJPuEiZilX`Gpk)nN^ukawlPbTC^4he<)d1NXT9kpYm`0^kYuWIzvdQ
+z2`R>i_GxEcWLcrs%}z)OiSQ|?gvII8pMJG_6J}UfK?+^0J_VJ*@Nx)CjE3Bdy5F{S
+z(L6%-qWCnmPiCpm<nSZV0$T}GU=!_AFJXt*)<2^zVGUa)9Le?80xg5qHwlLb#i<gs
+zD!}5?kJCzjX{_(xK*(McpEh-+y?i`%*(GRAL4;2^9&$h6xRhj?bF{g<4O-MIf@_eQ
+zYvkNuX&0A2yJWnZR|MW<fz~V_ji@yXH0|Q?CxgcxzP$m)0mRsi;#dB(JLhLjs!f5`
+zI7IjrT!<=zbL#Hwy0wf^ok^&ns|=}>aQXJ*+&Qa09guXw8LP^W5($rQUv3RPbLWec
+z0wH@*e0tW>M0mB~pEuC@48^D0Pt++mGcrPa#j>wBW75ilrI0EJmMbB?VpRgwYSY%p
+z#>;`qe3VL}(%MmBt^7SZNG-SajO+$%<q*VoU~?e#9+p%q@b#+Tg_Qnu{4M}jQz%|+
+z+puiit;v@ep*10j7a_&23bq;%;%!&1A1{Qr)t|-}s4D0cW8gIN!kupo+KG=$kP#?V
+zCG(e6{Kspo1PR%T;?tEpuUe1UtJXqmOt4R<gKJDYJ`~bo=sFi$QwyocP$QNRnp{E7
+zLy6ThM?)9YT#8)}sWY(@w~z>BK_pj@5hy-9dwDu@TxyFyA$w7L*k<WdAC<)z4y{7L
+zK7<yxss!UwvHx}JjFab&Lc>%QQiVd2FixMYsr1p}35z=jjZ0OGDwMEKt98Uf;v!l8
+z<FS`frLA4Rt=*ul-LS3QsIA?&t=*)p-L$RUtgYR=t=*!n-LkFSs;%9+t=*=r-F92M
+H-H$W?S9@cu
+
+delta 3415
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXtZdyXl>EvZsgUmUUwmP
+zKhxH?SGYq3Hb)%n<7JeatjRlTa^v}hTnd~FwvD2kjl3Mw1K--kOwQnUW|W`4Cfr~S
+zN5cQas^w<35}OMye&J)BJK0s<i*f$s3G&g5^CrKMPnKN3z`(%4z`(#@Rb&sgBloMp
+z*Y(?(=4|eGxRqact{}52Q%Y)CYF?RDT4qjaG4uS%1_qKW^JJNACx4Welwt-Mz{$YC
+zzzH*8`uw9!i>n!~;Iokp*~Xa(_Op)rJUy{}2O}fQTkJ_j$&KReijy<=X5sVR-lR~T
+zQWcK4%>e>m_!t)w_MXo>h8Hn?&1*JiC~V~yUP!w4E^do<+Q@z`37?H9-m^H^^!V~d
+z)w=BxP9%HpVE+8xLmN&oZ8r#FMEGxdK_Vm0_<K8}{Ph3#D_ysHBr#(5;dFr_M!Yfj
+z>?6NzPpj@${I;Ta(*MapW8bA|)3;YNfjp@MN}9yRVeRZ6oyT@oO~ee*Mc9+5$_dGt
+zH;&tV#vg}^a3|4J+ppV24ozH(&qfsQRZhL?HG7g$_Vycxi1OZaj)&a0A$eAQjxuAw
+zj_KapKU`w`!pFLhfq}t$vZuToG#BFV;<MF8-(xs_-`>vg7#xcX3=Be8vLPNn&QRYi
+zCA&cLGeLV%JZk>wq4C#~oXi_7`gj?Mi$!HfL9<ik;>u|%t#6UTbTPP~!QsXBdAT=N
+zZEX6FD;5`n3mQB=Jp3n9+;0CyO?)<@c<$#8vsJaG8!v92;ehVD?H#hF&WwyuzjQpF
+zZY?Iy+O~N^06f=${ldD4fq@}q@(1~NIZ(NWQgAMl>D+ZkQe2UX{}BW8=3Iph*oqgh
+zr@*Gjfr@GgEam4Uqu}lbdjh86u^e1#qj>FKN6v~<%qwy>|7bw>8n_5m!BRs&JzKKX
+zh^bBDi4v}0T!LOhy#D=4&Gps13&cho$N-cY!XkU=iYuyj)$rMf;=3imszSC+E7n2k
+zJ#exF*L!$;^<D6O^qvRpw;;6;q+$R^AtNL?f*geseFr5jDlMDLI}cLtVO9*_m}5aC
+zN00$1zN-0`zuJX$KNmh5QG9h?vH85eOK%^v-UE9JT4t&eiZl&<?b@TfVlTi!I9+9#
+zzBeOY-`(e*r+T8eYZ^GtrvKfhFT_aDLv{bp|IRwITLF(9DE_%vw?M;8`Oq6^MMtcE
+z&d8b0Wnbmi=d$?Z6-bQ(^$(<)!x3HK@^unXstcz>syV2SAT=AFIJ&wruT5proNB!G
+zpm@r{pu5BJjj}GJVw=u(RevEP!PxO{w2)eC>aL9*a??*Q(@&8Er5u!`=T>~=oA}l=
+zUG&JAuDM-b4y+s{p=q$JpD?Y+_BU?RQG8(S_hJ3l4f-n~br&8VAXQpzQo>5A7xi?Z
+zmB&(er3Fr8IK06v*PqhH8eR*nvp||q>nw1J!{I64^#10HJ=;AA*@)t`gW?BQyp~tU
+z1l3mfJeCn|@PI=_=vI_UPTzEJux(darq9g?4qKF{I8YNFcJW6-Cp;>=z-my!-*k0`
+zz^*23c65VKoTgW<pzlyS<vzHsfw~P+$xQE_razY>^jJYnk)(eGxReJa_!TVhss$r~
+z+}*#%y^yCz7*Vx=61*-*2do+a=|OSj^1pXQ-W#r}!D0c}ODL{g_`cY-Zu5dg;OYbB
+z+Ke!R2aFubNsll8Hhgvm?pql~j%j`e4?nEpSOpKIXbv%#%!9lB6itCB3pu7Q!`Lp+
+zuHP=uZqP2!ZrCo+ZqzQ&Zrm==ZqhE$ZrU!;Zq_c)Zr(1?ZqY8#ZrLu-Zq+W(Zrv`>
+QZqqK%Zo6He-R?yi07UVIS^xk5
+
+diff --git a/crates/fts-eq/eq-pro-dsp/src/design.rs b/crates/fts-eq/eq-pro-dsp/src/design.rs
+index da2846d..f94138d 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/design.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/design.rs
+@@ -163,7 +163,7 @@ fn design_highpass(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coef
+ /// Pro-Q 4 type 3: uses elliptic functions for exact LP->BP.
+ /// Each section gets UNIQUE pole/zero positions (NOT identical biquads).
+ fn design_bandpass(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+-    let bp = prototype::butterworth_bp(n, freq_hz, q, sample_rate);
++    let bp = prototype::butterworth_bp_elliptic(n, freq_hz, q, sample_rate);
+     let digital = transform::bilinear(&bp, sample_rate);
+     let sos = biquad::zpk_to_sos(&digital);
+ 
