@@ -2,8 +2,10 @@
 //!
 //! Extracted from Pro-C 3 binary (compute_attack_release_coeffs @ 180109b60).
 //! Updated with style-specific coefficient scaling from styles.rs analysis.
+//! Includes FET mode-dependent processing (@ 0x18010a280) and coefficient scaling (@ 0x18010afb0).
 
-use crate::styles::CompressionStyle;
+use crate::styles::{atan_approx, CompressionStyle};
+use std::f64::consts::PI;
 
 /// Gain reduction curve processor with attack/release coefficients.
 #[derive(Clone)]
@@ -25,6 +27,14 @@ pub struct GainCurve {
 
     // Compression style - affects attack/release behavior
     style: CompressionStyle,
+
+    // FET mode state tracking (for FET style only)
+    // Mode 0: Idle, Mode 1: Attacking, Mode 2: Gate open/releasing
+    fet_mode: u8,
+    gate_active: bool,
+    gate_enabled: bool,
+    previous_level_db: f64,
+    previous_gr_db: f64,
 }
 
 impl GainCurve {
@@ -41,6 +51,11 @@ impl GainCurve {
             attack_ms: 10.0,
             release_ms: 50.0,
             style: CompressionStyle::Clean,
+            fet_mode: 0,
+            gate_active: false,
+            gate_enabled: false,
+            previous_level_db: -80.0,
+            previous_gr_db: 0.0,
         };
         curve.update_coefficients();
         curve
@@ -52,6 +67,11 @@ impl GainCurve {
             self.style = style;
             self.update_coefficients();
         }
+    }
+
+    /// Get current compression style
+    pub fn style(&self) -> CompressionStyle {
+        self.style
     }
 
     /// Update coefficients when attack/release times change.

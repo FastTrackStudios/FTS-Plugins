@@ -204,7 +204,24 @@ impl CompressionBand {
         let effective_level_db = self.apply_band2_special_processing(band_level_db, base_freq);
 
         // Step 7: Compute gain reduction using effective level
-        let gr_instant = self.gain_curve.compute_gr(effective_level_db);
+        let mut gr_instant = self.gain_curve.compute_gr(effective_level_db);
+
+        // Step 7b: Apply style-specific coloration (FET mode-dependent processing)
+        // From binary @ 0x18010a3b7-0x18010a40d
+        // FET style applies atan_approx coloration to create characteristic warmth
+        if self.gain_curve.style() == crate::styles::CompressionStyle::Fet {
+            let atan_input = self.gain_curve.attack_coeff * -1.0;
+            let atan_result = crate::styles::atan_approx(atan_input);
+
+            // Constants from binary @ 0x18010a3b7, 0x18010a40d
+            const ATAN_MIN: f64 = 0.1; // DAT_180213300
+            const ATAN_MAX: f64 = 0.971948; // DAT_1802134f8
+
+            let clamped_atan = atan_result.clamp(ATAN_MIN, ATAN_MAX);
+
+            // Apply atan coloration as multiplicative scaling to GR
+            gr_instant *= clamped_atan;
+        }
 
         // Step 8: Smooth with Hermite cubic
         let log_rel = self.gain_curve.release_coeff.ln();
