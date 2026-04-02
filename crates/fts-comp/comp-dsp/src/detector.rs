@@ -749,7 +749,11 @@ impl Detector {
             // No significant change in GR: apply fallback smoothing instead of raw value
             // Pro-C 3 applies sqrt(gr_inst) when in steady state (no change detected)
             // This maintains smoothing even during constant gain reduction
-            eprintln!("  -> Fallback smoothing (no change detected): gr_inst={:.6} -> sqrt={:.6}", gr_inst, gr_inst.sqrt());
+            eprintln!(
+                "  -> Fallback smoothing (no change detected): gr_inst={:.6} -> sqrt={:.6}",
+                gr_inst,
+                gr_inst.sqrt()
+            );
             return gr_inst.sqrt() * gr_inst.sqrt(); // Convert back from sqrt domain
         }
 
@@ -774,7 +778,10 @@ impl Detector {
         if dVar36_numerator.abs() < MIN_DENOMINATOR_CHECK {
             // Hermite numerator is near zero (steady state): apply fallback smoothing
             // Pro-C 3 applies sqrt fallback instead of returning raw GR
-            eprintln!("  -> Fallback smoothing (numerator~0): dVar36_numerator={:.6e} < {:.6e}", dVar36_numerator, MIN_DENOMINATOR_CHECK);
+            eprintln!(
+                "  -> Fallback smoothing (numerator~0): dVar36_numerator={:.6e} < {:.6e}",
+                dVar36_numerator, MIN_DENOMINATOR_CHECK
+            );
             return gr_inst.sqrt() * gr_inst.sqrt(); // Convert back from sqrt domain
         }
 

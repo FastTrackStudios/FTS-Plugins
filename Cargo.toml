@@ -8,6 +8,7 @@ members = [
 
     # EQ plugin
     "crates/fts-eq/eq-dsp",
+    "crates/fts-eq/eq-dsp-v2",
     "crates/fts-eq/eq-profiles",
     "crates/fts-eq/eq-ui",
     "crates/fts-eq/eq-plugin",

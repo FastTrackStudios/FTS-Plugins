@@ -2760,6 +2760,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "eq-dsp-v2"
+version = "0.1.0"
+dependencies = [
+ "eq-dsp-v2",
+ "fts-dsp",
+ "rustfft",
+]
+
+[[package]]
 name = "eq-plugin"
 version = "0.1.0"
 dependencies = [
