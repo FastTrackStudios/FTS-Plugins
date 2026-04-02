@@ -1,0 +1,78 @@
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 9e968f8..e82ef9d 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -290,6 +290,10 @@ pub struct Detector {
+     release_coeff: f64,
+     sample_rate: f64,
+ 
++    // Time values (in seconds) for Hermite cubic interpolation
++    attack_s: f64,
++    release_s: f64,
++
+     // Hold
+     /// Duration of hold phase in samples.
+     hold_samples: usize,
+@@ -312,6 +316,8 @@ impl Detector {
+             attack_coeff: 0.0,
+             release_coeff: 0.0,
+             sample_rate: 48000.0,
++            attack_s: 0.0,
++            release_s: 0.0,
+             hold_samples: 0,
+             hold_countdown: [0; MAX_CH],
+         }
+@@ -330,13 +336,16 @@ impl Detector {
+     /// Update coefficients for new attack/release times or sample rate.
+     pub fn set_params(&mut self, attack_s: f64, release_s: f64, sample_rate: f64) {
+         self.sample_rate = sample_rate;
++        // Store actual time values for Hermite cubic interpolation
++        self.attack_s = attack_s.max(MIN_ATTACK_S);
++        self.release_s = release_s.max(MIN_RELEASE_S);
+         let (attack_scale, release_scale) = match self.mode {
+             DetectorMode::Peak => (PEAK_ATTACK_SCALE, PEAK_RELEASE_SCALE),
+             DetectorMode::Rms => (RMS_ATTACK_SCALE, RMS_RELEASE_SCALE),
+             DetectorMode::Smooth => (SMOOTH_ATTACK_SCALE, SMOOTH_RELEASE_SCALE),
+         };
+-        self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, attack_scale);
+-        self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, release_scale);
++        self.attack_coeff = Self::coeff(self.attack_s, sample_rate, attack_scale);
++        self.release_coeff = Self::coeff(self.release_s, sample_rate, release_scale);
+ 
+         // RMS mode: symmetric energy smoother with τ = attack_s.
+         // Uses the attack time as the integration window for x² averaging.
+@@ -413,21 +422,11 @@ impl Detector {
+         self.gr_history[ch][3] = raw_gr_db;
+ 
+         if self.mode == DetectorMode::Peak {
+-            // Peak mode: Apply Hermite cubic interpolation
++            // Peak mode: DISABLED HERMITE FOR TESTING - just return raw GR
+             let raw_gr_clamped = raw_gr_db.max(0.0);
+-            let smoothed_gr = Self::apply_hermite_cubic_interpolation(
+-                raw_gr_clamped,
+-                &[
+-                    self.gr_history[ch][0],
+-                    self.gr_history[ch][1],
+-                    self.gr_history[ch][2],
+-                ],
+-                self.attack_coeff,
+-                self.release_coeff,
+-            );
+ 
+             // Apply hold logic
+-            if smoothed_gr >= self.smooth_grp[ch] {
++            if raw_gr_clamped >= self.smooth_grp[ch] {
+                 // GR increasing → attack; reset hold countdown
+                 self.hold_countdown[ch] = self.hold_samples;
+             } else if self.hold_countdown[ch] > 0 {
+@@ -437,8 +436,8 @@ impl Detector {
+                 return self.smooth_grp[ch];
+             }
+ 
+-            self.smooth_grp[ch] = smoothed_gr;
+-            smoothed_gr
++            self.smooth_grp[ch] = raw_gr_clamped;
++            raw_gr_clamped
+         } else {
+             // Smooth/RMS mode: Use power-domain 1-pole IIR (original behavior)
+             let p = match self.mode {

@@ -290,6 +290,10 @@ pub struct Detector {
     release_coeff: f64,
     sample_rate: f64,
 
+    // Time values (in seconds) for Hermite cubic interpolation
+    attack_s: f64,
+    release_s: f64,
+
     // Hold
     /// Duration of hold phase in samples.
     hold_samples: usize,
@@ -312,6 +316,8 @@ impl Detector {
             attack_coeff: 0.0,
             release_coeff: 0.0,
             sample_rate: 48000.0,
+            attack_s: 0.0,
+            release_s: 0.0,
             hold_samples: 0,
             hold_countdown: [0; MAX_CH],
         }
@@ -330,13 +336,16 @@ impl Detector {
     /// Update coefficients for new attack/release times or sample rate.
     pub fn set_params(&mut self, attack_s: f64, release_s: f64, sample_rate: f64) {
         self.sample_rate = sample_rate;
+        // Store actual time values for Hermite cubic interpolation
+        self.attack_s = attack_s.max(MIN_ATTACK_S);
+        self.release_s = release_s.max(MIN_RELEASE_S);
         let (attack_scale, release_scale) = match self.mode {
             DetectorMode::Peak => (PEAK_ATTACK_SCALE, PEAK_RELEASE_SCALE),
             DetectorMode::Rms => (RMS_ATTACK_SCALE, RMS_RELEASE_SCALE),
             DetectorMode::Smooth => (SMOOTH_ATTACK_SCALE, SMOOTH_RELEASE_SCALE),
         };
-        self.attack_coeff = Self::coeff(attack_s.max(MIN_ATTACK_S), sample_rate, attack_scale);
-        self.release_coeff = Self::coeff(release_s.max(MIN_RELEASE_S), sample_rate, release_scale);
+        self.attack_coeff = Self::coeff(self.attack_s, sample_rate, attack_scale);
+        self.release_coeff = Self::coeff(self.release_s, sample_rate, release_scale);
 
         // RMS mode: symmetric energy smoother with τ = attack_s.
         // Uses the attack time as the integration window for x² averaging.
@@ -406,6 +415,11 @@ impl Detector {
     /// In Smooth/Rms mode: power-domain smoothing (SMOOTH_POWER <= 1.0).
     #[inline]
     pub fn smooth_gr(&mut self, raw_gr_db: f64, ch: usize) -> f64 {
+        eprintln!(
+            "smooth_gr: mode={:?}, raw_gr_db={:.6}, ch={}",
+            self.mode, raw_gr_db, ch
+        );
+
         // Shift history buffer: [hist0, hist1, hist2, inst]
         self.gr_history[ch][0] = self.gr_history[ch][1];
         self.gr_history[ch][1] = self.gr_history[ch][2];
@@ -422,8 +436,8 @@ impl Detector {
                     self.gr_history[ch][1],
                     self.gr_history[ch][2],
                 ],
-                self.attack_coeff,
-                self.release_coeff,
+                self.attack_s,
+                self.release_s,
             );
 
             // Apply hold logic
@@ -713,8 +727,13 @@ impl Detector {
             || threshold <= (gr_inst - gr_hist[1]).abs()
             || threshold <= (gr_inst - gr_hist[2]).abs();
 
+        // DEBUG: Log the decision
+        eprintln!("HERMITE: gr_inst={:.6}, change_detected={}, threshold={:.6}, hist=[{:.6}, {:.6}, {:.6}], atk_s={:.6}, rel_s={:.6}, dVar6={:.6}, dVar7={:.6}",
+            gr_inst, change_detected, threshold, gr_hist[0], gr_hist[1], gr_hist[2], alpha_atk, alpha_rel, dVar6, dVar7);
+
         if !change_detected {
             // No significant change: return instantaneous GR
+            eprintln!("  -> Returning early (no change detected)");
             return gr_inst;
         }
 

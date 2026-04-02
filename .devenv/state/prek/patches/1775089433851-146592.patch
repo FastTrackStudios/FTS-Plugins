@@ -1,0 +1,15 @@
+diff --git a/crates/fts-comp/comp-dsp/src/detector.rs b/crates/fts-comp/comp-dsp/src/detector.rs
+index 9e968f8..2548d3b 100644
+--- a/crates/fts-comp/comp-dsp/src/detector.rs
++++ b/crates/fts-comp/comp-dsp/src/detector.rs
+@@ -290,6 +290,10 @@ pub struct Detector {
+     release_coeff: f64,
+     sample_rate: f64,
+ 
++    // Time values (in seconds) for Hermite cubic interpolation
++    attack_s: f64,
++    release_s: f64,
++
+     // Hold
+     /// Duration of hold phase in samples.
+     hold_samples: usize,
