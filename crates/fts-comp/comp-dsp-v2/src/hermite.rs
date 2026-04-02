@@ -17,6 +17,7 @@
 //! - hist[3]: Three samples ago (becomes hist3)
 
 /// Hermite cubic smoother with change detection
+#[derive(Clone)]
 pub struct HermiteCubicSmoother {
     /// Per-channel history: 4 most recent smoothed results [hist0, hist1, hist2, hist3]
     history: [[f64; 4]; 2],

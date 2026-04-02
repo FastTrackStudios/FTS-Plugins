@@ -17,6 +17,7 @@ pub mod chain;
 pub mod detector;
 pub mod gain_curve;
 pub mod hermite;
+pub mod multiband;
 pub mod smoother;
 pub mod styles;
 
@@ -24,6 +25,7 @@ pub use chain::CompChain;
 pub use detector::Detector;
 pub use gain_curve::GainCurve;
 pub use hermite::{HermiteCubicSmoother, StateFuncHypothesis};
+pub use multiband::{CompressionBand, MultiBandCompressor};
 pub use smoother::GainReductionSmoother;
 pub use styles::{CompressionStyle, StyleCoefficients};
 

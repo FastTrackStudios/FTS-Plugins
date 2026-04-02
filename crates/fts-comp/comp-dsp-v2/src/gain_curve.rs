@@ -6,6 +6,7 @@
 use crate::styles::CompressionStyle;
 
 /// Gain reduction curve processor with attack/release coefficients.
+#[derive(Clone)]
 pub struct GainCurve {
     pub threshold_db: f64,
     pub ratio: f64,
@@ -88,6 +89,29 @@ impl GainCurve {
     pub fn set_release_ms(&mut self, release_ms: f64) {
         self.release_ms = release_ms.max(0.1);
         self.update_coefficients();
+    }
+
+    /// Set threshold in dB.
+    pub fn set_threshold(&mut self, threshold_db: f64) {
+        self.threshold_db = threshold_db;
+    }
+
+    /// Set ratio (e.g., 4.0 = 4:1).
+    pub fn set_ratio(&mut self, ratio: f64) {
+        self.ratio = ratio.max(1.0);
+    }
+
+    /// Set knee width in dB.
+    pub fn set_knee(&mut self, knee_db: f64) {
+        self.knee_db = knee_db.max(0.0);
+    }
+
+    /// Update to new sample rate (recalculates coefficients).
+    pub fn update(&mut self, sample_rate: f64) {
+        if (sample_rate - self.sample_rate).abs() > 0.1 {
+            self.sample_rate = sample_rate;
+            self.update_coefficients();
+        }
     }
 
     /// Compute gain reduction (linear) from detected level (dB).

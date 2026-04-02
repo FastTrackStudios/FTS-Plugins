@@ -14,11 +14,9 @@
 //! Bands are combined at the output.
 //! Function: update_filter_design_from_level @ 0x18010e9d0 (202 bytes)
 
-use crate::hermite::{HermiteCubicSmoother, StateFuncHypothesis};
 use crate::detector::Detector;
 use crate::gain_curve::GainCurve;
-use std::f64::consts::PI;
-use std::f64::consts::LN_2;
+use crate::hermite::{HermiteCubicSmoother, StateFuncHypothesis};
 
 /// Per-band compression state
 #[derive(Clone)]
@@ -51,11 +49,7 @@ impl CompressionBand {
     }
 
     /// Process one sample through this band's compression
-    pub fn process(
-        &mut self,
-        input: f64,
-        channel: usize,
-    ) -> f64 {
+    pub fn process(&mut self, input: f64, channel: usize) -> f64 {
         // Step 1: Detect level
         let level_db = self.detector.detect_level(input.abs());
 
@@ -117,7 +111,8 @@ impl CompressionBand {
     }
 
     pub fn set_style(&mut self, style_id: i32) {
-        self.gain_curve.set_style(crate::styles::CompressionStyle::from_id(style_id));
+        self.gain_curve
+            .set_style(crate::styles::CompressionStyle::from_id(style_id));
     }
 
     /// Reset internal state
@@ -147,9 +142,9 @@ impl MultiBandCompressor {
     pub fn new(sample_rate: f64) -> Self {
         Self {
             bands: [
-                CompressionBand::new(sample_rate, 0),  // High band
-                CompressionBand::new(sample_rate, 1),  // Mid band
-                CompressionBand::new(sample_rate, 2),  // Low band
+                CompressionBand::new(sample_rate, 0), // High band
+                CompressionBand::new(sample_rate, 1), // Mid band
+                CompressionBand::new(sample_rate, 2), // Low band
             ],
             sample_rate,
         }

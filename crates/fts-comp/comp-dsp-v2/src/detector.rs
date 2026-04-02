@@ -7,6 +7,7 @@
 use fts_dsp::db::{linear_to_db, DB_FLOOR};
 
 /// Level detector using peak detection.
+#[derive(Clone)]
 pub struct Detector {
     peak: f64,
 }

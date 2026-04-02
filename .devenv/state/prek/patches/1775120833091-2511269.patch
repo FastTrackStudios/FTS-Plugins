@@ -1,0 +1,32 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/detector.rs b/crates/fts-comp/comp-dsp-v2/src/detector.rs
+index d7a7ef7..5448c76 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/detector.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/detector.rs
+@@ -7,6 +7,7 @@
+ use fts_dsp::db::{linear_to_db, DB_FLOOR};
+ 
+ /// Level detector using peak detection.
++#[derive(Clone)]
+ pub struct Detector {
+     peak: f64,
+ }
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index d8a1130..c054484 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -17,6 +17,7 @@ pub mod chain;
+ pub mod detector;
+ pub mod gain_curve;
+ pub mod hermite;
++pub mod multiband;
+ pub mod smoother;
+ pub mod styles;
+ 
+@@ -24,6 +25,7 @@ pub use chain::CompChain;
+ pub use detector::Detector;
+ pub use gain_curve::GainCurve;
+ pub use hermite::{HermiteCubicSmoother, StateFuncHypothesis};
++pub use multiband::{CompressionBand, MultiBandCompressor};
+ pub use smoother::GainReductionSmoother;
+ pub use styles::{CompressionStyle, StyleCoefficients};
+ 
