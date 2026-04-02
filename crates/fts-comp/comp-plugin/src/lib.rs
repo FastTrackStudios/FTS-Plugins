@@ -370,18 +370,18 @@ impl FtsComp {
     /// Sync nih-plug params → comp-dsp parameters.
     fn sync_params(&mut self) {
         let c = &mut self.chain.comp;
-        c.threshold_db = self.params.threshold_db.value() as f64;
-        c.ratio = self.params.ratio.value() as f64;
-        c.attack_ms = self.params.attack_ms.value() as f64;
-        c.release_ms = self.params.release_ms.value() as f64;
-        c.knee_db = self.params.knee_db.value() as f64;
+        c.set_threshold(self.params.threshold_db.value() as f64);
+        c.set_ratio(self.params.ratio.value() as f64);
+        c.set_attack_ms(self.params.attack_ms.value() as f64);
+        c.set_release_ms(self.params.release_ms.value() as f64);
+        c.set_knee(self.params.knee_db.value() as f64);
         c.auto_makeup = self.params.auto_makeup.value() > 0.5;
         c.feedback = self.params.feedback.value() as f64;
         c.channel_link = self.params.channel_link.value() as f64;
         c.inertia = self.params.inertia.value() as f64;
         c.inertia_decay = self.params.inertia_decay.value() as f64;
         c.ceiling = self.params.ceiling.value() as f64;
-        c.fold = self.params.fold.value() as f64;
+        c.set_fold(self.params.fold.value() as f64);
         c.input_gain_db = self.params.input_gain_db.value() as f64;
         c.output_gain_db = self.params.output_gain_db.value() as f64;
 
@@ -432,6 +432,10 @@ impl Plugin for FtsComp {
         buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
+        eprintln!(
+            "[PLUGIN] initialize() called! sample_rate={}",
+            buffer_config.sample_rate
+        );
         self.sample_rate = buffer_config.sample_rate as f64;
         self.waveform_interval = (buffer_config.sample_rate as usize / 240).max(1);
         self.chain.update(AudioConfig {
@@ -454,6 +458,14 @@ impl Plugin for FtsComp {
         _aux: &mut AuxiliaryBuffers,
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
+        static mut PROCESS_COUNT: u64 = 0;
+        unsafe {
+            PROCESS_COUNT += 1;
+            if PROCESS_COUNT == 1 {
+                eprintln!("[PLUGIN] process() called!");
+            }
+        }
+
         self.sync_params();
 
         // Report lookahead latency so the DAW can compensate

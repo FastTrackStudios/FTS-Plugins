@@ -85,6 +85,12 @@ impl ProC3Compressor {
 
     /// Process a sample through the complete Pro-C 3 algorithm
     pub fn process(&mut self, input: f64, channel: usize) -> f64 {
+        static mut EVER_CALLED: bool = false;
+        if channel == 0 && !unsafe { EVER_CALLED } {
+            unsafe { EVER_CALLED = true; }
+            eprintln!("[COMP] process() called! input={}, attack_ms={}, release_ms={}", input, self.attack_ms, self.release_ms);
+        }
+
         // Step 0: Apply input gain
         let input_linear = input * fts_dsp::db::db_to_linear(self.input_gain_db);
 
@@ -95,6 +101,15 @@ impl ProC3Compressor {
         // Step 2: COMPUTE GAIN REDUCTION
         // Apply threshold/ratio/knee in log domain
         let gr_instant = self.gain_curve.compute_gr(level_db);
+
+        // DEBUG: Log first sample per channel
+        if channel == 0 && self.last_gr_db[0] == 0.0 && input_linear.abs() > 0.1 {
+            eprintln!("[COMP] First debug sample:");
+            eprintln!("  input={}, input_linear={}", input, input_linear);
+            eprintln!("  level_db={}", level_db);
+            eprintln!("  gr_instant={} ({:.2} dB)", gr_instant, fts_dsp::db::linear_to_db(gr_instant));
+            eprintln!("  threshold={}, ratio={}, knee={}", self.threshold_db, self.ratio, self.knee_db);
+        }
 
         // Step 3: SMOOTH GAIN REDUCTION WITH HERMITE CUBIC
         // This is the core algorithm from Pro-C 3:
@@ -123,6 +138,13 @@ impl ProC3Compressor {
 
         // Step 4: APPLY TO AUDIO
         let mut output = input_linear * gr_smoothed;
+
+        // DEBUG
+        if channel == 0 && self.last_gr_db[0] == 0.0 && input_linear.abs() > 0.1 {
+            eprintln!("[COMP] After Hermite:");
+            eprintln!("  gr_smoothed={} ({:.2} dB)", gr_smoothed, fts_dsp::db::linear_to_db(gr_smoothed.max(1e-10)));
+            eprintln!("  output after GR={}", output);
+        }
 
         // Step 5: OUTPUT GAIN
         let output_gain = fts_dsp::db::db_to_linear(self.output_gain_db);
