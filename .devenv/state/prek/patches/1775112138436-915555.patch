@@ -1,0 +1,128 @@
+diff --git a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055 b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+index 640f625..101c005 100644
+--- a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
++++ b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+@@ -2,8 +2,8 @@
+   "version": 1,
+   "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+   "created_at": {
+-    "secs_since_epoch": 1775107610,
+-    "nanos_since_epoch": 804821007
++    "secs_since_epoch": 1775111226,
++    "nanos_since_epoch": 142971215
+   },
+   "config_files": [
+     {
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index f068af5..c627de4 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -64,7 +64,7 @@ impl ProC3Compressor {
+             hermite_smoother: HermiteCubicSmoother::new(StateFuncHypothesis::Identity),
+             sample_rate,
+             last_gr_db: [0.0; 2],
+-            threshold_db: 0.0,
++            threshold_db: -60.0,
+             ratio: 4.0,
+             attack_ms: 10.0,
+             release_ms: 50.0,
+@@ -136,11 +136,20 @@ impl ProC3Compressor {
+         // Step 4: APPLY TO AUDIO
+         let mut output = input_linear * gr_smoothed;
+ 
+-        // DEBUG
+-        if channel == 0 && self.last_gr_db[0] == 0.0 && input_linear.abs() > 0.1 {
+-            eprintln!("[COMP] After Hermite:");
+-            eprintln!("  gr_smoothed={} ({:.2} dB)", gr_smoothed, fts_dsp::db::linear_to_db(gr_smoothed.max(1e-10)));
+-            eprintln!("  output after GR={}", output);
++        // DEBUG: Log first 10 samples per frequency to see signal
++        static mut SAMPLE_NUM: u64 = 0;
++        unsafe {
++            SAMPLE_NUM += 1;
++            let gr_db = fts_dsp::db::linear_to_db(gr_smoothed.max(1e-10));
++            if channel == 0 && SAMPLE_NUM <= 10 {
++                eprintln!("[COMP] Sample {}: input={:.6}, level={:.2}dB, gr={:.2}dB, gr_smooth={:.6}",
++                    SAMPLE_NUM,
++                    input_linear,
++                    fts_dsp::db::linear_to_db(input_linear.abs().max(1e-10)),
++                    gr_db,
++                    gr_smoothed
++                );
++            }
+         }
+ 
+         // Step 5: OUTPUT GAIN
+diff --git a/crates/fts-comp/comp-plugin/src/lib.rs b/crates/fts-comp/comp-plugin/src/lib.rs
+index 8f06feb..a0c2b5b 100644
+--- a/crates/fts-comp/comp-plugin/src/lib.rs
++++ b/crates/fts-comp/comp-plugin/src/lib.rs
+@@ -129,7 +129,7 @@ impl Default for FtsCompParams {
+         Self {
+             threshold_db: FloatParam::new(
+                 "Threshold",
+-                -10.0,
++                -60.0,
+                 FloatRange::Linear {
+                     min: -60.0,
+                     max: 0.0,
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf.rs b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+index 3e97d16..0e908b1 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+@@ -24,6 +24,13 @@ use crate::zpk::{Complex, Zpk};
+ /// Pro-Q 4 type 7: Butterworth LP prototype → apply_shelf_gain_to_zpk
+ /// (scales zeros × gain, poles ÷ gain) → bilinear → biquads.
+ ///
++/// From binary analysis of setup_eq_band_filter (0x1800fdf10):
++///   - For shelf types, bilinear_transform_zpk receives `1/Q_internal` as its
++///     frequency scaling parameter (param_3), which uniformly scales all prototype
++///     poles before the bilinear transform.
++///   - The biquad Q for shelves is always INV_SQRT2 (set at 0x1800fdfc0).
++///   - User Q controls the shelf transition steepness via this pole scaling.
++///
+ /// `n_sections` is the number of biquad sections (order / 2).
+ pub fn design_low_shelf(
+     n_sections: usize,
+@@ -38,17 +45,17 @@ pub fn design_low_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    // For single-section shelves, use RBJ cookbook (exact for 2nd order,
+-    // and lets us properly handle Q).
+-    // For multi-section, also use RBJ with Butterworth Q distribution.
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
+ 
+     (0..n)
+         .map(|k| {
+             let section_gain = gain_db / n as f64;
+-            // Pro-Q 4 shelves use Butterworth Q per section (from filter_type_dispatcher
+-            // iVar9==2 path). User Q controls frequency span, not shelf resonance.
+-            let section_q = butterworth_section_q(k, n);
++            // Pro-Q 4 uses Butterworth pole placement per section, then uniformly
++            // scales all poles by 1/Q_internal in bilinear_transform_zpk.
++            // In RBJ terms, the section Q is the Butterworth Q scaled by the
++            // user's Q relative to the default (INV_SQRT2).
++            let bw_q = butterworth_section_q(k, n);
++            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+             rbj_low_shelf(w0, section_q, section_gain)
+         })
+         .collect()
+@@ -59,6 +66,8 @@ pub fn design_low_shelf(
+ /// Pro-Q 4 type 8: Butterworth LP prototype → bilinear → numerator normalization
+ /// in zpk_sections_to_biquads to apply shelf gain.
+ ///
++/// Same Q scaling as low shelf: bilinear_transform_zpk scales poles by 1/Q_internal.
++///
+ /// `n_sections` is the number of biquad sections (order / 2).
+ pub fn design_high_shelf(
+     n_sections: usize,
+@@ -78,7 +87,8 @@ pub fn design_high_shelf(
+     (0..n)
+         .map(|k| {
+             let section_gain = gain_db / n as f64;
+-            let section_q = butterworth_section_q(k, n);
++            let bw_q = butterworth_section_q(k, n);
++            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+             rbj_high_shelf(w0, section_q, section_gain)
+         })
+         .collect()

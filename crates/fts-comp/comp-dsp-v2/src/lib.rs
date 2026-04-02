@@ -87,8 +87,13 @@ impl ProC3Compressor {
     pub fn process(&mut self, input: f64, channel: usize) -> f64 {
         static mut EVER_CALLED: bool = false;
         if channel == 0 && !unsafe { EVER_CALLED } {
-            unsafe { EVER_CALLED = true; }
-            eprintln!("[COMP] process() called! input={}, attack_ms={}, release_ms={}", input, self.attack_ms, self.release_ms);
+            unsafe {
+                EVER_CALLED = true;
+            }
+            eprintln!(
+                "[COMP] process() called! input={}, attack_ms={}, release_ms={}",
+                input, self.attack_ms, self.release_ms
+            );
         }
 
         // Step 0: Apply input gain
@@ -102,13 +107,26 @@ impl ProC3Compressor {
         // Apply threshold/ratio/knee in log domain
         let gr_instant = self.gain_curve.compute_gr(level_db);
 
+        // Debug: Check for NaN
+        if gr_instant.is_nan() {
+            eprintln!("[COMP-NAN] gr_instant=NaN! level_db={}, threshold={}, ratio={}",
+                level_db, self.gain_curve.threshold_db, self.gain_curve.ratio);
+        }
+
         // DEBUG: Log first sample per channel
         if channel == 0 && self.last_gr_db[0] == 0.0 && input_linear.abs() > 0.1 {
             eprintln!("[COMP] First debug sample:");
             eprintln!("  input={}, input_linear={}", input, input_linear);
             eprintln!("  level_db={}", level_db);
-            eprintln!("  gr_instant={} ({:.2} dB)", gr_instant, fts_dsp::db::linear_to_db(gr_instant));
-            eprintln!("  threshold={}, ratio={}, knee={}", self.threshold_db, self.ratio, self.knee_db);
+            eprintln!(
+                "  gr_instant={} ({:.2} dB)",
+                gr_instant,
+                fts_dsp::db::linear_to_db(gr_instant)
+            );
+            eprintln!(
+                "  threshold={}, ratio={}, knee={}",
+                self.threshold_db, self.ratio, self.knee_db
+            );
         }
 
         // Step 3: SMOOTH GAIN REDUCTION WITH HERMITE CUBIC
@@ -133,6 +151,12 @@ impl ProC3Compressor {
             channel,
         );
 
+        // Debug: Check for NaN after hermite
+        if gr_smoothed.is_nan() {
+            eprintln!("[COMP-NAN] gr_smoothed=NaN! gr_instant={}, log_atk={}, log_rel={}, sqrt_h0={}, sqrt_h1={}",
+                gr_instant, log_atk, log_rel, sqrt_h0, sqrt_h1);
+        }
+
         // Step 4: APPLY TO AUDIO
         let mut output = input_linear * gr_smoothed;
 
@@ -142,7 +166,8 @@ impl ProC3Compressor {
             SAMPLE_NUM += 1;
             let gr_db = fts_dsp::db::linear_to_db(gr_smoothed.max(1e-10));
             if channel == 0 && SAMPLE_NUM <= 10 {
-                eprintln!("[COMP] Sample {}: input={:.6}, level={:.2}dB, gr={:.2}dB, gr_smooth={:.6}",
+                eprintln!(
+                    "[COMP] Sample {}: input={:.6}, level={:.2}dB, gr={:.2}dB, gr_smooth={:.6}",
                     SAMPLE_NUM,
                     input_linear,
                     fts_dsp::db::linear_to_db(input_linear.abs().max(1e-10)),

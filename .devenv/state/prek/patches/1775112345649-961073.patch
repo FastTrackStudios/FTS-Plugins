@@ -1,0 +1,559 @@
+diff --git a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055 b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+index 640f625..101c005 100644
+--- a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
++++ b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+@@ -2,8 +2,8 @@
+   "version": 1,
+   "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+   "created_at": {
+-    "secs_since_epoch": 1775107610,
+-    "nanos_since_epoch": 804821007
++    "secs_since_epoch": 1775111226,
++    "nanos_since_epoch": 142971215
+   },
+   "config_files": [
+     {
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 2f6b86a84aad8f0fad8d74fdc28ce065c0c4f7fb..b0a43797e12e4e28d6f8b30643179631eb0aee36 100644
+GIT binary patch
+delta 253
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HW7#SEi85kIpE!DkVXA1AMDzevor;@|FDsCr(
+z;11<fQq_aZ2H_2i3=IE~07#61fq{u(%ErcUwuv(uHs4^I<2Ct9;3<Krj58VMGA?9X
+z%D9qoE#pSU%@5gBm?nP;IVCWSaTen|#zl<F7*{c_W84Il`4E0eU^?S$#`%nk8J9Dz
+jW?av>87lKG>Xg6?#yN}&7?&`vU|hqvfpH5+#zF-E#l%r!
+
+delta 186
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9HO7#SEi85kI{>J0;RnM2a8itKgYspRn9YUbOU
+zwde3PQq_aZ2H^>e3=IE~07#61fq{vkWMgAE+vW)NIbM?s*c&E)2|Tqqk==x8@~03e
+P<3l)<@h%F)@K6B&ZLB;L
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index c16941e8de77171132d298c246be946cf1630717..70ba581b01b6067505094b540365df22b6ce7d6b 100644
+GIT binary patch
+delta 1562
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNNkbhPUF>mr;@|F<L@P7n+FeAw@WxN_VI3aGnQ;(;&9&f)pd_|bnbS8AjU6z
+z(~r1F`b;lKWQ?A^`iMj+N9GaX?7F}+Iomyw7`O5Z{}g0aWlBjcOU)~@O3TbiEoS~c
+zU7(0jaysW#34M;omWHeWl6wze7<K!JL@CE^zRtxzE1tw{uV`ZI<7KRxtjRlT`$J>N
+z=ZqZYbu14%_<e0Q2M9o%u$=MN^fgB$N;nP}HAfcy{1~-4Lt!gF<Im}GArjgwzhs$h
+zCx4WeoUV3NLWpB(Sik%&_bWfpHK&WRF)%PNSQXiWJ+E%0am#3BchUA6hfu6{XPoYF
+ziE#l(G4uMLM;R2&wtu+9_=S)4Cj$e6_jJx95{qC?@te_eeT7JC({_%>;Gke&U=TtL
+zipd5Bl4y=gyPc+_cVI^y4pY(GxN~>m<Ft84y*64P2ap#dWA)@U{Bt<2M4WV7>{TxT
+z_o+AI@5vM7qhT)0_Ncrm^CkNkIIyt9)o&~gWO#RfzuSYPFWAjQbDzoDu&O=FG9xz6
+zaDX{*`a@&Md6VP)*FfDE7RX%uUoQ3I<_!UmsD!$a^%nyJL(23GM<fb(9j>grCGbJr
+zgNy$W1M}uwg$>ve7TB?1U2@X{-`Yt)B3rpC|MHy@+l9D|PezUQoz1*6>cyOmH~(lr
+zcJe~58cqh=Mp4d2UJj7)F_Sa+ouOX%VQF(~>!inLF@t3C8~J3(KMV{E9LOn)=d41S
+z<cxdf#09$)Gspl=1_lOBSkf$9n>b<Kx7b2F7NR6&;b%9M@;>-&-5hZc=BLSx=ka-|
+zJ^0e)`(NfA-CS@HB~}=JVfT`n<^CqWmq%PTcRa+J>%ox&PwH5_^j+ksv3gL}R6G`<
+zcq#l}&HpNgWmmWFV1(yR_9Ua^M)CIA$r*gJ@I;qWRpC^dg1^Gx&|~~N*;U>PmMyS*
+z?)#OtrC)bB)I#FxFGi6@&~skumdZPYGhgGdk?~JkrgU4TOk1XGTc%uFrhHqbLR+R{
+zTc%Q5rgB@RN?WFCTc%oDrg~eZMq8$4Tc%c9rgmGVPFtpKTc%!HrhZ$dL0hI_Tc%N4
+prg2-QNn56ATc%lCrg>YYMO&t2Tc%Z8rgdAUO<ShzwoJPpEdcXNOO*fs
+
+delta 1663
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNNkbhPUF?FUUwmP`Fc@>1sw&4wo7D6_wh1TP1fX{HM#Np0`9gNP6pdXQO-tQ
+zj_HAK?P8{{*dguASUvsC4(T}@G4U;ewJn})n+q;};bW|v>?-fYSUq`yd^BU#<Tvuk
+zk~Itr3>*v$3=CF9_F!xJjORV5Wm<S@bH~H2{KA!j%&JT&sb#5oWmajKIjP0W)sqbj
+zBw4CtnQbS3l$VrZ1{uJ~z`(!>Ga$2e;zXN8I(qnQWJ9(wX~7!XzunV?wpXl#dyGBF
+zD7jI*t#)z--%R`-ywd(~^2?=-M>YoteBqm}(jo1Q-+xQ^{y6JxIkjnXhQe0<>3?TP
+z3o#P(lIBZsN8O~oU+~z0;-hc#GQPRF<~`Vc<0TnB5|GzpVYmGBV7oyOBiu{V3lbS|
+z#@VJ<F4J1{)D~~|NMeM0YPvuXBi@Lb#r0Z8wm$JcUVBjd_4U5ZHeLOuiQ6lh7<+lA
+zvu>AO$V5yWJr@l4(C}b$I&%0;FX)iokD2^}I#*xm-|<ruIeMlG%#=0<D@93Yfqj9~
+zI$uB5$8IW$!&PH8*<RhwT)X|oA%YG+QLpfTBjmen#FPb>W^Vs*iSY{`Yb^r<gZE@l
+zc{j#t9Pa+qsJF;y)yK^39FG~d@(Y7B2%+X19KI0dP<y%Iv!^aTn^64XvU&EjOG-D_
+zZnPjG3LbE99lH8qul)sMa42n8>5%4T1P3Kbra#G|_T|BStyFlZdx6!U1UKW$CD*(Y
+zmd!>t2*q(z<oRpWz4lDrJi`Iuy6qjZrcR90yDFsTarpH9E84Dd*k$vE07%+i!NS16
+zkTUs$e7qc}C_!=7BF2NRUasHnbMZf7VBVaoumPN5bwN7hKt-Jdmf~l}?;loAh29*%
+zVgcAsD9%0i>HKSz)bwMUe>5ODcg1$;2aFv4v#w~?@*3WN`&WjML)R!paf|rhG<Y~g
+zb4c!3>~8jCM+Zb%$O>s0#&&^B>2`rknRbCp*>-_Uxpsj}`F4R!g?52V#dd*ArFMZ#
+z<#vHgm3Dzl)pmhQwRV9_^>%?wjdp=d&31uIt#*M-?RJ4oopymt-FAUYy>@|2{dR#&
+zgLZ*T!*+p8qjrHz<92~elXihj({_POvvz?@^LBwui*|ub%XWcGt9F4*>vn-mn|6Ur
+L+wB6Gb}w20eUw18
+
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index 2882200..5d94677 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -87,8 +87,13 @@ impl ProC3Compressor {
+     pub fn process(&mut self, input: f64, channel: usize) -> f64 {
+         static mut EVER_CALLED: bool = false;
+         if channel == 0 && !unsafe { EVER_CALLED } {
+-            unsafe { EVER_CALLED = true; }
+-            eprintln!("[COMP] process() called! input={}, attack_ms={}, release_ms={}", input, self.attack_ms, self.release_ms);
++            unsafe {
++                EVER_CALLED = true;
++            }
++            eprintln!(
++                "[COMP] process() called! input={}, attack_ms={}, release_ms={}",
++                input, self.attack_ms, self.release_ms
++            );
+         }
+ 
+         // Step 0: Apply input gain
+@@ -102,13 +107,26 @@ impl ProC3Compressor {
+         // Apply threshold/ratio/knee in log domain
+         let gr_instant = self.gain_curve.compute_gr(level_db);
+ 
++        // Debug: Check for NaN
++        if gr_instant.is_nan() {
++            eprintln!("[COMP-NAN] gr_instant=NaN! level_db={}, threshold={}, ratio={}",
++                level_db, self.gain_curve.threshold_db, self.gain_curve.ratio);
++        }
++
+         // DEBUG: Log first sample per channel
+         if channel == 0 && self.last_gr_db[0] == 0.0 && input_linear.abs() > 0.1 {
+             eprintln!("[COMP] First debug sample:");
+             eprintln!("  input={}, input_linear={}", input, input_linear);
+             eprintln!("  level_db={}", level_db);
+-            eprintln!("  gr_instant={} ({:.2} dB)", gr_instant, fts_dsp::db::linear_to_db(gr_instant));
+-            eprintln!("  threshold={}, ratio={}, knee={}", self.threshold_db, self.ratio, self.knee_db);
++            eprintln!(
++                "  gr_instant={} ({:.2} dB)",
++                gr_instant,
++                fts_dsp::db::linear_to_db(gr_instant)
++            );
++            eprintln!(
++                "  threshold={}, ratio={}, knee={}",
++                self.threshold_db, self.ratio, self.knee_db
++            );
+         }
+ 
+         // Step 3: SMOOTH GAIN REDUCTION WITH HERMITE CUBIC
+@@ -133,6 +151,12 @@ impl ProC3Compressor {
+             channel,
+         );
+ 
++        // Debug: Check for NaN after hermite
++        if gr_smoothed.is_nan() {
++            eprintln!("[COMP-NAN] gr_smoothed=NaN! gr_instant={}, log_atk={}, log_rel={}, sqrt_h0={}, sqrt_h1={}",
++                gr_instant, log_atk, log_rel, sqrt_h0, sqrt_h1);
++        }
++
+         // Step 4: APPLY TO AUDIO
+         let mut output = input_linear * gr_smoothed;
+ 
+@@ -142,7 +166,8 @@ impl ProC3Compressor {
+             SAMPLE_NUM += 1;
+             let gr_db = fts_dsp::db::linear_to_db(gr_smoothed.max(1e-10));
+             if channel == 0 && SAMPLE_NUM <= 10 {
+-                eprintln!("[COMP] Sample {}: input={:.6}, level={:.2}dB, gr={:.2}dB, gr_smooth={:.6}",
++                eprintln!(
++                    "[COMP] Sample {}: input={:.6}, level={:.2}dB, gr={:.2}dB, gr_smooth={:.6}",
+                     SAMPLE_NUM,
+                     input_linear,
+                     fts_dsp::db::linear_to_db(input_linear.abs().max(1e-10)),
+diff --git a/crates/fts-eq/eq-pro-dsp/src/cascade.rs b/crates/fts-eq/eq-pro-dsp/src/cascade.rs
+index 3bd8588..b75cb60 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/cascade.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/cascade.rs
+@@ -228,7 +228,13 @@ mod tests {
+         // All sections should be valid (non-NaN)
+         for (i, section) in sos.iter().enumerate() {
+             for (j, &coeff) in section.iter().enumerate() {
+-                assert!(coeff.is_finite(), "section[{}][{}] is not finite: {}", i, j, coeff);
++                assert!(
++                    coeff.is_finite(),
++                    "section[{}][{}] is not finite: {}",
++                    i,
++                    j,
++                    coeff
++                );
+             }
+         }
+     }
+diff --git a/crates/fts-eq/eq-pro-dsp/src/delay.rs b/crates/fts-eq/eq-pro-dsp/src/delay.rs
+index 1286ca9..5593963 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/delay.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/delay.rs
+@@ -13,7 +13,7 @@ use crate::constants::{MAX_DELAY_SAMPLES_PER_LEVEL, NUM_DELAY_LEVELS};
+ /// efficient delay implementation.
+ pub struct DelayFilter {
+     buffer: Vec<f64>,
+-    mask: usize,      // power-of-2 - 1
++    mask: usize, // power-of-2 - 1
+     write_pos: usize,
+     delay_samples: usize,
+ }
+@@ -162,10 +162,7 @@ mod tests {
+ 
+         // First 3 outputs should be 0 (initial buffer)
+         for (i, &out) in outputs.iter().take(3).enumerate() {
+-            assert!(
+-                out.abs() < 1e-14,
+-                "Sample {i} should be 0.0, got {out}"
+-            );
++            assert!(out.abs() < 1e-14, "Sample {i} should be 0.0, got {out}");
+         }
+ 
+         // After that, output should be input delayed by 3
+diff --git a/crates/fts-eq/eq-pro-dsp/src/design.rs b/crates/fts-eq/eq-pro-dsp/src/design.rs
+index da62aba..01a148a 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/design.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/design.rs
+@@ -519,7 +519,10 @@ mod tests {
+     #[test]
+     fn gain_q_interaction_zero_means_no_change() {
+         let q = apply_gain_q_interaction(2.0, 12.0, 0.0);
+-        assert!((q - 2.0).abs() < 1e-10, "Zero interaction should not change Q");
++        assert!(
++            (q - 2.0).abs() < 1e-10,
++            "Zero interaction should not change Q"
++        );
+     }
+ 
+     #[test]
+diff --git a/crates/fts-eq/eq-pro-dsp/src/elliptic.rs b/crates/fts-eq/eq-pro-dsp/src/elliptic.rs
+index a677b9f..432b0e0 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/elliptic.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/elliptic.rs
+@@ -231,12 +231,7 @@ mod tests {
+     #[test]
+     fn sn_reduces_to_tanh_when_k_one() {
+         for &u in &[0.0, 0.5, 1.0, -0.7, 2.0] {
+-            assert_approx(
+-                elliptic_sn(u, 1.0),
+-                u.tanh(),
+-                1e-14,
+-                &format!("sn({u}, 1)"),
+-            );
++            assert_approx(elliptic_sn(u, 1.0), u.tanh(), 1e-14, &format!("sn({u}, 1)"));
+         }
+     }
+ 
+@@ -317,12 +312,7 @@ mod tests {
+                 let u = frac * big_k;
+                 let y = elliptic_sn(u, k);
+                 let u_recovered = elliptic_asn(y, k);
+-                assert_approx(
+-                    u_recovered,
+-                    u,
+-                    1e-8,
+-                    &format!("roundtrip k={k}, u={u:.6}"),
+-                );
++                assert_approx(u_recovered, u, 1e-8, &format!("roundtrip k={k}, u={u:.6}"));
+             }
+         }
+     }
+@@ -330,12 +320,7 @@ mod tests {
+     #[test]
+     fn asn_at_zero_is_zero() {
+         for &k in &[0.0, 0.3, 0.5, 0.99] {
+-            assert_approx(
+-                elliptic_asn(0.0, k),
+-                0.0,
+-                1e-14,
+-                &format!("asn(0, {k})"),
+-            );
++            assert_approx(elliptic_asn(0.0, k), 0.0, 1e-14, &format!("asn(0, {k})"));
+         }
+     }
+ 
+@@ -380,12 +365,7 @@ mod tests {
+             for &y in &[0.1, 0.3, 0.5, 0.7, 0.9] {
+                 let u = elliptic_asn(y, k);
+                 let y_back = elliptic_sn(u, k);
+-                assert_approx(
+-                    y_back,
+-                    y,
+-                    1e-8,
+-                    &format!("sn(asn({y}, {k}), {k})"),
+-                );
++                assert_approx(y_back, y, 1e-8, &format!("sn(asn({y}, {k}), {k})"));
+             }
+         }
+     }
+diff --git a/crates/fts-eq/eq-pro-dsp/src/prototype.rs b/crates/fts-eq/eq-pro-dsp/src/prototype.rs
+index ef54d41..22d1c2a 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/prototype.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/prototype.rs
+@@ -94,12 +94,7 @@ pub fn butterworth_bp(order: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Z
+ ///   2. For each Butterworth prototype pole, use elliptic functions to map
+ ///      the pole angle to exact BP pole positions
+ ///   3. Each section gets unique pole/zero positions (NOT identical biquads)
+-pub fn butterworth_bp_elliptic(
+-    order: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Zpk {
++pub fn butterworth_bp_elliptic(order: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Zpk {
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
+     let w0_a = 2.0 * sample_rate * (w0 / 2.0).tan();
+     let bw_a = w0_a / q;
+@@ -238,7 +233,10 @@ mod tests {
+         let proto = butterworth_lp_prewarped(2, 1000.0, 48000.0);
+         assert_eq!(proto.poles.len(), 2);
+         for p in &proto.poles {
+-            assert!(p.mag() > 100.0, "pre-warped pole should have large magnitude");
++            assert!(
++                p.mag() > 100.0,
++                "pre-warped pole should have large magnitude"
++            );
+         }
+     }
+ 
+@@ -280,7 +278,11 @@ mod tests {
+     fn elliptic_bp_produces_correct_pole_count() {
+         let bp = butterworth_bp_elliptic(2, 1000.0, 2.0, 48000.0);
+         // 2nd order = 1 conjugate pair -> 4 BP poles + conjugates
+-        assert!(bp.poles.len() >= 4, "expected >= 4 BP poles, got {}", bp.poles.len());
++        assert!(
++            bp.poles.len() >= 4,
++            "expected >= 4 BP poles, got {}",
++            bp.poles.len()
++        );
+     }
+ 
+     #[test]
+@@ -290,7 +292,8 @@ mod tests {
+             assert!(
+                 p.re < 1e-10,
+                 "elliptic BP pole {} should be in LHP, got re={}",
+-                i, p.re
++                i,
++                p.re
+             );
+         }
+     }
+@@ -299,7 +302,11 @@ mod tests {
+     fn elliptic_bp_4th_order() {
+         let bp = butterworth_bp_elliptic(4, 1000.0, 4.0, 48000.0);
+         // 4th order = 2 conjugate pairs -> 8 BP poles
+-        assert!(bp.poles.len() >= 8, "expected >= 8 BP poles, got {}", bp.poles.len());
++        assert!(
++            bp.poles.len() >= 8,
++            "expected >= 8 BP poles, got {}",
++            bp.poles.len()
++        );
+     }
+ 
+     #[test]
+@@ -309,15 +316,18 @@ mod tests {
+         let ell_bp = butterworth_bp_elliptic(2, 1000.0, 2.0, 48000.0);
+ 
+         // Both should have poles in LHP with similar magnitudes
+-        let std_mag: f64 = std_bp.poles.iter().map(|p| p.mag()).sum::<f64>() / std_bp.poles.len() as f64;
+-        let ell_mag: f64 = ell_bp.poles.iter().map(|p| p.mag()).sum::<f64>() / ell_bp.poles.len() as f64;
++        let std_mag: f64 =
++            std_bp.poles.iter().map(|p| p.mag()).sum::<f64>() / std_bp.poles.len() as f64;
++        let ell_mag: f64 =
++            ell_bp.poles.iter().map(|p| p.mag()).sum::<f64>() / ell_bp.poles.len() as f64;
+ 
+         // They won't be identical but should be in the same ballpark
+         let ratio = std_mag / (ell_mag + 1e-30);
+         assert!(
+             ratio > 0.1 && ratio < 10.0,
+             "standard and elliptic BP pole magnitudes should be comparable: std={}, ell={}",
+-            std_mag, ell_mag
++            std_mag,
++            ell_mag
+         );
+     }
+ }
+diff --git a/crates/fts-eq/eq-pro-dsp/src/response.rs b/crates/fts-eq/eq-pro-dsp/src/response.rs
+index 83b611f..d5884c7 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/response.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/response.rs
+@@ -117,11 +117,7 @@ pub fn compute_magnitude_response_zpk(
+ }
+ 
+ /// Compute phase response from a ZPK representation.
+-pub fn compute_phase_response_zpk(
+-    zpk: &Zpk,
+-    frequencies: &[f64],
+-    sample_rate: f64,
+-) -> Vec<f64> {
++pub fn compute_phase_response_zpk(zpk: &Zpk, frequencies: &[f64], sample_rate: f64) -> Vec<f64> {
+     frequencies
+         .iter()
+         .map(|&freq| {
+@@ -179,7 +175,11 @@ mod tests {
+         let mags = compute_magnitude_response(&sos, &freqs, 48000.0);
+ 
+         // Below cutoff should be ~0 dB
+-        assert!(mags[0].abs() < 1.0, "100 Hz should be ~0 dB, got {}", mags[0]);
++        assert!(
++            mags[0].abs() < 1.0,
++            "100 Hz should be ~0 dB, got {}",
++            mags[0]
++        );
+         // Above cutoff should be attenuated
+         assert!(
+             mags[2] < -20.0,
+@@ -228,9 +228,9 @@ mod tests {
+ 
+     #[test]
+     fn zpk_magnitude_matches_sos() {
++        use crate::biquad;
+         use crate::prototype;
+         use crate::transform;
+-        use crate::biquad;
+ 
+         let proto = prototype::butterworth_lp_prewarped(4, 1000.0, 48000.0);
+         let digital = transform::bilinear(&proto, 48000.0);
+diff --git a/crates/fts-eq/eq-pro-dsp/src/shelf.rs b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+index 3e97d16..4e34479 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/shelf.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/shelf.rs
+@@ -24,6 +24,13 @@ use crate::zpk::{Complex, Zpk};
+ /// Pro-Q 4 type 7: Butterworth LP prototype → apply_shelf_gain_to_zpk
+ /// (scales zeros × gain, poles ÷ gain) → bilinear → biquads.
+ ///
++/// From binary analysis of setup_eq_band_filter (0x1800fdf10):
++///   - For shelf types, bilinear_transform_zpk receives `1/Q_internal` as its
++///     frequency scaling parameter (param_3), which uniformly scales all prototype
++///     poles before the bilinear transform.
++///   - The biquad Q for shelves is always INV_SQRT2 (set at 0x1800fdfc0).
++///   - User Q controls the shelf transition steepness via this pole scaling.
++///
+ /// `n_sections` is the number of biquad sections (order / 2).
+ pub fn design_low_shelf(
+     n_sections: usize,
+@@ -38,17 +45,17 @@ pub fn design_low_shelf(
+         return vec![PASSTHROUGH; n];
+     }
+ 
+-    // For single-section shelves, use RBJ cookbook (exact for 2nd order,
+-    // and lets us properly handle Q).
+-    // For multi-section, also use RBJ with Butterworth Q distribution.
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
+ 
+     (0..n)
+         .map(|k| {
+             let section_gain = gain_db / n as f64;
+-            // Pro-Q 4 shelves use Butterworth Q per section (from filter_type_dispatcher
+-            // iVar9==2 path). User Q controls frequency span, not shelf resonance.
+-            let section_q = butterworth_section_q(k, n);
++            // Pro-Q 4 uses Butterworth pole placement per section, then uniformly
++            // scales all poles by 1/Q_internal in bilinear_transform_zpk.
++            // In RBJ terms, the section Q is the Butterworth Q scaled by the
++            // user's Q relative to the default (INV_SQRT2).
++            let bw_q = butterworth_section_q(k, n);
++            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+             rbj_low_shelf(w0, section_q, section_gain)
+         })
+         .collect()
+@@ -59,6 +66,8 @@ pub fn design_low_shelf(
+ /// Pro-Q 4 type 8: Butterworth LP prototype → bilinear → numerator normalization
+ /// in zpk_sections_to_biquads to apply shelf gain.
+ ///
++/// Same Q scaling as low shelf: bilinear_transform_zpk scales poles by 1/Q_internal.
++///
+ /// `n_sections` is the number of biquad sections (order / 2).
+ pub fn design_high_shelf(
+     n_sections: usize,
+@@ -78,7 +87,8 @@ pub fn design_high_shelf(
+     (0..n)
+         .map(|k| {
+             let section_gain = gain_db / n as f64;
+-            let section_q = butterworth_section_q(k, n);
++            let bw_q = butterworth_section_q(k, n);
++            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+             rbj_high_shelf(w0, section_q, section_gain)
+         })
+         .collect()
+@@ -108,7 +118,8 @@ pub fn design_tilt_shelf(
+     (0..n)
+         .map(|k| {
+             let section_gain = gain_db / n as f64;
+-            let section_q = butterworth_section_q(k, n);
++            let bw_q = butterworth_section_q(k, n);
++            let section_q = bw_q * (q / std::f64::consts::FRAC_1_SQRT_2);
+             rbj_low_shelf(w0, section_q, section_gain)
+         })
+         .collect()
+@@ -269,7 +280,8 @@ mod tests {
+         assert!(
+             dc > nyq + 3.0,
+             "low shelf DC ({}) should be louder than Nyquist ({})",
+-            dc, nyq
++            dc,
++            nyq
+         );
+     }
+ 
+@@ -292,7 +304,8 @@ mod tests {
+         assert!(
+             nyq > dc + 3.0,
+             "high shelf Nyquist ({}) should be louder than DC ({})",
+-            nyq, dc
++            nyq,
++            dc
+         );
+     }
+ 
+@@ -322,7 +335,8 @@ mod tests {
+         assert!(
+             low > high,
+             "tilt shelf should boost lows more than highs: low={}, high={}",
+-            low, high
++            low,
++            high
+         );
+     }
+ 
+@@ -335,7 +349,8 @@ mod tests {
+         assert!(
+             center > dc + 2.0,
+             "band shelf center ({}) should be louder than DC ({})",
+-            center, dc
++            center,
++            dc
+         );
+     }
+ 
+diff --git a/crates/fts-eq/eq-pro-dsp/src/transform.rs b/crates/fts-eq/eq-pro-dsp/src/transform.rs
+index 43e77ce..73be90c 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/transform.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/transform.rs
+@@ -95,10 +95,7 @@ mod tests {
+     fn bilinear_preserves_pole_count() {
+         let zpk = Zpk::new(
+             vec![Complex::new(-1.0, 0.0)],
+-            vec![
+-                Complex::new(-0.5, 0.5),
+-                Complex::new(-0.5, -0.5),
+-            ],
++            vec![Complex::new(-0.5, 0.5), Complex::new(-0.5, -0.5)],
+             1.0,
+         );
+         let z = bilinear(&zpk, 44100.0);
+@@ -132,11 +129,7 @@ mod tests {
+     #[test]
+     fn bilinear_dc_maps_to_z1() {
+         // s = 0 should map to z = 1.
+-        let zpk = Zpk::new(
+-            vec![Complex::ZERO],
+-            vec![Complex::new(-1.0, 0.0)],
+-            1.0,
+-        );
++        let zpk = Zpk::new(vec![Complex::ZERO], vec![Complex::new(-1.0, 0.0)], 1.0);
+         let z = bilinear(&zpk, 44100.0);
+         let z0 = z.zeros[0];
+         assert!(
+@@ -150,10 +143,7 @@ mod tests {
+     fn allpass_zero_count_matches_poles() {
+         let zpk = Zpk::new(
+             vec![Complex::new(0.5, 0.0)],
+-            vec![
+-                Complex::new(0.5, 0.3),
+-                Complex::new(0.5, -0.3),
+-            ],
++            vec![Complex::new(0.5, 0.3), Complex::new(0.5, -0.3)],
+             1.0,
+         );
+         let ap = make_allpass(&zpk);
+@@ -163,11 +153,7 @@ mod tests {
+     #[test]
+     fn allpass_unit_magnitude() {
+         // A simple allpass from a single real pole inside the unit circle.
+-        let zpk = Zpk::new(
+-            vec![],
+-            vec![Complex::new(0.5, 0.0)],
+-            1.0,
+-        );
++        let zpk = Zpk::new(vec![], vec![Complex::new(0.5, 0.0)], 1.0);
+         let ap = make_allpass(&zpk);
+ 
+         // Check that |H(e^jw)| ≈ 1 at several frequencies.
