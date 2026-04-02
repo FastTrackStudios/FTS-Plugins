@@ -14,18 +14,40 @@
 pub mod detector;
 pub mod gain_curve;
 pub mod smoother;
+pub mod chain;
 
 pub use detector::Detector;
 pub use gain_curve::GainCurve;
 pub use smoother::GainReductionSmoother;
+pub use chain::CompChain;
 
 /// Main compressor combining detection, gain curve, and smoothing.
 pub struct ProC3Compressor {
     detector: Detector,
     gain_curve: GainCurve,
     smoother: GainReductionSmoother,
-    /// Parallel compression mix: 1.0 = 100% wet, 0.0 = 100% dry
-    fold: f64,
+    sample_rate: f64,
+    last_gr_db: [f64; 2],
+
+    // Parameters exposed for plugin interface compatibility
+    pub threshold_db: f64,
+    pub ratio: f64,
+    pub attack_ms: f64,
+    pub release_ms: f64,
+    pub knee_db: f64,
+    pub fold: f64,
+    pub input_gain_db: f64,
+    pub output_gain_db: f64,
+    pub range_db: f64,
+    pub hold_ms: f64,
+
+    // Advanced features (mostly stubs for compatibility)
+    pub auto_makeup: bool,
+    pub feedback: f64,
+    pub channel_link: f64,
+    pub inertia: f64,
+    pub inertia_decay: f64,
+    pub ceiling: f64,
 }
 
 impl ProC3Compressor {
@@ -34,26 +56,77 @@ impl ProC3Compressor {
             detector: Detector::new(),
             gain_curve: GainCurve::new(),
             smoother: GainReductionSmoother::new(sample_rate),
+            sample_rate,
+            last_gr_db: [0.0; 2],
+            threshold_db: 0.0,
+            ratio: 4.0,
+            attack_ms: 10.0,
+            release_ms: 50.0,
+            knee_db: 2.0,
             fold: 1.0,
+            input_gain_db: 0.0,
+            output_gain_db: 0.0,
+            range_db: 60.0,
+            hold_ms: 0.0,
+            auto_makeup: false,
+            feedback: 0.0,
+            channel_link: 1.0,
+            inertia: 0.0,
+            inertia_decay: 0.0,
+            ceiling: 0.0,
         }
     }
 
     /// Process a sample through the full signal chain.
     pub fn process(&mut self, input: f64, channel: usize) -> f64 {
-        // Step 1: Detect level using exponential perceptual weighting
-        let level_db = self.detector.detect_level(input.abs());
+        // Apply input gain
+        let input_linear = input * fts_dsp::db::db_to_linear(self.input_gain_db);
+
+        // Step 1: Detect level
+        let level_db = self.detector.detect_level(input_linear.abs());
 
         // Step 2: Compute gain reduction from level via threshold/ratio/knee
+        // Note: threshold offset is included in the gain curve calculation
         let gr_linear = self.gain_curve.compute_gr(level_db);
 
-        // Step 3: Smooth GR with Hermite cubic (with change detection fallback)
+        // Step 3: Smooth GR
         let gr_smoothed = self.smoother.smooth_gr(gr_linear, channel);
 
-        // Step 4: Apply compression and mix with dry
-        let compressed = input * gr_smoothed;
-        let output = compressed * self.fold + input * (1.0 - self.fold);
+        // Step 4: Apply to audio
+        let mut output = input_linear * gr_smoothed;
+
+        // Apply output gain and soft ceiling
+        let output_gain = fts_dsp::db::db_to_linear(self.output_gain_db);
+        output *= output_gain;
+
+        if self.ceiling > 0.0 {
+            output = (output / self.ceiling).tanh() * self.ceiling;
+        }
+
+        // Apply fold (parallel compression mix)
+        let compressed = output;
+        output = compressed * self.fold + input_linear * (1.0 - self.fold);
+
+        // Track GR for metering
+        self.last_gr_db[channel] = fts_dsp::db::linear_to_db(gr_smoothed).max(0.0);
 
         output
+    }
+
+    /// Update to new sample rate (called on format change)
+    pub fn update(&mut self, sample_rate: f64) {
+        if (sample_rate - self.sample_rate).abs() > 0.1 {
+            self.sample_rate = sample_rate;
+            self.smoother = GainReductionSmoother::new(sample_rate);
+            // Re-apply current attack/release
+            self.smoother.set_attack(self.attack_ms / 1000.0);
+            self.smoother.set_release(self.release_ms / 1000.0);
+        }
+    }
+
+    /// Get current gain reduction in dB for metering
+    pub fn gain_reduction_db(&self) -> f64 {
+        self.last_gr_db[0].max(self.last_gr_db[1])
     }
 
     /// Set threshold in dB

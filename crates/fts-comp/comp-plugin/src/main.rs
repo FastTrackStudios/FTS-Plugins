@@ -7,7 +7,7 @@
 //! Run with dx serve (hot reload, layout/CSS only — VelloCanvas blank):
 //!   cd crates/fts-comp/comp-plugin && dx serve
 
-use comp_dsp::chain::CompChain;
+use comp_dsp_v2::chain::CompChain;
 use comp_plugin::{CompUiState, FtsCompParams, WAVEFORM_LEN};
 use fts_dsp::{AudioConfig, Processor};
 use nih_plug_dioxus::SharedState;

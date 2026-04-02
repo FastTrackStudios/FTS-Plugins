@@ -1,0 +1,357 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 2ead2cf43df18c5a5e3aada815a6e7e83dae7ca1..925f21e4af6cd7fd018f1f2cb34d15fc028b1c01 100644
+GIT binary patch
+delta 578
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9G$%nS^i3=9l48;kTNMn-I~Dzewk6I*|%$!+Ss
+z7k@8pCRIJiY!C*S`yUB_#26SDm>Eo%H#S}4TsVVya|G8Mm(5=Str!zZnJSrTnHrf|
+znL3$znI<w#Wtzz}muVr>Ql^zmYne7OZDrcYw3q21(^00AOlO%cGF@f5$#j?LA=6W)
+zmrQS&J~Dk}`pNW{iIJI=nUk59S&&(jS&~_nS&><lS(90p*^qg2B3BCI=1(D3j0t5-
+zRZMkEO-yY}T}*vUlbEJ4&0?Czw1{aL(<-KQOq-atG3{d7$8?D47}F`Hb4-_*t})$W
+zy2td0=^4{2rgu!An7%RnV*1C##LULb#mvVn#4N@v#Vp6H#H_}w#jM9{1hwizxD{hU
+zIa4)LJySDNJ5x7PKhtEU=}fbk<})p3TF$hZX+6_srtM6-nf5asW;)Jvn&~{#Wv1&)
+zx0&uUJ!X2&^qT2C(`TmdOuw1_Gchx>GjlWZGYd0|GfOkeGb=NzGix*JGaEy#dKYEI
+zm{7q~!_>gk!qmak!!&_u3eyaxIZO+fmN2bgTEnz~X$#X1raeptn2s==U^>Hef$0j<
+z4W>Ix515`Xy<mF7^nvLM(+{RUObpB{%pA--%mU0J%o5Bp%nHmZ%o@x(%m&ORAgd~r
+E0Xt2sa{vGU
+
+delta 191
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9G#ObiU13=9m*e*V}I+wgd?Rgt}Rp4j?BkACVL
+z|0i2xMXGv`*&tlN#K7<$34p{H7#NrtLYOu-UE|yw!8^xgaRD#$<}ZO(jGGgAk1%fj
+R6ar&?2#2xWMS)p2lmX-~Lq-4q
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index 38ccc8f12e56a0cddf293579626d8340bdcd5bb1..edfcfe89d4106940b5d7af77ddc9a47282c7345a 100644
+GIT binary patch
+delta 10757
+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
+V)@#+)Yu(ms)7ERdt=H~H0su?&<)Z)q
+
+delta 10506
+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
+E0Aw{d1ONa4
+
+diff --git a/Cargo.lock b/Cargo.lock
+index f91916a..ca84d2b 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1326,7 +1326,7 @@ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+  "audio-gui",
+- "comp-dsp",
++ "comp-dsp-v2",
+  "comp-profiles",
+  "comp-ui",
+  "daw-proto 0.1.0 (git+https://github.com/FastTrackStudios/daw.git?branch=main)",
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index 9f30ac7..7719542 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -14,18 +14,40 @@
+ pub mod detector;
+ pub mod gain_curve;
+ pub mod smoother;
++pub mod chain;
+ 
+ pub use detector::Detector;
+ pub use gain_curve::GainCurve;
+ pub use smoother::GainReductionSmoother;
++pub use chain::CompChain;
+ 
+ /// Main compressor combining detection, gain curve, and smoothing.
+ pub struct ProC3Compressor {
+     detector: Detector,
+     gain_curve: GainCurve,
+     smoother: GainReductionSmoother,
+-    /// Parallel compression mix: 1.0 = 100% wet, 0.0 = 100% dry
+-    fold: f64,
++    sample_rate: f64,
++    last_gr_db: [f64; 2],
++
++    // Parameters exposed for plugin interface compatibility
++    pub threshold_db: f64,
++    pub ratio: f64,
++    pub attack_ms: f64,
++    pub release_ms: f64,
++    pub knee_db: f64,
++    pub fold: f64,
++    pub input_gain_db: f64,
++    pub output_gain_db: f64,
++    pub range_db: f64,
++    pub hold_ms: f64,
++
++    // Advanced features (mostly stubs for compatibility)
++    pub auto_makeup: bool,
++    pub feedback: f64,
++    pub channel_link: f64,
++    pub inertia: f64,
++    pub inertia_decay: f64,
++    pub ceiling: f64,
+ }
+ 
+ impl ProC3Compressor {
+@@ -34,28 +56,79 @@ impl ProC3Compressor {
+             detector: Detector::new(),
+             gain_curve: GainCurve::new(),
+             smoother: GainReductionSmoother::new(sample_rate),
++            sample_rate,
++            last_gr_db: [0.0; 2],
++            threshold_db: 0.0,
++            ratio: 4.0,
++            attack_ms: 10.0,
++            release_ms: 50.0,
++            knee_db: 2.0,
+             fold: 1.0,
++            input_gain_db: 0.0,
++            output_gain_db: 0.0,
++            range_db: 60.0,
++            hold_ms: 0.0,
++            auto_makeup: false,
++            feedback: 0.0,
++            channel_link: 1.0,
++            inertia: 0.0,
++            inertia_decay: 0.0,
++            ceiling: 0.0,
+         }
+     }
+ 
+     /// Process a sample through the full signal chain.
+     pub fn process(&mut self, input: f64, channel: usize) -> f64 {
+-        // Step 1: Detect level using exponential perceptual weighting
+-        let level_db = self.detector.detect_level(input.abs());
++        // Apply input gain
++        let input_linear = input * fts_dsp::db::db_to_linear(self.input_gain_db);
++
++        // Step 1: Detect level
++        let level_db = self.detector.detect_level(input_linear.abs());
+ 
+         // Step 2: Compute gain reduction from level via threshold/ratio/knee
++        // Note: threshold offset is included in the gain curve calculation
+         let gr_linear = self.gain_curve.compute_gr(level_db);
+ 
+-        // Step 3: Smooth GR with Hermite cubic (with change detection fallback)
++        // Step 3: Smooth GR
+         let gr_smoothed = self.smoother.smooth_gr(gr_linear, channel);
+ 
+-        // Step 4: Apply compression and mix with dry
+-        let compressed = input * gr_smoothed;
+-        let output = compressed * self.fold + input * (1.0 - self.fold);
++        // Step 4: Apply to audio
++        let mut output = input_linear * gr_smoothed;
++
++        // Apply output gain and soft ceiling
++        let output_gain = fts_dsp::db::db_to_linear(self.output_gain_db);
++        output *= output_gain;
++
++        if self.ceiling > 0.0 {
++            output = (output / self.ceiling).tanh() * self.ceiling;
++        }
++
++        // Apply fold (parallel compression mix)
++        let compressed = output;
++        output = compressed * self.fold + input_linear * (1.0 - self.fold);
++
++        // Track GR for metering
++        self.last_gr_db[channel] = fts_dsp::db::linear_to_db(gr_smoothed).max(0.0);
+ 
+         output
+     }
+ 
++    /// Update to new sample rate (called on format change)
++    pub fn update(&mut self, sample_rate: f64) {
++        if (sample_rate - self.sample_rate).abs() > 0.1 {
++            self.sample_rate = sample_rate;
++            self.smoother = GainReductionSmoother::new(sample_rate);
++            // Re-apply current attack/release
++            self.smoother.set_attack(self.attack_ms / 1000.0);
++            self.smoother.set_release(self.release_ms / 1000.0);
++        }
++    }
++
++    /// Get current gain reduction in dB for metering
++    pub fn gain_reduction_db(&self) -> f64 {
++        self.last_gr_db[0].max(self.last_gr_db[1])
++    }
++
+     /// Set threshold in dB
+     pub fn set_threshold(&mut self, threshold_db: f64) {
+         self.gain_curve.threshold_db = threshold_db;
+diff --git a/crates/fts-comp/comp-plugin/Cargo.toml b/crates/fts-comp/comp-plugin/Cargo.toml
+index 76a3f5d..2de0fd6 100644
+--- a/crates/fts-comp/comp-plugin/Cargo.toml
++++ b/crates/fts-comp/comp-plugin/Cargo.toml
+@@ -17,7 +17,7 @@ path = "src/main.rs"
+ audio-gui = { workspace = true }
+ fts-plugin-core = { path = "../../fts-plugin-core" }
+ fts-dsp = { workspace = true }
+-comp-dsp = { path = "../comp-dsp" }
++comp-dsp-v2 = { path = "../comp-dsp-v2" }
+ comp-profiles = { path = "../comp-profiles" }
+ comp-ui = { path = "../comp-ui" }
+ nih_plug = { workspace = true }
+diff --git a/crates/fts-comp/comp-plugin/src/lib.rs b/crates/fts-comp/comp-plugin/src/lib.rs
+index 64a74fb..aa89a8a 100644
+--- a/crates/fts-comp/comp-plugin/src/lib.rs
++++ b/crates/fts-comp/comp-plugin/src/lib.rs
+@@ -5,7 +5,7 @@ use fts_plugin_core::prelude::*;
+ use std::sync::atomic::Ordering;
+ use std::sync::Arc;
+ 
+-use comp_dsp::chain::CompChain;
++use comp_dsp_v2::chain::CompChain;
+ use fts_dsp::{AudioConfig, Processor};
+ 
+ pub mod editor;
+diff --git a/crates/fts-comp/comp-plugin/src/main.rs b/crates/fts-comp/comp-plugin/src/main.rs
+index e369058..e24fb11 100644
+--- a/crates/fts-comp/comp-plugin/src/main.rs
++++ b/crates/fts-comp/comp-plugin/src/main.rs
+@@ -7,7 +7,7 @@
+ //! Run with dx serve (hot reload, layout/CSS only — VelloCanvas blank):
+ //!   cd crates/fts-comp/comp-plugin && dx serve
+ 
+-use comp_dsp::chain::CompChain;
++use comp_dsp_v2::chain::CompChain;
+ use comp_plugin::{CompUiState, FtsCompParams, WAVEFORM_LEN};
+ use fts_dsp::{AudioConfig, Processor};
+ use nih_plug_dioxus::SharedState;

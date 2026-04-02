@@ -5,7 +5,7 @@ use fts_plugin_core::prelude::*;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use comp_dsp::chain::CompChain;
+use comp_dsp_v2::chain::CompChain;
 use fts_dsp::{AudioConfig, Processor};
 
 pub mod editor;
