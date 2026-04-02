@@ -1,0 +1,12 @@
+diff --git a/crates/fts-eq/eq-pro-dsp/src/band.rs b/crates/fts-eq/eq-pro-dsp/src/band.rs
+index 1d835d5..12acdc5 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/band.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/band.rs
+@@ -6,6 +6,7 @@
+ 
+ use crate::biquad::PASSTHROUGH;
+ use crate::design::{self, FilterType};
++use crate::parameters;
+ use crate::section::Tdf2Section;
+ 
+ /// Maximum filter order (number of poles).

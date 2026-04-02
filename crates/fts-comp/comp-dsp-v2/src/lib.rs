@@ -13,6 +13,7 @@
 //!    - Route: Hermite cubic if change, sqrt fallback if stable
 //! 4. Apply to audio and output
 
+pub mod biquad;
 pub mod chain;
 pub mod detector;
 pub mod gain_curve;
@@ -21,6 +22,7 @@ pub mod multiband;
 pub mod smoother;
 pub mod styles;
 
+pub use biquad::{design_highpass_biquad, design_lowpass_biquad, BiquadFilter};
 pub use chain::CompChain;
 pub use detector::Detector;
 pub use gain_curve::GainCurve;
