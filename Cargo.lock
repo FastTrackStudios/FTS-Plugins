@@ -2774,7 +2774,7 @@ version = "0.1.0"
 dependencies = [
  "atomic_float 1.1.0",
  "audio-gui",
- "eq-dsp",
+ "eq-dsp-v2",
  "eq-profiles",
  "eq-ui",
  "fts-dsp",

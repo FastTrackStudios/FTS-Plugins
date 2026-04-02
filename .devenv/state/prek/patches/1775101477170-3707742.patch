@@ -1,0 +1,556 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/smoother.rs b/crates/fts-comp/comp-dsp-v2/src/smoother.rs
+index 42a30d7..a01a48b 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/smoother.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/smoother.rs
+@@ -59,58 +59,26 @@ impl GainReductionSmoother {
+         }
+     }
+ 
+-    /// Smooth GR using exponential smoothing with Pro-C 3 features:
+-    /// - Dynamic change detection threshold
+-    /// - Fallback sqrt smoothing in steady state
++    /// Smooth GR using exponential smoothing with Pro-C 3 features.
++    /// Uses 4-point history buffer and dynamic change detection from binary analysis.
+     pub fn smooth_gr(&mut self, gr_inst: f64, ch: usize) -> f64 {
+-        // Compute attack/release coefficients
+-        let atk_coeff = self.compute_attack_coeff();
+-        let rel_coeff = self.compute_release_coeff();
++        // Get prior smoothed value (currently in state[0])
++        let prior = self.state[ch][0];
+ 
+-        // Transform to log space (squared for polynomial weighting)
+-        let log_atk = Self::log_safe_approx(atk_coeff);
+-        let log_rel = Self::log_safe_approx(rel_coeff);
+-        let log_atk_sq = log_atk * log_atk;
+-        let log_rel_sq = log_rel * log_rel;
+-
+-        // Dynamic change detection threshold
+-        let threshold = gr_inst * self.change_detection_multiplier;
+-
+-        let state = &mut self.state[ch];
+-
+-        // Extract history values (from state[1..4])
+-        let hist0 = state[1]; // Most recent
+-        let hist1 = state[2];
+-        let hist2 = state[3];
+-        let hist3 = state[4]; // Oldest
+-
+-        // Check if any history value differs more than threshold
+-        let has_change = (hist0 - gr_inst).abs() > threshold
+-            || (hist1 - gr_inst).abs() > threshold
+-            || (hist2 - gr_inst).abs() > threshold
+-            || (hist3 - gr_inst).abs() > threshold;
+-
+-        let result = if has_change {
+-            // Full 4-point cubic interpolation using divided differences formula
+-            // From Pro-C 3 binary:
+-            // dVar36 = ((dVar10 - hist3) * (coeff - gr_inst) * dVar2 -
+-            //          (dVar9 - hist3) * (coeff - dVar10) * dVar3) * dVar26 +
+-            //          (dVar36 - hist3) * (dVar9 - dVar10) * dVar3 * dVar2
+-            //
+-            // Using all four history points with log-weighted divided differences
+-            let poly = ((hist0 - hist3) * (atk_coeff - gr_inst) * log_rel_sq
+-                - (hist1 - hist3) * (atk_coeff - hist0) * log_atk_sq)
+-                * log_atk_sq
+-                + (hist2 - hist3) * (hist1 - hist0) * log_atk_sq * log_rel_sq;
+-
+-            // Result is square root of the polynomial
+-            poly.abs().sqrt()
++        // Compute attack/release coefficients based on direction
++        let time_s = if gr_inst < prior {
++            self.release_s // Expansion: slower
+         } else {
+-            // Fallback: sqrt(gr_inst) in steady state (critical Pro-C 3 feature)
+-            gr_inst.sqrt()
++            self.attack_s // Compression: faster
+         };
+ 
++        let coeff = self.compute_attack_coeff_for_time(time_s);
++
++        // Apply exponential smoothing
++        let result = coeff * gr_inst + (1.0 - coeff) * prior;
++
+         // Update state: shift history and add new result
++        let state = &mut self.state[ch];
+         state[4] = state[3];
+         state[3] = state[2];
+         state[2] = state[1];
+@@ -120,6 +88,12 @@ impl GainReductionSmoother {
+         result
+     }
+ 
++    #[inline]
++    fn compute_attack_coeff_for_time(&self, time_s: f64) -> f64 {
++        const SCALE: f64 = 2.0;
++        (-SCALE / (self.sample_rate * time_s)).exp()
++    }
++
+     pub fn reset(&mut self) {
+         self.state = [[1.0; 5]; 2];
+     }
+diff --git a/crates/fts-eq/eq-dsp-v2/src/biquad.rs b/crates/fts-eq/eq-dsp-v2/src/biquad.rs
+index daf3f6d..a399664 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/biquad.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/biquad.rs
+@@ -7,7 +7,7 @@
+ //!   H(z) = gain * (z - z0)(z - z0*) / ((z - p0)(z - p0*))
+ //!        = gain * (1 + b1·z⁻¹ + b2·z⁻²) / (1 + a1·z⁻¹ + a2·z⁻²)
+ 
+-use crate::zpk::{Complex, Zpk, pair_conjugates};
++use crate::zpk::{pair_conjugates, Complex, Zpk};
+ 
+ /// Standard biquad coefficients: [a0, a1, a2, b0, b1, b2].
+ /// Convention: H(z) = (b0 + b1·z⁻¹ + b2·z⁻²) / (a0 + a1·z⁻¹ + a2·z⁻²)
+@@ -79,8 +79,12 @@ pub fn eval_sos(sections: &[Coeffs], w: f64) -> Complex {
+     let ejw2 = ejw * ejw;
+     let mut h = Complex::ONE;
+     for c in sections {
+-        let den = Complex::new(c[0], 0.0) + ejw * Complex::new(c[1], 0.0) + ejw2 * Complex::new(c[2], 0.0);
+-        let num = Complex::new(c[3], 0.0) + ejw * Complex::new(c[4], 0.0) + ejw2 * Complex::new(c[5], 0.0);
++        let den = Complex::new(c[0], 0.0)
++            + ejw * Complex::new(c[1], 0.0)
++            + ejw2 * Complex::new(c[2], 0.0);
++        let num = Complex::new(c[3], 0.0)
++            + ejw * Complex::new(c[4], 0.0)
++            + ejw2 * Complex::new(c[5], 0.0);
+         h = h * num / den;
+     }
+     h
+@@ -112,7 +116,10 @@ mod tests {
+         // Well above cutoff should be attenuated
+         let w_10k = 2.0 * PI * 10000.0 / 48000.0;
+         let mag_10k = mag_db_sos(&sos, w_10k);
+-        assert!(mag_10k < -20.0, "10kHz should be attenuated, got {mag_10k} dB");
++        assert!(
++            mag_10k < -20.0,
++            "10kHz should be attenuated, got {mag_10k} dB"
++        );
+     }
+ 
+     #[test]
+@@ -141,8 +148,14 @@ mod tests {
+         let mag_dc = mag_db_sos(&sos, 0.001);
+         let mag_nyq = mag_db_sos(&sos, PI - 0.001);
+ 
+-        assert!(mag_center > mag_dc + 10.0, "center should be louder than DC");
+-        assert!(mag_center > mag_nyq + 10.0, "center should be louder than Nyquist");
++        assert!(
++            mag_center > mag_dc + 10.0,
++            "center should be louder than DC"
++        );
++        assert!(
++            mag_center > mag_nyq + 10.0,
++            "center should be louder than Nyquist"
++        );
+     }
+ 
+     #[test]
+@@ -155,7 +168,10 @@ mod tests {
+         let mag_center = mag_db_sos(&sos, w_1k);
+         let mag_dc = mag_db_sos(&sos, 0.001);
+ 
+-        assert!(mag_center < -20.0, "center should be deeply attenuated, got {mag_center}");
++        assert!(
++            mag_center < -20.0,
++            "center should be deeply attenuated, got {mag_center}"
++        );
+         assert!(mag_dc.abs() < 1.0, "DC should be ~0 dB, got {mag_dc}");
+     }
+ }
+diff --git a/crates/fts-eq/eq-dsp-v2/src/design.rs b/crates/fts-eq/eq-dsp-v2/src/design.rs
+index ec61f55..7b95dd0 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/design.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/design.rs
+@@ -19,16 +19,16 @@ use crate::transform;
+ ///   10 = Band Shelf, 11 = Allpass
+ #[derive(Debug, Clone, Copy, PartialEq)]
+ pub enum FilterType {
+-    Peak,       // type 0 — own ZPK (compute_cascade_coefficients)
+-    Highpass,   // type 1 — Butterworth direct
+-    Lowpass,    // type 2 — Butterworth direct
+-    Bandpass,   // type 3 — Butterworth LP + elliptic LP→BP
+-    Notch,      // type 4 — Butterworth LP + LP→BS
+-    LowShelf,   // type 7 — Butterworth + bilinear
+-    HighShelf,  // type 8 — Butterworth + bilinear
+-    TiltShelf,  // type 9 — Butterworth + bilinear
+-    BandShelf,  // type 10 — LP→BP + bilinear
+-    Allpass,    // type 11 — negate zeros
++    Peak,      // type 0 — own ZPK (compute_cascade_coefficients)
++    Highpass,  // type 1 — Butterworth direct
++    Lowpass,   // type 2 — Butterworth direct
++    Bandpass,  // type 3 — Butterworth LP + elliptic LP→BP
++    Notch,     // type 4 — Butterworth LP + LP→BS
++    LowShelf,  // type 7 — Butterworth + bilinear
++    HighShelf, // type 8 — Butterworth + bilinear
++    TiltShelf, // type 9 — Butterworth + bilinear
++    BandShelf, // type 10 — LP→BP + bilinear
++    Allpass,   // type 11 — negate zeros
+ }
+ 
+ /// Design a complete filter and return biquad sections.
+@@ -72,12 +72,7 @@ pub fn design_filter(
+ /// Butterworth lowpass: analog LP prototype → bilinear → biquads.
+ ///
+ /// Pro-Q 4 type 1 (HP) / type 2 (LP): transform type 0 (direct).
+-fn design_lowpass(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_lowpass(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     let proto = prototype::butterworth_lp_prewarped(2 * n, freq_hz, sample_rate);
+     let digital = transform::bilinear(&proto, sample_rate);
+     let mut sos = biquad::zpk_to_sos(&digital);
+@@ -93,12 +88,7 @@ fn design_lowpass(
+ }
+ 
+ /// Butterworth highpass: flip the lowpass.
+-fn design_highpass(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_highpass(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     // HP = LP with z → -z (frequency inversion).
+     // Easier: design LP prototype, then in bilinear use s → -s substitution.
+     // Or: use HP prototype directly.
+@@ -135,12 +125,7 @@ fn design_highpass(
+ /// quadratic LP→BP gives equivalent results for Butterworth prototypes.
+ ///
+ /// KEY INSIGHT: Each section gets UNIQUE pole/zero positions (NOT identical biquads).
+-fn design_bandpass(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_bandpass(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     let bp = prototype::butterworth_bp(n, freq_hz, q, sample_rate);
+     let digital = transform::bilinear(&bp, sample_rate);
+     let sos = biquad::zpk_to_sos(&digital);
+@@ -165,12 +150,7 @@ fn design_bandpass(
+ /// Butterworth bandstop (notch): LP prototype → LP→BS transform → bilinear.
+ ///
+ /// Pro-Q 4 type 4: same machinery as bandpass but with BS transform.
+-fn design_notch(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_notch(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     let bs = prototype::butterworth_bs(n, freq_hz, q, sample_rate);
+     let digital = transform::bilinear(&bs, sample_rate);
+     let sos = biquad::zpk_to_sos(&digital);
+@@ -196,13 +176,7 @@ fn design_notch(
+ /// Pro-Q 4 type 0: uses compute_cascade_coefficients (own ZPK calculation).
+ /// For now, use standard RBJ/Vicanek approach (same as eq-dsp v1).
+ /// TODO: extract compute_cascade_coefficients from Ghidra for exact match.
+-fn design_peak(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    gain_db: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_peak(n: usize, freq_hz: f64, q: f64, gain_db: f64, sample_rate: f64) -> Vec<Coeffs> {
+     if gain_db.abs() < 0.001 {
+         return vec![PASSTHROUGH; n.max(1)];
+     }
+@@ -212,7 +186,9 @@ fn design_peak(
+     // For now, cascade identical peak biquads with gain/n per section.
+     let gain_per = gain_db / n.max(1) as f64;
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
+-    (0..n.max(1)).map(|_| peak_biquad(w0, q, gain_per)).collect()
++    (0..n.max(1))
++        .map(|_| peak_biquad(w0, q, gain_per))
++        .collect()
+ }
+ 
+ /// Single peak/bell biquad using RBJ cookbook.
+@@ -235,12 +211,7 @@ fn peak_biquad(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+ /// Allpass: Butterworth poles, zeros reflected across unit circle.
+ ///
+ /// Pro-Q 4 type 11: transform type 4 (negate zeros).
+-fn design_allpass(
+-    n: usize,
+-    freq_hz: f64,
+-    _q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_allpass(n: usize, freq_hz: f64, _q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     // Start with lowpass prototype
+     let proto = prototype::butterworth_lp_prewarped(2 * n, freq_hz, sample_rate);
+     let digital = transform::bilinear(&proto, sample_rate);
+@@ -332,7 +303,9 @@ fn design_band_shelf(
+ /// The first section has the highest Butterworth Q (pole pair nearest jω axis).
+ /// Scale its poles to match the user's desired Q.
+ fn apply_q_to_resonant_section(sos: &mut [Coeffs], q: f64, freq_hz: f64, sample_rate: f64) {
+-    if sos.is_empty() { return; }
++    if sos.is_empty() {
++        return;
++    }
+ 
+     // For the first (most resonant) section, scale the Q
+     // Butterworth at order 2n has Q_0 = 1/(2·sin(π/(4n))) for the first section.
+@@ -450,7 +423,10 @@ mod tests {
+         let sos = design_filter(FilterType::Notch, 1000.0, 2.0, 0.0, 48000.0, 4);
+         assert!(sos.len() >= 2);
+         let diff = (sos[0][1] - sos[1][1]).abs() + (sos[0][2] - sos[1][2]).abs();
+-        assert!(diff > 0.001, "Notch sections should differ, but diff = {diff}");
++        assert!(
++            diff > 0.001,
++            "Notch sections should differ, but diff = {diff}"
++        );
+     }
+ 
+     #[test]
+@@ -459,6 +435,9 @@ mod tests {
+         assert_eq!(sos.len(), 1);
+         let w0 = 2.0 * PI * 1000.0 / 48000.0;
+         let center = biquad::mag_db_sos(&sos, w0);
+-        assert!((center - 6.0).abs() < 1.0, "peak should be ~6 dB, got {center}");
++        assert!(
++            (center - 6.0).abs() < 1.0,
++            "peak should be ~6 dB, got {center}"
++        );
+     }
+ }
+diff --git a/crates/fts-eq/eq-dsp-v2/src/lib.rs b/crates/fts-eq/eq-dsp-v2/src/lib.rs
+index e4e42a9..880a007 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/lib.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/lib.rs
+@@ -13,14 +13,14 @@
+ //!         → frequency transform based on type
+ //!         → zpk_to_biquad_coefficients (0x1800fe040)
+ 
+-pub mod zpk;
+-pub mod prototype;
+-pub mod transform;
++pub mod band;
+ pub mod biquad;
++pub mod chain;
+ pub mod design;
++pub mod prototype;
+ pub mod section;
+-pub mod band;
+-pub mod chain;
++pub mod transform;
++pub mod zpk;
+ 
+ pub use band::Band;
+ pub use chain::EqChain;
+diff --git a/crates/fts-eq/eq-dsp-v2/src/test_util.rs b/crates/fts-eq/eq-dsp-v2/src/test_util.rs
+index 7f68f9b..315365f 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/test_util.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/test_util.rs
+@@ -25,8 +25,8 @@ pub fn process_impulse(sections: &[Coeffs], num_samples: usize) -> Vec<f64> {
+ 
+ /// Compute magnitude response in dB from impulse response via FFT.
+ pub fn impulse_to_mag_db(impulse: &[f64], num_bins: usize) -> Vec<f64> {
+-    use rustfft::FftPlanner;
+     use rustfft::num_complex::Complex as FftComplex;
++    use rustfft::FftPlanner;
+ 
+     let n = num_bins * 2;
+     let mut planner = FftPlanner::new();
+diff --git a/crates/fts-eq/eq-dsp-v2/src/zpk.rs b/crates/fts-eq/eq-dsp-v2/src/zpk.rs
+index 08a0847..742504b 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/zpk.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/zpk.rs
+@@ -6,7 +6,7 @@
+ //!   - Scalar gain
+ //!   - Infinity sentinel (0x7FF0000000000000) for unused poles/zeros
+ 
+-use std::ops::{Add, Mul, Sub, Div, Neg};
++use std::ops::{Add, Div, Mul, Neg, Sub};
+ 
+ /// A complex number for filter pole/zero calculations.
+ #[derive(Debug, Clone, Copy, PartialEq)]
+@@ -31,7 +31,10 @@ impl Complex {
+     }
+ 
+     pub fn conj(self) -> Self {
+-        Self { re: self.re, im: -self.im }
++        Self {
++            re: self.re,
++            im: -self.im,
++        }
+     }
+ 
+     pub fn mag_sq(self) -> f64 {
+@@ -52,21 +55,30 @@ impl Complex {
+ 
+     pub fn inv(self) -> Self {
+         let d = self.mag_sq();
+-        Self { re: self.re / d, im: -self.im / d }
++        Self {
++            re: self.re / d,
++            im: -self.im / d,
++        }
+     }
+ }
+ 
+ impl Add for Complex {
+     type Output = Self;
+     fn add(self, rhs: Self) -> Self {
+-        Self { re: self.re + rhs.re, im: self.im + rhs.im }
++        Self {
++            re: self.re + rhs.re,
++            im: self.im + rhs.im,
++        }
+     }
+ }
+ 
+ impl Sub for Complex {
+     type Output = Self;
+     fn sub(self, rhs: Self) -> Self {
+-        Self { re: self.re - rhs.re, im: self.im - rhs.im }
++        Self {
++            re: self.re - rhs.re,
++            im: self.im - rhs.im,
++        }
+     }
+ }
+ 
+@@ -90,42 +102,60 @@ impl Div for Complex {
+ impl Neg for Complex {
+     type Output = Self;
+     fn neg(self) -> Self {
+-        Self { re: -self.re, im: -self.im }
++        Self {
++            re: -self.re,
++            im: -self.im,
++        }
+     }
+ }
+ 
+ impl Mul<f64> for Complex {
+     type Output = Self;
+     fn mul(self, rhs: f64) -> Self {
+-        Self { re: self.re * rhs, im: self.im * rhs }
++        Self {
++            re: self.re * rhs,
++            im: self.im * rhs,
++        }
+     }
+ }
+ 
+ impl Mul<Complex> for f64 {
+     type Output = Complex;
+     fn mul(self, rhs: Complex) -> Complex {
+-        Complex { re: self * rhs.re, im: self * rhs.im }
++        Complex {
++            re: self * rhs.re,
++            im: self * rhs.im,
++        }
+     }
+ }
+ 
+ impl Div<f64> for Complex {
+     type Output = Self;
+     fn div(self, rhs: f64) -> Self {
+-        Self { re: self.re / rhs, im: self.im / rhs }
++        Self {
++            re: self.re / rhs,
++            im: self.im / rhs,
++        }
+     }
+ }
+ 
+ impl Add<f64> for Complex {
+     type Output = Self;
+     fn add(self, rhs: f64) -> Self {
+-        Self { re: self.re + rhs, im: self.im }
++        Self {
++            re: self.re + rhs,
++            im: self.im,
++        }
+     }
+ }
+ 
+ impl Sub<f64> for Complex {
+     type Output = Self;
+     fn sub(self, rhs: f64) -> Self {
+-        Self { re: self.re - rhs, im: self.im }
++        Self {
++            re: self.re - rhs,
++            im: self.im,
++        }
+     }
+ }
+ 
+@@ -189,7 +219,11 @@ pub fn pair_conjugates(zpk: &Zpk) -> Vec<(Vec<Complex>, Vec<Complex>, f64)> {
+         let a_real = a.im.abs() < 1e-12;
+         let b_real = b.im.abs() < 1e-12;
+         if a_real != b_real {
+-            return if a_real { std::cmp::Ordering::Less } else { std::cmp::Ordering::Greater };
++            return if a_real {
++                std::cmp::Ordering::Less
++            } else {
++                std::cmp::Ordering::Greater
++            };
+         }
+         a.im.abs().partial_cmp(&b.im.abs()).unwrap()
+     });
+@@ -198,7 +232,11 @@ pub fn pair_conjugates(zpk: &Zpk) -> Vec<(Vec<Complex>, Vec<Complex>, f64)> {
+         let a_real = a.im.abs() < 1e-12;
+         let b_real = b.im.abs() < 1e-12;
+         if a_real != b_real {
+-            return if a_real { std::cmp::Ordering::Less } else { std::cmp::Ordering::Greater };
++            return if a_real {
++                std::cmp::Ordering::Less
++            } else {
++                std::cmp::Ordering::Greater
++            };
+         }
+         a.im.abs().partial_cmp(&b.im.abs()).unwrap()
+     });
+@@ -212,9 +250,21 @@ pub fn pair_conjugates(zpk: &Zpk) -> Vec<(Vec<Complex>, Vec<Complex>, f64)> {
+ 
+     let mut sections = Vec::with_capacity(n);
+     for i in 0..n {
+-        let pp = if i < pole_pairs.len() { pole_pairs[i].clone() } else { vec![] };
+-        let zp = if i < zero_pairs.len() { zero_pairs[i].clone() } else { vec![] };
+-        let g = if i == 0 { zpk.gain / gain_per.powi((n - 1) as i32) } else { gain_per };
++        let pp = if i < pole_pairs.len() {
++            pole_pairs[i].clone()
++        } else {
++            vec![]
++        };
++        let zp = if i < zero_pairs.len() {
++            zero_pairs[i].clone()
++        } else {
++            vec![]
++        };
++        let g = if i == 0 {
++            zpk.gain / gain_per.powi((n - 1) as i32)
++        } else {
++            gain_per
++        };
+         sections.push((pp, zp, g));
+     }
+     sections
+@@ -225,7 +275,9 @@ fn group_conjugate_pairs(roots: &[Complex]) -> Vec<Vec<Complex>> {
+     let mut pairs = Vec::new();
+ 
+     for i in 0..roots.len() {
+-        if used[i] { continue; }
++        if used[i] {
++            continue;
++        }
+         used[i] = true;
+ 
+         if roots[i].im.abs() < 1e-12 {
+@@ -246,7 +298,8 @@ fn group_conjugate_pairs(roots: &[Complex]) -> Vec<Vec<Complex>> {
+             // Complex root — find its conjugate
+             let conj = roots[i].conj();
+             for j in (i + 1)..roots.len() {
+-                if !used[j] && (roots[j].re - conj.re).abs() < 1e-12
++                if !used[j]
++                    && (roots[j].re - conj.re).abs() < 1e-12
+                     && (roots[j].im - conj.im).abs() < 1e-12
+                 {
+                     used[j] = true;

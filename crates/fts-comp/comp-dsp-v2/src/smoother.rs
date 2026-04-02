@@ -1,12 +1,18 @@
 //! Gain reduction smoothing with attack/release time constants.
 
-/// Exponential smoother for gain reduction.
+/// Exponential smoother for gain reduction with Pro-C 3 change detection.
+///
+/// Implements hybrid smoothing based on change detection:
+/// - If change >= 0.1% of gr_inst: Use exponential smoothing (approximates Hermite path)
+/// - If change < 0.1%: Use sqrt(gr_inst) fallback (steady state)
 pub struct GainReductionSmoother {
     sample_rate: f64,
     attack_s: f64,
     release_s: f64,
     /// Running smoothed value per channel
     state: [f64; 2],
+    /// Change detection threshold multiplier from Pro-C 3 (0.001 = 0.1%)
+    change_threshold: f64,
 }
 
 impl GainReductionSmoother {
@@ -16,6 +22,7 @@ impl GainReductionSmoother {
             attack_s: 0.01,
             release_s: 0.05,
             state: [1.0; 2],
+            change_threshold: 0.001, // Pro-C 3's 0.1% threshold
         }
     }
 

@@ -1,0 +1,1208 @@
+diff --git a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055 b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+index 90c0f61..5635a66 100644
+--- a/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
++++ b/.devenv/state/prek/cache/prek/workspace/ed9a4be4e7f06055
+@@ -2,8 +2,8 @@
+   "version": 1,
+   "workspace_root": "/home/cody/Development/FastTrackStudio/FTS-Plugins",
+   "created_at": {
+-    "secs_since_epoch": 1775092895,
+-    "nanos_since_epoch": 955967620
++    "secs_since_epoch": 1775100153,
++    "nanos_since_epoch": 824964914
+   },
+   "config_files": [
+     {
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 33ff23861d094cdfea57eaa0d95aee590ba9ced6..54de843078c66789708fd1b0adb2ac56f06b813c 100644
+GIT binary patch
+delta 188
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9G>j0_B%3=9nZyDSduDBii&s>oi)dfkOw@yw<N
+zd#-W_kg6VJHVA{v{f`7dVhjun%nUJ%8=J~lH{aluaoPNV_W}FlFM;beKjaNyn*1pQ
+P%J>itWxR_5F;Y|jTo*x-
+
+delta 1215
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9Gx%nS^i3=9mWYxzC>Pv{)5Dzewk6I*{MXzgO=
+z{_{b~q^bv*4Z<LE|04mA7y|<XGeZdT#-=jXjWZHhH_m8a+Wdo6#%1!Cz;*SpjERh?
+zjG2tNjD?J)jFpVFjE#(~jGc_Vj1w8BGR|b2%eatnDdS4UwTv4Xw=(Wz+{<{7@hIa-
+z#<PqU8Lu+lWW3Axknt(wOUAd19~r+g{$%{i$jHRX#L2|VB*-MnB*`Spq{yVoq{*bq
+zWXNR7WXWX9<jCa8<jLgA6v!0H6j{#{%aq8J%9P2J%T&lz%2dfz%hbr!%GAl!%QTT`
+zD$`7+xl9Y0mNKnmTFbPNX)DuCroBuDnT|4@WID@qk?AVaO{Tj{51F1ay<~dJ^pWW+
+z(@&<qOpMH|%$&@;%!16K%#zHq%!<sa%$m%)%!bUS%$Cfy%#O^i%%04?%z?}d44awR
+zf*2=%3Rzbl$C$*J#+b#J$5_Nz##qHz$JoT!#@NN!$2f^`8sjX+d5nt~moctlT*tVH
+zaU0_<#(j*37>_ZYVm!xqiSZiaEyjC{j~JgZzG8gG_=)iw<1fa4j7&^yOk7NSOhQaz
+zOj1m8OiD~@Oj=BOOh!y*Ojb;GOioO0OkPZWOhHUxOi}eraZE`}X-rv6c}zu2WlU8}
+zbxci6ZA@KEeN2;>rZLT8n#Z(=X&KWhrgco4n6@$PV%o=ai0K&9DW-Ewmzb_G-D0}O
+z^oZ#h(<`QTOrMy(G5uot$Hc_U#>~ac$1KDw#w^7w$E?Jx#;nDx$85xG#%#rG$Lz%H
+z#_YxH#~cI?h!5fG>f;%c8PgfF8S@#78Os@~8S5FF8QU4V8T%P0Gfrom%{ZTNG2?Q^
+z)r{*IH#2T$+|9V3@i60Y#?y@F880(lXS~gLpYbu{bH>+<?-@TcerNp6_@9xPiJgg?
+ziJwWBNt{WVNuEiWNu5cXNuSA>$(+fW$)3rX$(_lY$)72hDV!;~o++LwnJJwqn<<~E
+zn5mqpnyH?tnW>$ro2j2^GShUX*-Z197BekpTFtbcX*1Jyrrk{YnGQ1@XFAPvp6N2v
+zb*9@)_n96uJ!g8&^q%Q6(|4xdO#hjfnc11SnfaN8nZ=o<ndO<4nbn!Kne~~Cna!E4
+zneCaKncbPanf;lA;Q{e3YF&K-V+vyiV-8~hV+msgV+~^iV+&&kV-Mp5#wm<580Ro9
+zU|hnuf^iMw2F5LnI~eyc9$-Aec!Kc^;|0bmj5iqXFg{>>!uW#m4dVyKFN{AJ|1dHz
+zu`qEk@h}N6i7-hp$uKD}sW53U=`a~EnJ`%}*)TaUxiEP!`7i}Ag)l`h#ndw;Fr_eM
+zFy$~6FqJS>Fx4<MFtspsF!eA^V4A`-gJ}-a0;VNQE11?WZD88Mw1a66(*dR<OedJm
+zFkN7}!gPb_4$}jsCrmGx-Y|V&`oi>s=?@bFGYc~ZGY_)>vk0>UvkbEWvkJ2YvktQX
+dvk9{WvkkKYvkS8avk!9sGpHEZ%*>Xi3;;aVKa~Ig
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index a15f1719e928de0635cafc51ee820789f4556e54..9c27b0be32b7350dd8cb68fbadd52d6d21fe077e 100644
+GIT binary patch
+delta 28825
+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
+Sd}qe*0!E+h5ANDY2mk<=Q1^TQ
+
+delta 28816
+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
+
+diff --git a/Cargo.lock b/Cargo.lock
+index ca84d2b..33d423b 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2774,7 +2774,7 @@ version = "0.1.0"
+ dependencies = [
+  "atomic_float 1.1.0",
+  "audio-gui",
+- "eq-dsp",
++ "eq-dsp-v2",
+  "eq-profiles",
+  "eq-ui",
+  "fts-dsp",
+diff --git a/crates/fts-comp/comp-dsp-v2/examples/compare_samples.rs b/crates/fts-comp/comp-dsp-v2/examples/compare_samples.rs
+index 8c2d79a..66ef060 100644
+--- a/crates/fts-comp/comp-dsp-v2/examples/compare_samples.rs
++++ b/crates/fts-comp/comp-dsp-v2/examples/compare_samples.rs
+@@ -78,12 +78,20 @@ fn main() {
+     let (input_peak, input_rms) = analyze_signal(&input);
+     let (output_peak, output_rms) = analyze_signal(&output);
+ 
+-    println!("Input:  Peak = {:.3} ({:.2} dB), RMS = {:.3} ({:.2} dB)",
+-        input_peak, linear_to_db(input_peak),
+-        input_rms, linear_to_db(input_rms));
+-    println!("Output: Peak = {:.3} ({:.2} dB), RMS = {:.3} ({:.2} dB)",
+-        output_peak, linear_to_db(output_peak),
+-        output_rms, linear_to_db(output_rms));
++    println!(
++        "Input:  Peak = {:.3} ({:.2} dB), RMS = {:.3} ({:.2} dB)",
++        input_peak,
++        linear_to_db(input_peak),
++        input_rms,
++        linear_to_db(input_rms)
++    );
++    println!(
++        "Output: Peak = {:.3} ({:.2} dB), RMS = {:.3} ({:.2} dB)",
++        output_peak,
++        linear_to_db(output_peak),
++        output_rms,
++        linear_to_db(output_rms)
++    );
+ 
+     let reduction = linear_to_db(input_peak) - linear_to_db(output_peak);
+     println!("Gain Reduction: {:.2} dB (peak)", reduction);
+@@ -98,23 +106,21 @@ fn main() {
+ 
+     let display_indices = vec![
+         0,
+-        24000,      // 0.5s mark (transient)
+-        24100,      // after first transient
+-        48000,      // 1.0s mark
+-        72000,      // 1.5s mark (second transient)
+-        72100,      // after second transient
++        24000, // 0.5s mark (transient)
++        24100, // after first transient
++        48000, // 1.0s mark
++        72000, // 1.5s mark (second transient)
++        72100, // after second transient
+         num_samples - 1,
+     ];
+ 
+     for &idx in &display_indices {
+         if idx < num_samples {
+             let diff = input[idx] - output[idx];
+-            println!("{:8} │ {:11.6} │ {:11.6} │ {:7.2} │ {:10.6}",
+-                idx,
+-                input[idx],
+-                output[idx],
+-                gr_values[idx],
+-                diff);
++            println!(
++                "{:8} │ {:11.6} │ {:11.6} │ {:7.2} │ {:10.6}",
++                idx, input[idx], output[idx], gr_values[idx], diff
++            );
+         }
+     }
+ 
+@@ -135,7 +141,9 @@ fn main() {
+             println!("✗ Could not load reference file: {}", args[1]);
+             println!("\n[NEXT STEPS]");
+             println!("1. Load /tmp/fts-comp-input.wav into Pro-C 3 (Clean mode)");
+-            println!("   Settings: Threshold=-18dB, Ratio=4:1, Attack=10ms, Release=50ms, Knee=2dB");
++            println!(
++                "   Settings: Threshold=-18dB, Ratio=4:1, Attack=10ms, Release=50ms, Knee=2dB"
++            );
+             println!("2. Export Pro-C 3 output to /tmp/pro-c3-output.wav");
+             println!("3. Run: cargo run --example compare_samples -- /tmp/pro-c3-output.wav");
+         }
+@@ -236,14 +244,20 @@ fn compare_outputs(fts_output: &[f64], reference: &[f64]) {
+     let mean_diff = abs_diffs.iter().sum::<f64>() / min_len as f64;
+     let rms_diff = (abs_diffs.iter().map(|d| d * d).sum::<f64>() / min_len as f64).sqrt();
+ 
+-    println!("Samples compared: {} / {} ({}%)",
+-        min_len, reference.len(),
+-        (min_len as f64 / reference.len() as f64 * 100.0) as u32);
++    println!(
++        "Samples compared: {} / {} ({}%)",
++        min_len,
++        reference.len(),
++        (min_len as f64 / reference.len() as f64 * 100.0) as u32
++    );
+     println!("\nDifference Statistics:");
+     println!("  Max difference:    {:.9}", max_diff);
+     println!("  Mean difference:   {:.9}", mean_diff);
+     println!("  RMS difference:    {:.9}", rms_diff);
+-    println!("  Max diff in dB:    {:.3}", linear_to_db(1.0 + max_diff.min(1.0)));
++    println!(
++        "  Max diff in dB:    {:.3}",
++        linear_to_db(1.0 + max_diff.min(1.0))
++    );
+ 
+     // Count samples above different thresholds
+     let thresholds = vec![0.0001, 0.001, 0.01, 0.1];
+@@ -259,13 +273,7 @@ fn compare_outputs(fts_output: &[f64], reference: &[f64]) {
+     println!("Sample #  │ FTS Output      │ Pro-C3 Ref      │ Difference      │ % Error");
+     println!("──────────┼─────────────────┼─────────────────┼─────────────────┼─────────");
+ 
+-    let key_indices = vec![
+-        0,
+-        min_len / 4,
+-        min_len / 2,
+-        (min_len * 3) / 4,
+-        min_len - 1,
+-    ];
++    let key_indices = vec![0, min_len / 4, min_len / 2, (min_len * 3) / 4, min_len - 1];
+ 
+     for &idx in &key_indices {
+         let pct_error = if reference[idx].abs() > 0.0001 {
+@@ -273,8 +281,10 @@ fn compare_outputs(fts_output: &[f64], reference: &[f64]) {
+         } else {
+             0.0
+         };
+-        println!("{:8} │ {:15.9} │ {:15.9} │ {:15.9} │ {:7.3}%",
+-            idx, fts_output[idx], reference[idx], diffs[idx], pct_error);
++        println!(
++            "{:8} │ {:15.9} │ {:15.9} │ {:15.9} │ {:7.3}%",
++            idx, fts_output[idx], reference[idx], diffs[idx], pct_error
++        );
+     }
+ 
+     // Categorize parity level
+@@ -311,13 +321,13 @@ fn save_wav(path: &str, samples: &[f64], sample_rate: f64) -> std::io::Result<()
+ 
+     // fmt subchunk
+     file.write_all(b"fmt ")?;
+-    file.write_all(&16u32.to_le_bytes())?;  // subchunk1 size
+-    file.write_all(&3u16.to_le_bytes())?;   // audio format (IEEE float)
+-    file.write_all(&1u16.to_le_bytes())?;   // mono
++    file.write_all(&16u32.to_le_bytes())?; // subchunk1 size
++    file.write_all(&3u16.to_le_bytes())?; // audio format (IEEE float)
++    file.write_all(&1u16.to_le_bytes())?; // mono
+     file.write_all(&(sample_rate as u32).to_le_bytes())?;
+     file.write_all(&byte_rate.to_le_bytes())?;
+     file.write_all(&block_align.to_le_bytes())?;
+-    file.write_all(&32u16.to_le_bytes())?;  // bits per sample
++    file.write_all(&32u16.to_le_bytes())?; // bits per sample
+ 
+     // data subchunk
+     file.write_all(b"data")?;
+diff --git a/crates/fts-comp/comp-dsp-v2/src/lib.rs b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+index 7719542..06b5d0b 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/lib.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/lib.rs
+@@ -11,15 +11,15 @@
+ //!    - Else: fallback sqrt smoothing
+ //! 4. Output compressed audio
+ 
++pub mod chain;
+ pub mod detector;
+ pub mod gain_curve;
+ pub mod smoother;
+-pub mod chain;
+ 
++pub use chain::CompChain;
+ pub use detector::Detector;
+ pub use gain_curve::GainCurve;
+ pub use smoother::GainReductionSmoother;
+-pub use chain::CompChain;
+ 
+ /// Main compressor combining detection, gain curve, and smoothing.
+ pub struct ProC3Compressor {
+diff --git a/crates/fts-comp/comp-dsp-v2/src/smoother.rs b/crates/fts-comp/comp-dsp-v2/src/smoother.rs
+index f9d6bd9..8af2923 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/smoother.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/smoother.rs
+@@ -1,12 +1,18 @@
+ //! Gain reduction smoothing with attack/release time constants.
+ 
+-/// Exponential smoother for gain reduction.
++/// Exponential smoother for gain reduction with Pro-C 3 change detection.
++///
++/// Implements hybrid smoothing based on change detection:
++/// - If change >= 0.1% of gr_inst: Use exponential smoothing (approximates Hermite path)
++/// - If change < 0.1%: Use sqrt(gr_inst) fallback (steady state)
+ pub struct GainReductionSmoother {
+     sample_rate: f64,
+     attack_s: f64,
+     release_s: f64,
+     /// Running smoothed value per channel
+     state: [f64; 2],
++    /// Change detection threshold multiplier from Pro-C 3 (0.001 = 0.1%)
++    change_threshold: f64,
+ }
+ 
+ impl GainReductionSmoother {
+@@ -16,6 +22,7 @@ impl GainReductionSmoother {
+             attack_s: 0.01,
+             release_s: 0.05,
+             state: [1.0; 2],
++            change_threshold: 0.001, // Pro-C 3's 0.1% threshold
+         }
+     }
+ 
+diff --git a/crates/fts-eq/eq-dsp-v2/src/biquad.rs b/crates/fts-eq/eq-dsp-v2/src/biquad.rs
+index daf3f6d..a399664 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/biquad.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/biquad.rs
+@@ -7,7 +7,7 @@
+ //!   H(z) = gain * (z - z0)(z - z0*) / ((z - p0)(z - p0*))
+ //!        = gain * (1 + b1·z⁻¹ + b2·z⁻²) / (1 + a1·z⁻¹ + a2·z⁻²)
+ 
+-use crate::zpk::{Complex, Zpk, pair_conjugates};
++use crate::zpk::{pair_conjugates, Complex, Zpk};
+ 
+ /// Standard biquad coefficients: [a0, a1, a2, b0, b1, b2].
+ /// Convention: H(z) = (b0 + b1·z⁻¹ + b2·z⁻²) / (a0 + a1·z⁻¹ + a2·z⁻²)
+@@ -79,8 +79,12 @@ pub fn eval_sos(sections: &[Coeffs], w: f64) -> Complex {
+     let ejw2 = ejw * ejw;
+     let mut h = Complex::ONE;
+     for c in sections {
+-        let den = Complex::new(c[0], 0.0) + ejw * Complex::new(c[1], 0.0) + ejw2 * Complex::new(c[2], 0.0);
+-        let num = Complex::new(c[3], 0.0) + ejw * Complex::new(c[4], 0.0) + ejw2 * Complex::new(c[5], 0.0);
++        let den = Complex::new(c[0], 0.0)
++            + ejw * Complex::new(c[1], 0.0)
++            + ejw2 * Complex::new(c[2], 0.0);
++        let num = Complex::new(c[3], 0.0)
++            + ejw * Complex::new(c[4], 0.0)
++            + ejw2 * Complex::new(c[5], 0.0);
+         h = h * num / den;
+     }
+     h
+@@ -112,7 +116,10 @@ mod tests {
+         // Well above cutoff should be attenuated
+         let w_10k = 2.0 * PI * 10000.0 / 48000.0;
+         let mag_10k = mag_db_sos(&sos, w_10k);
+-        assert!(mag_10k < -20.0, "10kHz should be attenuated, got {mag_10k} dB");
++        assert!(
++            mag_10k < -20.0,
++            "10kHz should be attenuated, got {mag_10k} dB"
++        );
+     }
+ 
+     #[test]
+@@ -141,8 +148,14 @@ mod tests {
+         let mag_dc = mag_db_sos(&sos, 0.001);
+         let mag_nyq = mag_db_sos(&sos, PI - 0.001);
+ 
+-        assert!(mag_center > mag_dc + 10.0, "center should be louder than DC");
+-        assert!(mag_center > mag_nyq + 10.0, "center should be louder than Nyquist");
++        assert!(
++            mag_center > mag_dc + 10.0,
++            "center should be louder than DC"
++        );
++        assert!(
++            mag_center > mag_nyq + 10.0,
++            "center should be louder than Nyquist"
++        );
+     }
+ 
+     #[test]
+@@ -155,7 +168,10 @@ mod tests {
+         let mag_center = mag_db_sos(&sos, w_1k);
+         let mag_dc = mag_db_sos(&sos, 0.001);
+ 
+-        assert!(mag_center < -20.0, "center should be deeply attenuated, got {mag_center}");
++        assert!(
++            mag_center < -20.0,
++            "center should be deeply attenuated, got {mag_center}"
++        );
+         assert!(mag_dc.abs() < 1.0, "DC should be ~0 dB, got {mag_dc}");
+     }
+ }
+diff --git a/crates/fts-eq/eq-dsp-v2/src/design.rs b/crates/fts-eq/eq-dsp-v2/src/design.rs
+index d9b0068..7b95dd0 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/design.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/design.rs
+@@ -19,16 +19,16 @@ use crate::transform;
+ ///   10 = Band Shelf, 11 = Allpass
+ #[derive(Debug, Clone, Copy, PartialEq)]
+ pub enum FilterType {
+-    Peak,       // type 0 — own ZPK (compute_cascade_coefficients)
+-    Highpass,   // type 1 — Butterworth direct
+-    Lowpass,    // type 2 — Butterworth direct
+-    Bandpass,   // type 3 — Butterworth LP + elliptic LP→BP
+-    Notch,      // type 4 — Butterworth LP + LP→BS
+-    LowShelf,   // type 7 — Butterworth + bilinear
+-    HighShelf,  // type 8 — Butterworth + bilinear
+-    TiltShelf,  // type 9 — Butterworth + bilinear
+-    BandShelf,  // type 10 — LP→BP + bilinear
+-    Allpass,    // type 11 — negate zeros
++    Peak,      // type 0 — own ZPK (compute_cascade_coefficients)
++    Highpass,  // type 1 — Butterworth direct
++    Lowpass,   // type 2 — Butterworth direct
++    Bandpass,  // type 3 — Butterworth LP + elliptic LP→BP
++    Notch,     // type 4 — Butterworth LP + LP→BS
++    LowShelf,  // type 7 — Butterworth + bilinear
++    HighShelf, // type 8 — Butterworth + bilinear
++    TiltShelf, // type 9 — Butterworth + bilinear
++    BandShelf, // type 10 — LP→BP + bilinear
++    Allpass,   // type 11 — negate zeros
+ }
+ 
+ /// Design a complete filter and return biquad sections.
+@@ -72,12 +72,7 @@ pub fn design_filter(
+ /// Butterworth lowpass: analog LP prototype → bilinear → biquads.
+ ///
+ /// Pro-Q 4 type 1 (HP) / type 2 (LP): transform type 0 (direct).
+-fn design_lowpass(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_lowpass(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     let proto = prototype::butterworth_lp_prewarped(2 * n, freq_hz, sample_rate);
+     let digital = transform::bilinear(&proto, sample_rate);
+     let mut sos = biquad::zpk_to_sos(&digital);
+@@ -93,12 +88,7 @@ fn design_lowpass(
+ }
+ 
+ /// Butterworth highpass: flip the lowpass.
+-fn design_highpass(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_highpass(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     // HP = LP with z → -z (frequency inversion).
+     // Easier: design LP prototype, then in bilinear use s → -s substitution.
+     // Or: use HP prototype directly.
+@@ -135,12 +125,7 @@ fn design_highpass(
+ /// quadratic LP→BP gives equivalent results for Butterworth prototypes.
+ ///
+ /// KEY INSIGHT: Each section gets UNIQUE pole/zero positions (NOT identical biquads).
+-fn design_bandpass(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_bandpass(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     let bp = prototype::butterworth_bp(n, freq_hz, q, sample_rate);
+     let digital = transform::bilinear(&bp, sample_rate);
+     let sos = biquad::zpk_to_sos(&digital);
+@@ -165,12 +150,7 @@ fn design_bandpass(
+ /// Butterworth bandstop (notch): LP prototype → LP→BS transform → bilinear.
+ ///
+ /// Pro-Q 4 type 4: same machinery as bandpass but with BS transform.
+-fn design_notch(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_notch(n: usize, freq_hz: f64, q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     let bs = prototype::butterworth_bs(n, freq_hz, q, sample_rate);
+     let digital = transform::bilinear(&bs, sample_rate);
+     let sos = biquad::zpk_to_sos(&digital);
+@@ -196,13 +176,7 @@ fn design_notch(
+ /// Pro-Q 4 type 0: uses compute_cascade_coefficients (own ZPK calculation).
+ /// For now, use standard RBJ/Vicanek approach (same as eq-dsp v1).
+ /// TODO: extract compute_cascade_coefficients from Ghidra for exact match.
+-fn design_peak(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    gain_db: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_peak(n: usize, freq_hz: f64, q: f64, gain_db: f64, sample_rate: f64) -> Vec<Coeffs> {
+     if gain_db.abs() < 0.001 {
+         return vec![PASSTHROUGH; n.max(1)];
+     }
+@@ -212,7 +186,9 @@ fn design_peak(
+     // For now, cascade identical peak biquads with gain/n per section.
+     let gain_per = gain_db / n.max(1) as f64;
+     let w0 = 2.0 * PI * freq_hz / sample_rate;
+-    (0..n.max(1)).map(|_| peak_biquad(w0, q, gain_per)).collect()
++    (0..n.max(1))
++        .map(|_| peak_biquad(w0, q, gain_per))
++        .collect()
+ }
+ 
+ /// Single peak/bell biquad using RBJ cookbook.
+@@ -235,12 +211,7 @@ fn peak_biquad(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+ /// Allpass: Butterworth poles, zeros reflected across unit circle.
+ ///
+ /// Pro-Q 4 type 11: transform type 4 (negate zeros).
+-fn design_allpass(
+-    n: usize,
+-    freq_hz: f64,
+-    q: f64,
+-    sample_rate: f64,
+-) -> Vec<Coeffs> {
++fn design_allpass(n: usize, freq_hz: f64, _q: f64, sample_rate: f64) -> Vec<Coeffs> {
+     // Start with lowpass prototype
+     let proto = prototype::butterworth_lp_prewarped(2 * n, freq_hz, sample_rate);
+     let digital = transform::bilinear(&proto, sample_rate);
+@@ -332,7 +303,9 @@ fn design_band_shelf(
+ /// The first section has the highest Butterworth Q (pole pair nearest jω axis).
+ /// Scale its poles to match the user's desired Q.
+ fn apply_q_to_resonant_section(sos: &mut [Coeffs], q: f64, freq_hz: f64, sample_rate: f64) {
+-    if sos.is_empty() { return; }
++    if sos.is_empty() {
++        return;
++    }
+ 
+     // For the first (most resonant) section, scale the Q
+     // Butterworth at order 2n has Q_0 = 1/(2·sin(π/(4n))) for the first section.
+@@ -450,7 +423,10 @@ mod tests {
+         let sos = design_filter(FilterType::Notch, 1000.0, 2.0, 0.0, 48000.0, 4);
+         assert!(sos.len() >= 2);
+         let diff = (sos[0][1] - sos[1][1]).abs() + (sos[0][2] - sos[1][2]).abs();
+-        assert!(diff > 0.001, "Notch sections should differ, but diff = {diff}");
++        assert!(
++            diff > 0.001,
++            "Notch sections should differ, but diff = {diff}"
++        );
+     }
+ 
+     #[test]
+@@ -459,6 +435,9 @@ mod tests {
+         assert_eq!(sos.len(), 1);
+         let w0 = 2.0 * PI * 1000.0 / 48000.0;
+         let center = biquad::mag_db_sos(&sos, w0);
+-        assert!((center - 6.0).abs() < 1.0, "peak should be ~6 dB, got {center}");
++        assert!(
++            (center - 6.0).abs() < 1.0,
++            "peak should be ~6 dB, got {center}"
++        );
+     }
+ }
+diff --git a/crates/fts-eq/eq-dsp-v2/src/lib.rs b/crates/fts-eq/eq-dsp-v2/src/lib.rs
+index a7868a1..880a007 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/lib.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/lib.rs
+@@ -13,11 +13,18 @@
+ //!         → frequency transform based on type
+ //!         → zpk_to_biquad_coefficients (0x1800fe040)
+ 
+-pub mod zpk;
+-pub mod prototype;
+-pub mod transform;
++pub mod band;
+ pub mod biquad;
++pub mod chain;
+ pub mod design;
++pub mod prototype;
++pub mod section;
++pub mod transform;
++pub mod zpk;
++
++pub use band::Band;
++pub use chain::EqChain;
++pub use design::FilterType;
+ 
+ #[cfg(any(test, feature = "test-util"))]
+ pub mod test_util;
+diff --git a/crates/fts-eq/eq-dsp-v2/src/test_util.rs b/crates/fts-eq/eq-dsp-v2/src/test_util.rs
+index 7f68f9b..315365f 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/test_util.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/test_util.rs
+@@ -25,8 +25,8 @@ pub fn process_impulse(sections: &[Coeffs], num_samples: usize) -> Vec<f64> {
+ 
+ /// Compute magnitude response in dB from impulse response via FFT.
+ pub fn impulse_to_mag_db(impulse: &[f64], num_bins: usize) -> Vec<f64> {
+-    use rustfft::FftPlanner;
+     use rustfft::num_complex::Complex as FftComplex;
++    use rustfft::FftPlanner;
+ 
+     let n = num_bins * 2;
+     let mut planner = FftPlanner::new();
+diff --git a/crates/fts-eq/eq-dsp-v2/src/zpk.rs b/crates/fts-eq/eq-dsp-v2/src/zpk.rs
+index 08a0847..742504b 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/zpk.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/zpk.rs
+@@ -6,7 +6,7 @@
+ //!   - Scalar gain
+ //!   - Infinity sentinel (0x7FF0000000000000) for unused poles/zeros
+ 
+-use std::ops::{Add, Mul, Sub, Div, Neg};
++use std::ops::{Add, Div, Mul, Neg, Sub};
+ 
+ /// A complex number for filter pole/zero calculations.
+ #[derive(Debug, Clone, Copy, PartialEq)]
+@@ -31,7 +31,10 @@ impl Complex {
+     }
+ 
+     pub fn conj(self) -> Self {
+-        Self { re: self.re, im: -self.im }
++        Self {
++            re: self.re,
++            im: -self.im,
++        }
+     }
+ 
+     pub fn mag_sq(self) -> f64 {
+@@ -52,21 +55,30 @@ impl Complex {
+ 
+     pub fn inv(self) -> Self {
+         let d = self.mag_sq();
+-        Self { re: self.re / d, im: -self.im / d }
++        Self {
++            re: self.re / d,
++            im: -self.im / d,
++        }
+     }
+ }
+ 
+ impl Add for Complex {
+     type Output = Self;
+     fn add(self, rhs: Self) -> Self {
+-        Self { re: self.re + rhs.re, im: self.im + rhs.im }
++        Self {
++            re: self.re + rhs.re,
++            im: self.im + rhs.im,
++        }
+     }
+ }
+ 
+ impl Sub for Complex {
+     type Output = Self;
+     fn sub(self, rhs: Self) -> Self {
+-        Self { re: self.re - rhs.re, im: self.im - rhs.im }
++        Self {
++            re: self.re - rhs.re,
++            im: self.im - rhs.im,
++        }
+     }
+ }
+ 
+@@ -90,42 +102,60 @@ impl Div for Complex {
+ impl Neg for Complex {
+     type Output = Self;
+     fn neg(self) -> Self {
+-        Self { re: -self.re, im: -self.im }
++        Self {
++            re: -self.re,
++            im: -self.im,
++        }
+     }
+ }
+ 
+ impl Mul<f64> for Complex {
+     type Output = Self;
+     fn mul(self, rhs: f64) -> Self {
+-        Self { re: self.re * rhs, im: self.im * rhs }
++        Self {
++            re: self.re * rhs,
++            im: self.im * rhs,
++        }
+     }
+ }
+ 
+ impl Mul<Complex> for f64 {
+     type Output = Complex;
+     fn mul(self, rhs: Complex) -> Complex {
+-        Complex { re: self * rhs.re, im: self * rhs.im }
++        Complex {
++            re: self * rhs.re,
++            im: self * rhs.im,
++        }
+     }
+ }
+ 
+ impl Div<f64> for Complex {
+     type Output = Self;
+     fn div(self, rhs: f64) -> Self {
+-        Self { re: self.re / rhs, im: self.im / rhs }
++        Self {
++            re: self.re / rhs,
++            im: self.im / rhs,
++        }
+     }
+ }
+ 
+ impl Add<f64> for Complex {
+     type Output = Self;
+     fn add(self, rhs: f64) -> Self {
+-        Self { re: self.re + rhs, im: self.im }
++        Self {
++            re: self.re + rhs,
++            im: self.im,
++        }
+     }
+ }
+ 
+ impl Sub<f64> for Complex {
+     type Output = Self;
+     fn sub(self, rhs: f64) -> Self {
+-        Self { re: self.re - rhs, im: self.im }
++        Self {
++            re: self.re - rhs,
++            im: self.im,
++        }
+     }
+ }
+ 
+@@ -189,7 +219,11 @@ pub fn pair_conjugates(zpk: &Zpk) -> Vec<(Vec<Complex>, Vec<Complex>, f64)> {
+         let a_real = a.im.abs() < 1e-12;
+         let b_real = b.im.abs() < 1e-12;
+         if a_real != b_real {
+-            return if a_real { std::cmp::Ordering::Less } else { std::cmp::Ordering::Greater };
++            return if a_real {
++                std::cmp::Ordering::Less
++            } else {
++                std::cmp::Ordering::Greater
++            };
+         }
+         a.im.abs().partial_cmp(&b.im.abs()).unwrap()
+     });
+@@ -198,7 +232,11 @@ pub fn pair_conjugates(zpk: &Zpk) -> Vec<(Vec<Complex>, Vec<Complex>, f64)> {
+         let a_real = a.im.abs() < 1e-12;
+         let b_real = b.im.abs() < 1e-12;
+         if a_real != b_real {
+-            return if a_real { std::cmp::Ordering::Less } else { std::cmp::Ordering::Greater };
++            return if a_real {
++                std::cmp::Ordering::Less
++            } else {
++                std::cmp::Ordering::Greater
++            };
+         }
+         a.im.abs().partial_cmp(&b.im.abs()).unwrap()
+     });
+@@ -212,9 +250,21 @@ pub fn pair_conjugates(zpk: &Zpk) -> Vec<(Vec<Complex>, Vec<Complex>, f64)> {
+ 
+     let mut sections = Vec::with_capacity(n);
+     for i in 0..n {
+-        let pp = if i < pole_pairs.len() { pole_pairs[i].clone() } else { vec![] };
+-        let zp = if i < zero_pairs.len() { zero_pairs[i].clone() } else { vec![] };
+-        let g = if i == 0 { zpk.gain / gain_per.powi((n - 1) as i32) } else { gain_per };
++        let pp = if i < pole_pairs.len() {
++            pole_pairs[i].clone()
++        } else {
++            vec![]
++        };
++        let zp = if i < zero_pairs.len() {
++            zero_pairs[i].clone()
++        } else {
++            vec![]
++        };
++        let g = if i == 0 {
++            zpk.gain / gain_per.powi((n - 1) as i32)
++        } else {
++            gain_per
++        };
+         sections.push((pp, zp, g));
+     }
+     sections
+@@ -225,7 +275,9 @@ fn group_conjugate_pairs(roots: &[Complex]) -> Vec<Vec<Complex>> {
+     let mut pairs = Vec::new();
+ 
+     for i in 0..roots.len() {
+-        if used[i] { continue; }
++        if used[i] {
++            continue;
++        }
+         used[i] = true;
+ 
+         if roots[i].im.abs() < 1e-12 {
+@@ -246,7 +298,8 @@ fn group_conjugate_pairs(roots: &[Complex]) -> Vec<Vec<Complex>> {
+             // Complex root — find its conjugate
+             let conj = roots[i].conj();
+             for j in (i + 1)..roots.len() {
+-                if !used[j] && (roots[j].re - conj.re).abs() < 1e-12
++                if !used[j]
++                    && (roots[j].re - conj.re).abs() < 1e-12
+                     && (roots[j].im - conj.im).abs() < 1e-12
+                 {
+                     used[j] = true;
+diff --git a/crates/fts-eq/eq-plugin/Cargo.toml b/crates/fts-eq/eq-plugin/Cargo.toml
+index 7db196f..8553c60 100644
+--- a/crates/fts-eq/eq-plugin/Cargo.toml
++++ b/crates/fts-eq/eq-plugin/Cargo.toml
+@@ -12,7 +12,7 @@ crate-type = ["cdylib", "lib"]
+ [dependencies]
+ audio-gui = { workspace = true }
+ fts-plugin-core = { path = "../../fts-plugin-core" }
+-eq-dsp = { path = "../eq-dsp" }
++eq-dsp-v2 = { path = "../eq-dsp-v2" }
+ eq-profiles = { path = "../eq-profiles" }
+ eq-ui = { path = "../eq-ui" }
+ fts-dsp = { workspace = true }
+diff --git a/crates/fts-eq/eq-plugin/src/lib.rs b/crates/fts-eq/eq-plugin/src/lib.rs
+index 19f3ff4..126269f 100644
+--- a/crates/fts-eq/eq-plugin/src/lib.rs
++++ b/crates/fts-eq/eq-plugin/src/lib.rs
+@@ -9,9 +9,7 @@ use rustfft::{num_complex::Complex, FftPlanner};
+ use std::sync::atomic::Ordering;
+ use std::sync::Arc;
+ 
+-use eq_dsp::filter_type::{FilterStructure, FilterType};
+-use eq_dsp::EqChain;
+-use fts_dsp::{AudioConfig, Processor};
++use eq_dsp_v2::{EqChain, FilterType};
+ 
+ pub mod editor;
+ 
+@@ -373,7 +371,7 @@ fn lp_hp_slope_to_order(slope: i32) -> usize {
+     }
+ }
+ 
+-/// Map EqBandShape integer to eq-dsp FilterType.
++/// Map EqBandShape integer to eq-dsp-v2 FilterType.
+ fn shape_to_filter_type(shape: i32) -> FilterType {
+     match shape {
+         0 => FilterType::Peak,      // Bell
+@@ -384,14 +382,14 @@ fn shape_to_filter_type(shape: i32) -> FilterType {
+         5 => FilterType::Notch,     // Notch
+         6 => FilterType::Bandpass,  // Bandpass
+         7 => FilterType::TiltShelf, // Tilt Shelf
+-        8 => FilterType::FlatTilt,  // Flat Tilt
++        8 => FilterType::TiltShelf, // Flat Tilt (use tilt shelf for now)
+         9 => FilterType::Allpass,   // All Pass
+         _ => FilterType::Peak,
+     }
+ }
+ 
+ impl FtsEq {
+-    /// Sync nih-plug params → eq-dsp bands.
++    /// Sync nih-plug params → eq-dsp-v2 bands.
+     fn sync_params(&mut self) {
+         // Check if any band has solo active
+         let any_solo = (0..NUM_BANDS).any(|i| self.params.bands[i].solo.value() > 0.5);
+@@ -401,7 +399,6 @@ impl FtsEq {
+             if let Some(band) = self.chain.band_mut(i) {
+                 let band_enabled = bp.enabled.value() > 0.5;
+                 let is_solo = bp.solo.value() > 0.5;
+-                // If any band is soloed, only soloed bands are active
+                 let enabled = if any_solo {
+                     band_enabled && is_solo
+                 } else {
+@@ -418,8 +415,6 @@ impl FtsEq {
+                     FilterType::Lowpass | FilterType::Highpass | FilterType::Bandpass => {
+                         lp_hp_slope_to_order(slope_val)
+                     }
+-                    // For shelves, slope 0 (0 dB/oct) = 1st-order.
+-                    // For bell, slope 0 = same as slope 2 (12 dB/oct, order 2).
+                     FilterType::LowShelf | FilterType::HighShelf | FilterType::TiltShelf
+                         if slope_val == 0 =>
+                     {
+@@ -428,15 +423,12 @@ impl FtsEq {
+                     _ => slope_to_order(slope_val),
+                 };
+ 
+-                let peak_q_comp = self.params.tune_peak_q_comp.value() as f64;
+-
+                 if band.enabled != enabled
+                     || band.filter_type != ft
+                     || (band.freq_hz - freq).abs() > 0.01
+                     || (band.gain_db - gain).abs() > 0.01
+                     || (band.q - q).abs() > 0.001
+                     || band.order != order
+-                    || (band.peak_q_comp - peak_q_comp).abs() > 0.0001
+                 {
+                     band.enabled = enabled;
+                     band.filter_type = ft;
+@@ -444,8 +436,6 @@ impl FtsEq {
+                     band.gain_db = gain;
+                     band.q = q;
+                     band.order = order;
+-                    band.peak_q_comp = peak_q_comp;
+-                    band.structure = FilterStructure::Tdf2;
+                     self.chain.update_band(i);
+                 }
+             }
+@@ -576,10 +566,7 @@ impl Plugin for FtsEq {
+             .sample_rate
+             .store(buffer_config.sample_rate, Ordering::Relaxed);
+ 
+-        self.chain.update(AudioConfig {
+-            sample_rate: self.sample_rate,
+-            max_buffer_size: buffer_config.max_buffer_size as usize,
+-        });
++        self.chain.set_sample_rate(self.sample_rate);
+ 
+         // Pre-allocate scratch buffers
+         let max_samples = buffer_config.max_buffer_size as usize;

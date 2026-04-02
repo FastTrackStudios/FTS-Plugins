@@ -1,0 +1,70 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 33ff23861d094cdfea57eaa0d95aee590ba9ced6..9d476dd5355ebad2762d345cc3af64b9f5ee9320 100644
+GIT binary patch
+delta 254
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9G#%nS^i3=9l;wx+LrJ2&36Dzewk6I*{MslPbU
+zjQOk$sp>&ygKz;e1H*qL01{(hVAxn6$vbgI!{!^jbDTGS30%b}5Xv0M9Lt=@oXVWZ
+zoXcFuy!j!o3*+WbA*&b#!kD9&<Cv3})0nfE^O%dEQXj%sF$#n;M>EGWCo`urXEWzB
+g7el4qMXh2Kh+vLkPGC-9&S1`AE?_PJNku3F09cz$D*ylh
+
+delta 187
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9Gx%nS^i3=9mWYxzC>Pv{)5Dzewk6I*{MXzgO=
+z{_{b~q^bv*4Z<LE|04mA7y|>t#`;L!%@KTaoF^CXHEjM8xQcOeB3}sO=1(Co)`xHy
+L>s=I>m7xp(Zlya?
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index a15f1719e928de0635cafc51ee820789f4556e54..fb21e6edc6dbe78cbad433482203634359209fde 100644
+GIT binary patch
+delta 1486
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXtZdyXtij!=(Omz=(Xs#
+z7_=C+7_}I;m~1iSp1`Y}C$|1jjW6S)lCx^z+a+>j`*^pz#hNxTar`^;Wkog<hw^rV
+z0?{vg(~snt`b;$ti=Mvvok=N&*<(&49#ytQ+dUdYxAIS)TW=~n{epm)<aEyeCi)x=
+z>t{D?T~YW7UF&T=(^8JrjXq2<Q@7sOUa>&5kC)MIvL^4W?GIy3pEGiFILCk4dFlPG
+z?GrXYtz6D%H=Re{w1i{PXN3!EGfFD9zsNUz$j@RY%WOOOqrBvFwf`nU9FNu+cr|3_
+zufoumF3QHhz`$TtWDoXd<@w~7g`dAp**+st4B2XT#_1lH7#DD;o}aO&>C=}#+cy-7
+zec@xZWnf_No}Q^^x(Mcq2NC)I-llBk*nXl>Y%9MoNP$pFYFTPtnN?b5PHHi;^>l+k
+zF-bJ%J!4n@`=U+K0*A3^j;xsXdy$A_?3C?47NR)Pi;>ZO@*4g*9A5<zx42iNFGKj&
+zo6&yS1JP)hD;F0VY`C)FZ3rl=j`K6xV{;Qv*&MHj%@@sZ7=q@e!XVC<=J!p#w$I3w
+zg9Y65hq0#frqBN*z6R>9qY8D?F5BrH-~QpVI3&S9-NkChz`&3)T|nQofY<MJe&WU(
+zZE{@vj~JM@zs)y21alx*mE82ew{{YcSml{Ai;tJ@#%nz0C8Nggjaky$7l$SIZvU|s
+z#hDAa95@+l8$~%Ac{xB9#7x)NDCP`xHn-C0wU#yyvayB4oqHn5k`4?E3>?VG$m;dh
+zxnFlmf5jfYQp_L?oD2*MoUn9vmg81+{})|nyjGy3)R(KDe_Rmws(gFIYZ-WeH@+3Y
+z>yw_->0wbdt5$C}D3e5q07kp%*nN_+t|>F^MpE{6k2Xn2HWorpE?B%HKQ-)J*@Jia
+zc<n*)j`1U<x{bVL`?v4VmW6qTJ;^A!QM}D@ddFLlS@<Go-^8~kcDv0!2njt#$LXvG
+z#k}At9=pece;>6`Uc=G7eZ>LMt^C4{g3PK+C>a$kQ(*DsYg602n;ScQaa+si&^Fn;
+cZL&q%WXrb6R&A55+a}wzO}5=O+3rUa0823)jQ{`u
+
+delta 1596
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXtZdyXtij!=(Omz=(Xs#
+z7_=C+7_}I;m~1iSp1`Z++W7BvgC66@yV2r3+iyG;@8zAobb<LIMyKr^%9hTIjLy@2
+zlr83PgeM(;_Wz>&ugx0*zVI;~n(Qj?#dvt~1o>#zBMb}-DU(0Q$IBgHU|`^2U|?Xd
+zDzXQgd-198mCX+dnz{HNF)(k=RoK8Ud`OU4l_@2)EH$spDlIc7wV3JfWCH_9uqkrW
+z1K-+7NHKxT;bdT7;Dnj8t6jLYSIzk;9?K;`n%Iyne>m5rX@%I))a@235^zsV&fuHH
+z<;uxm+bGJ}$jbq;FlKTFzcb962VQ9|Nk3XyvN=Ei)tl2#Z!%AjJc{na#~!!4SteUf
+z*qouT6{qK>YaTY21M5Zc)&J{kg^LW5jq%up;-M7<PKj@sH)U>@$drb7X#V7u^Yid|
+zM}qOtJNd^4`8F3^B+5IzQzBc|cAsh3-0_fP@0<x;c~;|;*i1Zjp?K#?r|@HrRV%%>
+zSFDuo<=wt?fw?UsKEJSk`7OxC^LO9&1I!lo{E)<lBUY6DXNKIEIQ<qlR;I@?TL>|N
+zQyDlSBtVgf5)sM23fOELjJEG*ws62O7{$#YM=w0_dM|i=`;C`4-8`M+A@^-azVaxk
+z^j`4#CBya)ml(hBu^wY!VDO&oDes2Y@hM+t<b0cQbJli_$BbL~g+ZExFf$C;E0}4@
+z&M<tp=nV7wglt6d)pDc7*E@5H)3;k_$>55K=^V-y4>;~Ht`0SSv?L1@2ebKcgnodK
+zh{l^o;n(1yuY<#}>!%v5YR{kg7u_@z$BCVOyJAY;<R{xBL@oPxw=Y{@Zpk<~-ha*X
+z?nUNvIgUOTa@=fV{tjF+OmF#Qz8qYVK*}RfM5B~PllK=hYdp>ON0djP#GwP$0xNt#
+znov@Qywbmj3ZEyk*sK6Y0E%<dmft^cYlec|_8p;6=Qc5M{P?zI(aALvk0Lx;%JGHy
+zzUH6G@TaJuq|dRqo$Ed0;}ip^+TWMVOWOq|o3{&0wrCfaY}qa_*{WS&vUR(_WSe$@
+N$+p`CCfmJ;0s#7dO4I-V
+
+diff --git a/crates/fts-eq/eq-dsp-v2/src/design.rs b/crates/fts-eq/eq-dsp-v2/src/design.rs
+index d9b0068..ec61f55 100644
+--- a/crates/fts-eq/eq-dsp-v2/src/design.rs
++++ b/crates/fts-eq/eq-dsp-v2/src/design.rs
+@@ -238,7 +238,7 @@ fn peak_biquad(w0: f64, q: f64, gain_db: f64) -> Coeffs {
+ fn design_allpass(
+     n: usize,
+     freq_hz: f64,
+-    q: f64,
++    _q: f64,
+     sample_rate: f64,
+ ) -> Vec<Coeffs> {
+     // Start with lowpass prototype

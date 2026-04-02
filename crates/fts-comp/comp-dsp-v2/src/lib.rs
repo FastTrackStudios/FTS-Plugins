@@ -11,15 +11,15 @@
 //!    - Else: fallback sqrt smoothing
 //! 4. Output compressed audio
 
+pub mod chain;
 pub mod detector;
 pub mod gain_curve;
 pub mod smoother;
-pub mod chain;
 
+pub use chain::CompChain;
 pub use detector::Detector;
 pub use gain_curve::GainCurve;
 pub use smoother::GainReductionSmoother;
-pub use chain::CompChain;
 
 /// Main compressor combining detection, gain curve, and smoothing.
 pub struct ProC3Compressor {

@@ -78,12 +78,20 @@ fn main() {
     let (input_peak, input_rms) = analyze_signal(&input);
     let (output_peak, output_rms) = analyze_signal(&output);
 
-    println!("Input:  Peak = {:.3} ({:.2} dB), RMS = {:.3} ({:.2} dB)",
-        input_peak, linear_to_db(input_peak),
-        input_rms, linear_to_db(input_rms));
-    println!("Output: Peak = {:.3} ({:.2} dB), RMS = {:.3} ({:.2} dB)",
-        output_peak, linear_to_db(output_peak),
-        output_rms, linear_to_db(output_rms));
+    println!(
+        "Input:  Peak = {:.3} ({:.2} dB), RMS = {:.3} ({:.2} dB)",
+        input_peak,
+        linear_to_db(input_peak),
+        input_rms,
+        linear_to_db(input_rms)
+    );
+    println!(
+        "Output: Peak = {:.3} ({:.2} dB), RMS = {:.3} ({:.2} dB)",
+        output_peak,
+        linear_to_db(output_peak),
+        output_rms,
+        linear_to_db(output_rms)
+    );
 
     let reduction = linear_to_db(input_peak) - linear_to_db(output_peak);
     println!("Gain Reduction: {:.2} dB (peak)", reduction);
@@ -98,23 +106,21 @@ fn main() {
 
     let display_indices = vec![
         0,
-        24000,      // 0.5s mark (transient)
-        24100,      // after first transient
-        48000,      // 1.0s mark
-        72000,      // 1.5s mark (second transient)
-        72100,      // after second transient
+        24000, // 0.5s mark (transient)
+        24100, // after first transient
+        48000, // 1.0s mark
+        72000, // 1.5s mark (second transient)
+        72100, // after second transient
         num_samples - 1,
     ];
 
     for &idx in &display_indices {
         if idx < num_samples {
             let diff = input[idx] - output[idx];
-            println!("{:8} │ {:11.6} │ {:11.6} │ {:7.2} │ {:10.6}",
-                idx,
-                input[idx],
-                output[idx],
-                gr_values[idx],
-                diff);
+            println!(
+                "{:8} │ {:11.6} │ {:11.6} │ {:7.2} │ {:10.6}",
+                idx, input[idx], output[idx], gr_values[idx], diff
+            );
         }
     }
 
@@ -135,7 +141,9 @@ fn main() {
             println!("✗ Could not load reference file: {}", args[1]);
             println!("\n[NEXT STEPS]");
             println!("1. Load /tmp/fts-comp-input.wav into Pro-C 3 (Clean mode)");
-            println!("   Settings: Threshold=-18dB, Ratio=4:1, Attack=10ms, Release=50ms, Knee=2dB");
+            println!(
+                "   Settings: Threshold=-18dB, Ratio=4:1, Attack=10ms, Release=50ms, Knee=2dB"
+            );
             println!("2. Export Pro-C 3 output to /tmp/pro-c3-output.wav");
             println!("3. Run: cargo run --example compare_samples -- /tmp/pro-c3-output.wav");
         }
@@ -236,14 +244,20 @@ fn compare_outputs(fts_output: &[f64], reference: &[f64]) {
     let mean_diff = abs_diffs.iter().sum::<f64>() / min_len as f64;
     let rms_diff = (abs_diffs.iter().map(|d| d * d).sum::<f64>() / min_len as f64).sqrt();
 
-    println!("Samples compared: {} / {} ({}%)",
-        min_len, reference.len(),
-        (min_len as f64 / reference.len() as f64 * 100.0) as u32);
+    println!(
+        "Samples compared: {} / {} ({}%)",
+        min_len,
+        reference.len(),
+        (min_len as f64 / reference.len() as f64 * 100.0) as u32
+    );
     println!("\nDifference Statistics:");
     println!("  Max difference:    {:.9}", max_diff);
     println!("  Mean difference:   {:.9}", mean_diff);
     println!("  RMS difference:    {:.9}", rms_diff);
-    println!("  Max diff in dB:    {:.3}", linear_to_db(1.0 + max_diff.min(1.0)));
+    println!(
+        "  Max diff in dB:    {:.3}",
+        linear_to_db(1.0 + max_diff.min(1.0))
+    );
 
     // Count samples above different thresholds
     let thresholds = vec![0.0001, 0.001, 0.01, 0.1];
@@ -259,13 +273,7 @@ fn compare_outputs(fts_output: &[f64], reference: &[f64]) {
     println!("Sample #  │ FTS Output      │ Pro-C3 Ref      │ Difference      │ % Error");
     println!("──────────┼─────────────────┼─────────────────┼─────────────────┼─────────");
 
-    let key_indices = vec![
-        0,
-        min_len / 4,
-        min_len / 2,
-        (min_len * 3) / 4,
-        min_len - 1,
-    ];
+    let key_indices = vec![0, min_len / 4, min_len / 2, (min_len * 3) / 4, min_len - 1];
 
     for &idx in &key_indices {
         let pct_error = if reference[idx].abs() > 0.0001 {
@@ -273,8 +281,10 @@ fn compare_outputs(fts_output: &[f64], reference: &[f64]) {
         } else {
             0.0
         };
-        println!("{:8} │ {:15.9} │ {:15.9} │ {:15.9} │ {:7.3}%",
-            idx, fts_output[idx], reference[idx], diffs[idx], pct_error);
+        println!(
+            "{:8} │ {:15.9} │ {:15.9} │ {:15.9} │ {:7.3}%",
+            idx, fts_output[idx], reference[idx], diffs[idx], pct_error
+        );
     }
 
     // Categorize parity level
@@ -311,13 +321,13 @@ fn save_wav(path: &str, samples: &[f64], sample_rate: f64) -> std::io::Result<()
 
     // fmt subchunk
     file.write_all(b"fmt ")?;
-    file.write_all(&16u32.to_le_bytes())?;  // subchunk1 size
-    file.write_all(&3u16.to_le_bytes())?;   // audio format (IEEE float)
-    file.write_all(&1u16.to_le_bytes())?;   // mono
+    file.write_all(&16u32.to_le_bytes())?; // subchunk1 size
+    file.write_all(&3u16.to_le_bytes())?; // audio format (IEEE float)
+    file.write_all(&1u16.to_le_bytes())?; // mono
     file.write_all(&(sample_rate as u32).to_le_bytes())?;
     file.write_all(&byte_rate.to_le_bytes())?;
     file.write_all(&block_align.to_le_bytes())?;
-    file.write_all(&32u16.to_le_bytes())?;  // bits per sample
+    file.write_all(&32u16.to_le_bytes())?; // bits per sample
 
     // data subchunk
     file.write_all(b"data")?;
