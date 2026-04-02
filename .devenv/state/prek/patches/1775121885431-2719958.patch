@@ -1,0 +1,212 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/multiband.rs b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+index 92fc6a8..4c21e3b 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/multiband.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+@@ -1,19 +1,22 @@
+ //! 3-band multiband compression system extracted from Pro-C 3 binary RE.
+ //!
+ //! Pro-C 3 processes audio through 3 independent compression bands:
+-//! - Band 0: High frequency band
+-//! - Band 1: Mid frequency band
+-//! - Band 2: Low frequency band (with special sqrt-based processing)
++//! - Band 0: Low frequency band (uses low-pass filter)
++//! - Band 1: Mid frequency band (uses band-pass filter: high-pass + low-pass)
++//! - Band 2: High frequency band (uses high-pass filter)
+ //!
+ //! Each band:
+-//! 1. Detects input level independently
+-//! 2. Computes gain reduction per band
+-//! 3. Smooths gain reduction with Hermite cubic
+-//! 4. Applies to band-specific audio
++//! 1. Separates input into frequency band using adaptive filters
++//! 2. Detects level of band-specific audio
++//! 3. Computes gain reduction per band
++//! 4. Smooths gain reduction with Hermite cubic
++//! 5. Applies compression to band-specific audio
+ //!
+-//! Bands are combined at the output.
++//! Bands are summed at the output for final reconstruction.
+ //! Function: update_filter_design_from_level @ 0x18010e9d0 (202 bytes)
+ 
++use crate::biquad::BiquadFilter;
++use crate::biquad::{design_highpass_biquad, design_lowpass_biquad};
+ use crate::detector::Detector;
+ use crate::gain_curve::GainCurve;
+ use crate::hermite::{HermiteCubicSmoother, StateFuncHypothesis};
+@@ -22,7 +25,7 @@ use std::f64::consts::{LN_2, PI};
+ /// Per-band compression state
+ #[derive(Clone)]
+ pub struct CompressionBand {
+-    /// Band index (0=high, 1=mid, 2=low)
++    /// Band index (0=low, 1=mid, 2=high)
+     pub band_index: usize,
+ 
+     /// Level detector for this band
+@@ -42,6 +45,12 @@ pub struct CompressionBand {
+ 
+     /// Sample rate (needed for crossover frequency calculation)
+     sample_rate: f64,
++
++    /// High-pass filter for band separation (Band 1 and 2)
++    hp_filter: Option<BiquadFilter>,
++
++    /// Low-pass filter for band separation (Band 0 and 1)
++    lp_filter: Option<BiquadFilter>,
+ }
+ 
+ impl CompressionBand {
+@@ -54,6 +63,8 @@ impl CompressionBand {
+             last_gr_db: 0.0,
+             previous_level_db: -80.0,
+             sample_rate,
++            hp_filter: None,
++            lp_filter: None,
+         }
+     }
+ 
+@@ -71,6 +82,54 @@ impl CompressionBand {
+         (2.0 * exp_val * PI) / self.sample_rate
+     }
+ 
++    /// Set up band-specific filters based on crossover frequencies
++    /// Band 0 (low): Low-pass filter at freq_low
++    /// Band 1 (mid): High-pass at freq_low + Low-pass at freq_high
++    /// Band 2 (high): High-pass filter at freq_high
++    fn update_band_filters(&mut self, freq_low: f64, freq_high: f64) {
++        // Normalize frequencies to 0-1 range (0 = DC, 1 = Nyquist)
++        // Nyquist frequency = sample_rate / 2
++        let nyquist = self.sample_rate / 2.0;
++        let norm_low = (freq_low / nyquist).clamp(0.001, 0.999);
++        let norm_high = (freq_high / nyquist).clamp(0.001, 0.999);
++
++        match self.band_index {
++            0 => {
++                // Band 0 (Low): Only low-pass at freq_low
++                self.lp_filter = Some(design_lowpass_biquad(norm_low));
++                self.hp_filter = None;
++            }
++            1 => {
++                // Band 1 (Mid): High-pass at freq_low + Low-pass at freq_high
++                self.hp_filter = Some(design_highpass_biquad(norm_low));
++                self.lp_filter = Some(design_lowpass_biquad(norm_high));
++            }
++            2 => {
++                // Band 2 (High): Only high-pass at freq_high
++                self.hp_filter = Some(design_highpass_biquad(norm_high));
++                self.lp_filter = None;
++            }
++            _ => {}
++        }
++    }
++
++    /// Apply band-specific filters to input audio
++    fn apply_band_filters(&mut self, input: f64) -> f64 {
++        let mut output = input;
++
++        // Apply high-pass filter if present (Band 1 and 2)
++        if let Some(ref mut hp) = self.hp_filter {
++            output = hp.process(output);
++        }
++
++        // Apply low-pass filter if present (Band 0 and 1)
++        if let Some(ref mut lp) = self.lp_filter {
++            output = lp.process(output);
++        }
++
++        output
++    }
++
+     /// Apply Band 2 special sqrt-based processing (only for band_index == 2)
+     /// Formula (from Pro-C 3 @ 0x180052d90-0x180052bc):
+     /// band2_output = sqrt(level_abs² + 1.0) * freq_scaled + (level_abs * 0.5)
+@@ -121,22 +180,33 @@ impl CompressionBand {
+ 
+     /// Process one sample through this band's compression
+     pub fn process(&mut self, input: f64, channel: usize) -> f64 {
+-        // Step 1: Detect level
++        // Step 1: Detect level from original input
+         let level_db = self.detector.detect_level(input.abs());
+ 
+-        // Step 2: Compute level-dependent crossover frequency
++        // Step 2: Compute level-dependent crossover frequencies
+         // Formula from Pro-C 3 @ 0x18010e9d0:
+         // freq = (2 * exp(level * LN2) * PI) / sample_rate
+-        let crossover_freq = self.compute_crossover_frequency(level_db);
++        let base_freq = self.compute_crossover_frequency(level_db);
++        let freq_low = base_freq * 0.5; // Lower crossover (between Band 0 and 1)
++        let freq_high = base_freq * 2.0; // Upper crossover (between Band 1 and 2)
++
++        // Step 3: Update band-specific filters
++        self.update_band_filters(freq_low, freq_high);
++
++        // Step 4: Apply band-specific frequency filtering to input
++        let band_audio = self.apply_band_filters(input);
++
++        // Step 5: Detect level from band-filtered audio (not original)
++        let band_level_db = self.detector.detect_level(band_audio.abs());
+ 
+-        // Step 3: Apply Band 2 special sqrt-based processing (if applicable)
++        // Step 6: Apply Band 2 special sqrt-based processing (if applicable)
+         // This modifies the effective level used for gain curve computation
+-        let effective_level_db = self.apply_band2_special_processing(level_db, crossover_freq);
++        let effective_level_db = self.apply_band2_special_processing(band_level_db, base_freq);
+ 
+-        // Step 4: Compute gain reduction using effective level
++        // Step 7: Compute gain reduction using effective level
+         let gr_instant = self.gain_curve.compute_gr(effective_level_db);
+ 
+-        // Step 5: Smooth with Hermite cubic
++        // Step 8: Smooth with Hermite cubic
+         let log_rel = self.gain_curve.release_coeff.ln();
+         let log_atk = self.gain_curve.attack_coeff.ln();
+         let sqrt_h0 = gr_instant.sqrt();
+@@ -156,8 +226,8 @@ impl CompressionBand {
+         // Track for metering
+         self.last_gr_db = fts_dsp::db::linear_to_db(gr_smoothed).max(0.0);
+ 
+-        // Step 6: Apply to audio
+-        input * gr_smoothed
++        // Step 9: Apply compression to band-specific audio (returns compressed band)
++        band_audio * gr_smoothed
+     }
+ 
+     /// Update parameters for this band
+@@ -222,20 +292,25 @@ impl MultiBandCompressor {
+     }
+ 
+     /// Process one sample through all 3 bands
+-    /// Formula from binary @ 0x18010e9d0:
+-    /// freq = (2 * exp_approx(level * LN2) * PI) / sample_rate
++    /// Each band:
++    /// 1. Separates input into frequency band (HP/LP filters)
++    /// 2. Detects level of band-specific audio
++    /// 3. Applies compression to band-specific audio
++    /// 4. Returns compressed band audio
++    /// Bands are summed for final output reconstruction
+     pub fn process(&mut self, input: f64, channel: usize) -> f64 {
+-        // Process through all 3 bands
+-        // Each band computes independent gain reduction
+-        let gr_band0 = self.bands[0].process(input, channel);
+-        let gr_band1 = self.bands[1].process(input, channel);
+-        let gr_band2 = self.bands[2].process(input, channel);
+-
+-        // Combine bands: currently just average the gain reductions
+-        // TODO: Implement proper crossover filtering
+-        // This is a simplified multiband where each band applies independently
+-        // Full implementation would filter input into frequency bands, process, then recombine
+-        let combined_output = (gr_band0 + gr_band1 + gr_band2) / 3.0;
++        // Process through all 3 bands and collect compressed band outputs
++        let band0_output = self.bands[0].process(input, channel);
++        let band1_output = self.bands[1].process(input, channel);
++        let band2_output = self.bands[2].process(input, channel);
++
++        // Combine bands by summing the compressed band-specific audio
++        // This proper multiband architecture:
++        // - Splits input into 3 frequency bands (0=low, 1=mid, 2=high)
++        // - Processes each band with independent compression
++        // - Recombines by summing the 3 processed bands
++        // Normalization by 3 prevents clipping from summation
++        let combined_output = (band0_output + band1_output + band2_output) / 3.0;
+ 
+         combined_output
+     }

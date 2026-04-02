@@ -1,0 +1,57 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/multiband.rs b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+index 92fc6a8..4043be0 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/multiband.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+@@ -1,19 +1,22 @@
+ //! 3-band multiband compression system extracted from Pro-C 3 binary RE.
+ //!
+ //! Pro-C 3 processes audio through 3 independent compression bands:
+-//! - Band 0: High frequency band
+-//! - Band 1: Mid frequency band
+-//! - Band 2: Low frequency band (with special sqrt-based processing)
++//! - Band 0: Low frequency band (uses low-pass filter)
++//! - Band 1: Mid frequency band (uses band-pass filter: high-pass + low-pass)
++//! - Band 2: High frequency band (uses high-pass filter)
+ //!
+ //! Each band:
+-//! 1. Detects input level independently
+-//! 2. Computes gain reduction per band
+-//! 3. Smooths gain reduction with Hermite cubic
+-//! 4. Applies to band-specific audio
++//! 1. Separates input into frequency band using adaptive filters
++//! 2. Detects level of band-specific audio
++//! 3. Computes gain reduction per band
++//! 4. Smooths gain reduction with Hermite cubic
++//! 5. Applies compression to band-specific audio
+ //!
+-//! Bands are combined at the output.
++//! Bands are summed at the output for final reconstruction.
+ //! Function: update_filter_design_from_level @ 0x18010e9d0 (202 bytes)
+ 
++use crate::biquad::BiquadFilter;
++use crate::biquad::{design_highpass_biquad, design_lowpass_biquad};
+ use crate::detector::Detector;
+ use crate::gain_curve::GainCurve;
+ use crate::hermite::{HermiteCubicSmoother, StateFuncHypothesis};
+@@ -22,7 +25,7 @@ use std::f64::consts::{LN_2, PI};
+ /// Per-band compression state
+ #[derive(Clone)]
+ pub struct CompressionBand {
+-    /// Band index (0=high, 1=mid, 2=low)
++    /// Band index (0=low, 1=mid, 2=high)
+     pub band_index: usize,
+ 
+     /// Level detector for this band
+@@ -42,6 +45,12 @@ pub struct CompressionBand {
+ 
+     /// Sample rate (needed for crossover frequency calculation)
+     sample_rate: f64,
++
++    /// High-pass filter for band separation (Band 1 and 2)
++    hp_filter: Option<BiquadFilter>,
++
++    /// Low-pass filter for band separation (Band 0 and 1)
++    lp_filter: Option<BiquadFilter>,
+ }
+ 
+ impl CompressionBand {

@@ -1,0 +1,130 @@
+diff --git a/.devenv/tasks.db-shm b/.devenv/tasks.db-shm
+index 071bcb8ace4a66b0536ec257ab318044182ca359..c64a5ae93178944f9806514ef064e1065f43baa6 100644
+GIT binary patch
+delta 258
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9G$%nS^i3=9m{)}*e!?O^!Ys>ojVok|XGgG$I(
+zuCr2aNmUOr8-xv*85sT}0gxC20|PUI2=m6KFrJAs8aChHnd7qgOJEnHfGD#hvn;bB
+zvnsPDvo5nC^X7*<DU6#xg>*3rh%rks%P}i4t1)Xa>oFTar9OmrF$#z?OEb$eD>JJz
+jYcuOJ8$+euMRhR>NHEJVD=@1tYcT6D8!(%Iq$-pFE`CLH
+
+delta 191
+zcmZo@U}|V!s+V}A%K!o#3=9m63=9Gy%nS^i3=9lcuYQO*>*%ClRb;RGP9=x;LRoe1
+zYma-`q^bv*4Z;G<3=IE~07#61fq|Lf3)9A?FrLj3ymMS87w|T0{u0>5xH*xxgmLqy
+R5E$!2IE?i!3e4(I1_14WKc@fy
+
+diff --git a/.devenv/tasks.db-wal b/.devenv/tasks.db-wal
+index 3619927e16829293c7e05c604ad2aec001a5c4b7..62f6da9ccae7cf600f9e169b6ff92a937ec3c7d2 100644
+GIT binary patch
+delta 1492
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXtZdyXtij!=(Omz=(Xs#
+z7;G`*?&8&br;@|_Nmn?iJ5cxSc8PrXKHlwa;f76292ei6<#2d^oOioHjqDe`=|?gQ
+zeWn-m$wyCL{lcJ>!$2lsc}mKPf7?BJWViB9pId1tJY8VEyySGwp9cCIseQJM=J)it
+zF!bK$Ff8TxUtuF}`~U8R?G<Ze`*<0(CTsG}+Ws)y@Hr!gHe1+SQ{TVOwqJ-eoXyXu
+zHQmP3FkO^`fq{X+s>mMf*zBJwR?63xh;3hS25Peoi<T_2?c|U0lGD|G8VGUR<!amW
+ze%mu0WJ5|g<g;U&4TZnyZNKpb#a4I5=^mFD7jS(2oogrCqp!97!ynl%e5{%b3=H1W
+zXL=Ye!s-ga=$5r=!Lb_KIe6u^@(Y7h3#Fu%rRJ4crDf)%7PF{NFSsKsiRQA%vtA!G
+zy?@`qVMhr^U9eK8LVl*eb_-oO<e>3lWYnI#hJOx+<lG<gckN`E2J)LdKcn{a3#VnH
+zvAXcmw>w`lC*L$fgp&}XHa183v<IAXe|CBg79&eII$a;UeG!uWV*89-xPzuY3^$xN
+zJ-$Y64b)L?SKe3swf}FqeM7ArB&m2qUB;@#z`&3)-NDl^Sqdc<_x}3Ob!2HO6Bqv@
+z2IlQ+&&X~7CnA^=!TRK;2fnqFfW+xc)eFV~D+-12Sy8}ob8*oMQRNN3+kdP@aqU7b
+z9Zm+@Mp4d2UJj6<G1E2n$~i+_&-wqlRDb1pd368(SuL9^sl&j)fa37-g|WYVug#Rk
+z6Rc7!AYGgc3=EvGMEj8Ma-jCUq_a5fU_(ygkN4=#cb`)sxjo_?!W)f0W$=3AcD}=%
+z3d@?r?FIkPB7sqBI(EM}c+U3Os2nW3y@O94l8IsA4^OvP{IaHeU#f_~ZE5@#p?Jtj
+z``^xmpYJ$t-=QZDOV;d3M#+uh9lFyscFN4c7eCq4b-!<#oNu{(!XDW#e2lu&udb2v
+zf~GH=Ui*CK$Cp>e(qAFbB&;jQtjdIvKhd%R7JsfzU32ZVp~G!F_A=_U^%}SJnzZ$r
+iw)L8|^_sW!TD0|Aw)I-I^;);}+O+lBZtJ!CkpKYN)E6@V
+
+delta 1607
+zcmexy`!^#9H?%OeFtsqZu(YtYu(hzaaI|o?aJ6u^@U-x@@U`%_2($>c2(<{eh_r~d
+zh_#5fNVG_{NVQ0}$h63|$hF9~D6}ZHD77fJsI;iIsI{oKXtZdyXtij!=(Omz=(Xs#
+z7;G`*?&8(4UUwmP!M-zhj?THbYIDTFK3+zx$(p>gCO4j6$fd){VB09l*~rT=J@Bnv
+z%;XGyXGZPmYhq32aIBomG56U!J-N*V7r*c^uAJ;D@5Q)!@&x&4##NKw$R|s#VPIh3
+zU|?Wiuqv_#+u_Bu>rbt~`=res54Z9QuM}ifWlBjcOU)~@O3TbiEoNRl*}y=OWtA+m
+z?c|U0l2Xhd12`EN7&u`DIQbr|Z96JwhR;SeWE-7-m+oBKsB~-l4n{_px7d@6k{iX_
+zbth-=&BEusi7c)6r?0)SXLEqS7ryB#YmB||`>ucWBYE2|99o+*6t?nD|GURnh>@U&
+zei?pyo4zMI29F&m{t?SaF*2|^-mzW6iDdt*+2AD5^Z1y>c7q^BxQC_}Br@WRuh}n3
+zjLc(Ge{c6lVuX8Xx<C;l-bi{fO>0IlKg)5v_MrGGtlD!^eA_C??G;UoeZ14zZW}LT
+zBp5vg8=mY@^?oal9CXuoP4;6Zy9u9D4Q^?#NkosB>6&|u<-p2O5}8I-!l8*mQ^T<u
+zjN)!7=7OJ0`=g(3zi|k^yQgzJ<h~8bXO;d6PtGo}*|`0~CB`p&tZNw<7`!KY%DXYH
+z#_o8jw!(e&MXwsSb3A6;$}bF3FNB$CaCpUr+w|(0b1Yl&Scc-EA96WDTbWh9ZnVG~
+z4bwAXO&)M4{hn!Kr7W@<98TL+));d$f&&vJ%O8y0eBti5*|G4j_X4Xy3GlQZi<=HI
+zxi+I4gyOUb=6`lh-Lqx)<{1ufw{7o`HFaj3?k#IFkNx$9y3_mC$ZXya07=^`SQr=>
+zQYL?pkCy`#BPfo#^gHU|?U2arT>Ot1m^bGtYyf9hU62krP$?&YrRaGk_jZ}mFG~(A
+z7Jz+(;#eUg&F3c@_0Dbn(SUGlMvTb=Mh=+|C0|`LP71(1E5pc<;A&OdQ1nC&9!Sv~
+z;j8qEQ)Ay4K$L}?F_vL$7w9!^7w9!<7w9!@7w9!>7w9!_7wENU7wENY7wENW7wENa
+S7wENV7wEO!F3@ZDA^`yL#xMB*
+
+diff --git a/crates/fts-eq/eq-pro-dsp/src/prototype.rs b/crates/fts-eq/eq-pro-dsp/src/prototype.rs
+index 61d17b6..c7754f0 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/prototype.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/prototype.rs
+@@ -113,6 +113,8 @@ pub fn butterworth_bp_elliptic(order: usize, freq_hz: f64, q: f64, sample_rate:
+ 
+     // Process poles — Butterworth prototype poles come in conjugate pairs.
+     // For each unique pole (or pair), compute the elliptic BP mapping.
++    // CRITICAL FIX: Use section-indexed parametrization to create DISTINCT poles per section.
++    let mut section_idx = 0;
+     let mut i = 0;
+     while i < lp.poles.len() {
+         let s_k = lp.poles[i];
+@@ -125,43 +127,39 @@ pub fn butterworth_bp_elliptic(order: usize, freq_hz: f64, q: f64, sample_rate:
+             bp_poles.push((b + sqrt_disc) / 2.0);
+             bp_poles.push((b - sqrt_disc) / 2.0);
+             bp_zeros.push(Complex::ZERO);
++            section_idx += 1;
+             i += 1;
+         } else {
+-            // Complex conjugate pair: use elliptic mapping
+-            // The pole angle determines its position in the elliptic domain.
+-            let theta_k = s_k.arg();
+-
+-            // Normalize the angle to a [0, 1] parameter within the left half-plane.
+-            // Butterworth poles span from pi/2+eps to pi-eps (upper LHP).
+-            let u_norm = (theta_k - PI / 2.0) / (PI / 2.0);
+-            let u = u_norm.abs() * kk;
++            // Complex conjugate pair: use section-indexed elliptic mapping.
++            // Pro-Q 4 uses parametric evaluation: u_i = (2*i+1)*K(k)/order
++            // This creates DISTINCT poles for each section, not duplicates.
++            let u_i = (2.0 * section_idx as f64 + 1.0) * kk / order as f64;
+ 
+-            // Evaluate Jacobi elliptic functions for exact pole placement
+-            let sn_val = elliptic::elliptic_sn(u, k);
++            // Evaluate Jacobi elliptic functions at section-specific parameter
++            let sn_val = elliptic::elliptic_sn(u_i, k);
+             let cn_val = (1.0 - sn_val * sn_val).max(0.0).sqrt();
+             let dn_val = (1.0 - k * k * sn_val * sn_val).max(0.0).sqrt();
+ 
+             // The elliptic transform maps the prototype pole to BP poles at:
+             //   sigma = bw * sn * dn / (1 - k^2 * sn^2)
+             //   omega_offset = bw * cn / (1 - k^2 * sn^2)
++            // Each section gets UNIQUE sigma and omega_offset from u_i evaluation.
+             let denom = 1.0 - k * k * sn_val * sn_val + 1e-30;
+             let sigma = bw_a * sn_val * dn_val / denom;
+             let omega_offset = bw_a * cn_val / denom;
+ 
+-            // BP pole pair above center frequency
+-            let p_upper = Complex::new(-sigma, w0_a + omega_offset);
+-            // BP pole pair below center frequency
+-            let p_lower = Complex::new(-sigma, -(w0_a + omega_offset));
++            // Create ONE conjugate pole pair for this section.
++            // Above and below center frequency are handled by the omega_offset sign.
++            let p1 = Complex::new(-sigma, w0_a + omega_offset);
++            let p2 = Complex::new(-sigma, -(w0_a + omega_offset));
+ 
+-            bp_poles.push(p_upper);
+-            bp_poles.push(p_upper.conj());
+-            bp_poles.push(p_lower);
+-            bp_poles.push(p_lower.conj());
++            bp_poles.push(p1);
++            bp_poles.push(p2);
+ 
+-            bp_zeros.push(Complex::ZERO);
+             bp_zeros.push(Complex::ZERO);
+ 
+-            // Skip the conjugate pole (processed together)
++            // Skip the conjugate pole in the LP prototype (processed together)
++            section_idx += 1;
+             i += 2;
+         }
+     }

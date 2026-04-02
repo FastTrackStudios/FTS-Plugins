@@ -1,0 +1,93 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/multiband.rs b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+index 92fc6a8..45b4cff 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/multiband.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+@@ -14,6 +14,7 @@
+ //! Bands are combined at the output.
+ //! Function: update_filter_design_from_level @ 0x18010e9d0 (202 bytes)
+ 
++use crate::biquad::{design_highpass_biquad, design_lowpass_biquad, BiquadFilter};
+ use crate::detector::Detector;
+ use crate::gain_curve::GainCurve;
+ use crate::hermite::{HermiteCubicSmoother, StateFuncHypothesis};
+@@ -42,6 +43,18 @@ pub struct CompressionBand {
+ 
+     /// Sample rate (needed for crossover frequency calculation)
+     sample_rate: f64,
++
++    /// High-pass filter for band separation (if needed)
++    /// Band 0: no HP (keeps all high frequencies)
++    /// Band 1: HP @ crossover[0]
++    /// Band 2: HP @ crossover[1]
++    hp_filter: Option<BiquadFilter>,
++
++    /// Low-pass filter for band separation (if needed)
++    /// Band 0: LP @ crossover[1]
++    /// Band 1: LP @ crossover[1]
++    /// Band 2: LP @ crossover[0]
++    lp_filter: Option<BiquadFilter>,
+ }
+ 
+ impl CompressionBand {
+diff --git a/crates/fts-eq/eq-pro-dsp/src/design.rs b/crates/fts-eq/eq-pro-dsp/src/design.rs
+index a968f7c..7fb5fab 100644
+--- a/crates/fts-eq/eq-pro-dsp/src/design.rs
++++ b/crates/fts-eq/eq-pro-dsp/src/design.rs
+@@ -561,4 +561,57 @@ mod tests {
+         assert_eq!(sos.len(), 1);
+         assert_eq!(sos[0], PASSTHROUGH);
+     }
++
++    #[test]
++    fn debug_bandpass_poles() {
++        // Same parameters as failing test
++        let n = 2; // 4th order = 2 sections
++        let freq_hz = 1000.0;
++        let user_q = 2.0;
++        let sample_rate = 48000.0;
++
++        // Get the LP->BP ZPK before bilinear
++        let bp_zpk = prototype::butterworth_bp_elliptic(n, freq_hz, user_q, sample_rate);
++
++        println!("\n=== Bandpass ZPK (analog, before bilinear) ===");
++        println!("Filter: 1000 Hz, Q=2.0, 4th order (n=2)");
++        println!("Poles ({}):", bp_zpk.poles.len());
++        for (i, pole) in bp_zpk.poles.iter().enumerate() {
++            println!("  [{}] re={:.6} im={:.6} mag={:.6} arg={:.6}",
++                i, pole.re, pole.im, pole.mag(), pole.arg());
++        }
++        println!("Zeros ({}):", bp_zpk.zeros.len());
++        for (i, zero) in bp_zpk.zeros.iter().enumerate() {
++            println!("  [{}] re={:.6} im={:.6}", i, zero.re, zero.im);
++        }
++        println!("Gain: {:.6}", bp_zpk.gain);
++
++        // After bilinear transform
++        let digital = transform::bilinear(&bp_zpk, sample_rate);
++        println!("\n=== After Bilinear Transform ===");
++        println!("Poles ({}):", digital.poles.len());
++        for (i, pole) in digital.poles.iter().enumerate() {
++            println!("  [{}] re={:.6} im={:.6} mag={:.6}",
++                i, pole.re, pole.im, pole.mag());
++        }
++
++        // After ZPK to SOS
++        let sos = biquad::zpk_to_sos(&digital);
++        println!("\n=== SOS Sections ===");
++        for (i, coeffs) in sos.iter().enumerate() {
++            println!("Section {}:", i);
++            println!("  Numerator:   [{:.6}, {:.6}, {:.6}]", coeffs[3], coeffs[4], coeffs[5]);
++            println!("  Denominator: [{:.6}, {:.6}, {:.6}]", coeffs[0], coeffs[1], coeffs[2]);
++        }
++
++        // Check the test condition
++        let diff = (sos[0][1] - sos[1][1]).abs() + (sos[0][2] - sos[1][2]).abs();
++        println!("\n=== Test Result ===");
++        println!("sos[0][1] = {:.6}, sos[1][1] = {:.6}, diff_b = {:.6}",
++            sos[0][1], sos[1][1], (sos[0][1] - sos[1][1]).abs());
++        println!("sos[0][2] = {:.6}, sos[1][2] = {:.6}, diff_c = {:.6}",
++            sos[0][2], sos[1][2], (sos[0][2] - sos[1][2]).abs());
++        println!("Total diff = {:.6}", diff);
++        println!("PASS? {}", diff > 0.001);
++    }
+ }

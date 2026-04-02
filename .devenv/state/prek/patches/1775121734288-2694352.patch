@@ -1,0 +1,150 @@
+diff --git a/crates/fts-comp/comp-dsp-v2/src/multiband.rs b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+index 92fc6a8..a5ecac8 100644
+--- a/crates/fts-comp/comp-dsp-v2/src/multiband.rs
++++ b/crates/fts-comp/comp-dsp-v2/src/multiband.rs
+@@ -14,6 +14,7 @@
+ //! Bands are combined at the output.
+ //! Function: update_filter_design_from_level @ 0x18010e9d0 (202 bytes)
+ 
++use crate::biquad::{design_highpass_biquad, design_lowpass_biquad, BiquadFilter};
+ use crate::detector::Detector;
+ use crate::gain_curve::GainCurve;
+ use crate::hermite::{HermiteCubicSmoother, StateFuncHypothesis};
+@@ -42,6 +43,18 @@ pub struct CompressionBand {
+ 
+     /// Sample rate (needed for crossover frequency calculation)
+     sample_rate: f64,
++
++    /// High-pass filter for band separation (if needed)
++    /// Band 0: no HP (keeps all high frequencies)
++    /// Band 1: HP @ crossover[0]
++    /// Band 2: HP @ crossover[1]
++    hp_filter: Option<BiquadFilter>,
++
++    /// Low-pass filter for band separation (if needed)
++    /// Band 0: LP @ crossover[1]
++    /// Band 1: LP @ crossover[1]
++    /// Band 2: LP @ crossover[0]
++    lp_filter: Option<BiquadFilter>,
+ }
+ 
+ impl CompressionBand {
+@@ -54,9 +67,59 @@ impl CompressionBand {
+             last_gr_db: 0.0,
+             previous_level_db: -80.0,
+             sample_rate,
++            hp_filter: None,
++            lp_filter: None,
++        }
++    }
++
++    /// Update band separation filters based on crossover frequencies
++    /// Should be called whenever crossover frequencies change
++    fn update_band_filters(&mut self, crossover_freq_low: f64, crossover_freq_high: f64) {
++        // Normalize frequencies to 0-1 range (0.5 = Nyquist)
++        let norm_low = (crossover_freq_low / self.sample_rate).clamp(0.001, 0.499);
++        let norm_high = (crossover_freq_high / self.sample_rate).clamp(0.001, 0.499);
++
++        // Set up filters based on band index
++        match self.band_index {
++            0 => {
++                // High band: low-pass @ norm_high
++                self.hp_filter = None;
++                self.lp_filter = Some(design_lowpass_biquad(norm_high));
++            }
++            1 => {
++                // Mid band: high-pass @ norm_low, low-pass @ norm_high
++                self.hp_filter = Some(design_highpass_biquad(norm_low));
++                self.lp_filter = Some(design_lowpass_biquad(norm_high));
++            }
++            2 => {
++                // Low band: high-pass @ norm_low (no LP)
++                self.hp_filter = Some(design_highpass_biquad(norm_low));
++                self.lp_filter = None;
++            }
++            _ => {
++                self.hp_filter = None;
++                self.lp_filter = None;
++            }
+         }
+     }
+ 
++    /// Apply band-separation filters to audio
++    fn apply_band_filters(&mut self, input: f64) -> f64 {
++        let mut filtered = input;
++
++        // Apply high-pass filter if present
++        if let Some(ref mut hp) = self.hp_filter {
++            filtered = hp.process(filtered);
++        }
++
++        // Apply low-pass filter if present
++        if let Some(ref mut lp) = self.lp_filter {
++            filtered = lp.process(filtered);
++        }
++
++        filtered
++    }
++
+     /// Calculate level-dependent crossover frequency from detected level
+     /// Formula (from Pro-C 3 @ 0x18010e9d0):
+     /// freq = (2 * exp(level * LN2) * PI) / sample_rate
+@@ -124,19 +187,39 @@ impl CompressionBand {
+         // Step 1: Detect level
+         let level_db = self.detector.detect_level(input.abs());
+ 
+-        // Step 2: Compute level-dependent crossover frequency
++        // Step 2: Compute level-dependent crossover frequencies
+         // Formula from Pro-C 3 @ 0x18010e9d0:
+         // freq = (2 * exp(level * LN2) * PI) / sample_rate
+-        let crossover_freq = self.compute_crossover_frequency(level_db);
++        // We compute TWO frequencies: low and high for band separation
++        let base_freq = self.compute_crossover_frequency(level_db);
++
++        // Create low/high split: base frequency acts as center
++        // Low boundary at 0.5x, high boundary at 2.0x the base frequency
++        let crossover_freq_low = base_freq * 0.5;
++        let crossover_freq_high = base_freq * 2.0;
++
++        // Step 3: Update band separation filters
++        // This sets up HP/LP filters for frequency band splitting
++        self.update_band_filters(crossover_freq_low, crossover_freq_high);
++
++        // Step 4: Apply band-separation filters to split the input into frequency bands
++        // Band 0 (high): Keep only high frequencies (LP)
++        // Band 1 (mid): Keep only mid frequencies (HP + LP)
++        // Band 2 (low): Keep only low frequencies (HP)
++        let band_filtered_input = self.apply_band_filters(input);
++
++        // Step 5: Detect level from band-separated audio (not original)
++        let band_level_db = self.detector.detect_level(band_filtered_input.abs());
+ 
+-        // Step 3: Apply Band 2 special sqrt-based processing (if applicable)
++        // Step 6: Apply Band 2 special sqrt-based processing (if applicable)
+         // This modifies the effective level used for gain curve computation
+-        let effective_level_db = self.apply_band2_special_processing(level_db, crossover_freq);
++        let effective_level_db =
++            self.apply_band2_special_processing(band_level_db, crossover_freq_low);
+ 
+-        // Step 4: Compute gain reduction using effective level
++        // Step 7: Compute gain reduction using effective level from band-filtered audio
+         let gr_instant = self.gain_curve.compute_gr(effective_level_db);
+ 
+-        // Step 5: Smooth with Hermite cubic
++        // Step 8: Smooth with Hermite cubic
+         let log_rel = self.gain_curve.release_coeff.ln();
+         let log_atk = self.gain_curve.attack_coeff.ln();
+         let sqrt_h0 = gr_instant.sqrt();
+@@ -156,8 +239,10 @@ impl CompressionBand {
+         // Track for metering
+         self.last_gr_db = fts_dsp::db::linear_to_db(gr_smoothed).max(0.0);
+ 
+-        // Step 6: Apply to audio
+-        input * gr_smoothed
++        // Step 9: Apply gain reduction to band-filtered audio
++        // This is the key difference: we apply gain to the frequency-separated audio,
++        // not to the original mixed audio
++        band_filtered_input * gr_smoothed
+     }
+ 
+     /// Update parameters for this band
