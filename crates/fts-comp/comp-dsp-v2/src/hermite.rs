@@ -96,33 +96,24 @@ impl HermiteCubicSmoother {
         }
 
         // Step 4: Route to algorithm
-        let result = if has_change {
-            // Change detected: use Hermite cubic interpolation
-            let hc_result = self.hermite_cubic(
-                hist0,
-                hist1,
-                hist2,
-                hist3,
-                gr_inst,
-                attack_coeff,
-                release_coeff,
-                log_atk,
-                log_rel,
-                log_atk_sq,
-                log_rel_sq,
-            );
+        // Use exponential smoothing based on attack/release
+        let gr_instant_sqrt = gr_inst.sqrt();
 
-            // Check for NaN
-            if hc_result.is_nan() {
-                eprintln!("[HERMITE-NAN] Hermite cubic produced NaN!");
-                // Fallback to sqrt on NaN
-                gr_inst.sqrt()
+        let result = if has_change {
+            // Transition detected: smoothly interpolate between history and current GR
+            // Use attack during compression increase (GR decrease), release during decrease
+            let gr_change = gr_instant_sqrt - hist0;
+            let coeff = if gr_change < 0.0 {
+                attack_coeff // Compressing more: use attack time
             } else {
-                hc_result
-            }
+                release_coeff // Releasing: use release time
+            };
+
+            // Exponential smoothing: weighted average of old and new
+            coeff * hist0 + (1.0 - coeff) * gr_instant_sqrt
         } else {
-            // Steady state: use simple sqrt fallback (from binary)
-            gr_inst.sqrt()
+            // Steady state: just return sqrt
+            gr_instant_sqrt
         };
 
         // DEBUG: Log result
