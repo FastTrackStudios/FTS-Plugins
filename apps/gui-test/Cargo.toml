@@ -25,15 +25,15 @@ name = "gui-test-comp"
 path = "src/main_comp.rs"
 
 [dependencies]
-nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
+nih_plug_dioxus = { workspace = true }
 png = "0.17"
 atomic_float = "1"
 
 # Only one plugin at a time to avoid duplicate CLAP/VST3 entry point symbols.
 # Switch to a different plugin crate to screenshot it.
-comp-plugin = { path = "../../crates/fts-comp/comp-plugin" }
-# delay-plugin = { path = "../../crates/fts-delay/delay-plugin" }
-# eq-plugin = { path = "../../crates/fts-eq/eq-plugin" }
+comp-plugin = { workspace = true }
+# delay-plugin = { workspace = true }
+# eq-plugin = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 x11rb = { version = "0.13", features = ["allow-unsafe-code"] }

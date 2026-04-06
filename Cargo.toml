@@ -1,112 +1,8 @@
 [workspace]
 members = [
-    "crates/audio-gui",
-    "crates/fts-plugin-core",
-    "crates/fts-dsp",
-    "crates/fts-themes",
-    "crates/fts-modulation",
-
-    # EQ plugin
-    "crates/fts-eq/eq-dsp",
-    "crates/fts-eq/eq-dsp-v2",
-    "crates/fts-eq/eq-pro-dsp",
-    "crates/fts-eq/eq-profiles",
-    "crates/fts-eq/eq-ui",
-    "crates/fts-eq/eq-plugin",
-
-    # Compressor plugin
-    "crates/fts-comp/comp-dsp",
-    "crates/fts-comp/comp-dsp-v2",
-    "crates/fts-comp/comp-profiles",
-    "crates/fts-comp/comp-ui",
-    "crates/fts-comp/comp-plugin",
-
-    # Limiter plugin
-    "crates/fts-limiter/limiter-dsp",
-    "crates/fts-limiter/limiter-profiles",
-    "crates/fts-limiter/limiter-ui",
-    "crates/fts-limiter/limiter-plugin",
-
-    # Tape Machine plugin
-    "crates/fts-tape/tape-dsp",
-    "crates/fts-tape/tape-profiles",
-    "crates/fts-tape/tape-ui",
-    "crates/fts-tape/tape-plugin",
-
-    # Delay plugin
-    "crates/fts-delay/delay-dsp",
-    "crates/fts-delay/delay-profiles",
-    "crates/fts-delay/delay-ui",
-    "crates/fts-delay/delay-plugin",
-
-    # Reverb plugin
-    "crates/fts-reverb/reverb-dsp",
-    "crates/fts-reverb/reverb-profiles",
-    "crates/fts-reverb/reverb-ui",
-    "crates/fts-reverb/reverb-plugin",
-
-    # Gate plugin
-    "crates/fts-gate/gate-dsp",
-    "crates/fts-gate/gate-profiles",
-    "crates/fts-gate/gate-ui",
-    "crates/fts-gate/gate-plugin",
-    "crates/fts-gate/gate-analysis",
-
-    # Trigger plugin (drum sample triggering)
-    "crates/fts-trigger/trigger-dsp",
-    "crates/fts-trigger/trigger-profiles",
-    "crates/fts-trigger/trigger-ui",
-    "crates/fts-trigger/trigger-plugin",
-    "crates/fts-trigger/trigger-analysis",
-
-    # Rider plugin (vocal rider)
-    "crates/fts-rider/rider-dsp",
-    "crates/fts-rider/rider-profiles",
-    "crates/fts-rider/rider-ui",
-    "crates/fts-rider/rider-plugin",
-    "crates/fts-rider/rider-analysis",
-
-    # Tremolo plugin
-    "crates/fts-trem/trem-dsp",
-    "crates/fts-trem/trem-plugin",
-
-    # Chorus plugin
-    "crates/fts-chorus/chorus-dsp",
-    "crates/fts-chorus/chorus-plugin",
-
-    # Wah plugin
-    "crates/fts-wah/wah-dsp",
-
-    # NAM plugin (Neural Amp Modeler)
-    "crates/fts-nam/nam-dsp",
-    "crates/fts-nam/nam-ui",
-    "crates/fts-nam/nam-plugin",
-
-    # Shared sample loading
-    "crates/fts-sample",
-
-    # Metering library
-    "crates/fts-meter/meter-dsp",
-    "crates/fts-meter/meter-ui",
-
-    # Pitch plugin (octave shifter)
-    "crates/fts-pitch/pitch-dsp",
-    "crates/fts-pitch/pitch-plugin",
-
-    # LiveTune plugin (auto-tune / pitch correction)
-    "crates/fts-livetune/livetune-dsp",
-    "crates/fts-livetune/livetune-plugin",
-
-    # MIDI Guitar plugin (polyphonic audio-to-MIDI)
-    "crates/fts-midi-guitar/midi-guitar-dsp",
-    "crates/fts-midi-guitar/midi-guitar-plugin",
-    "crates/fts-midi-guitar/midi-guitar-analysis",
-
-    # Saturate plugin (tape saturation)
-    "crates/fts-saturate/saturate-dsp",
-    "crates/fts-saturate/saturate-plugin",
-
-    "apps/*",
+    "apps/fts-audio",
+    "apps/fts-guide",
+    "apps/gui-test",
     "xtask",
 ]
 exclude = [
@@ -121,29 +17,67 @@ authors = ["FastTrackStudio"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-# Internal crates
-audio-gui = { path = "crates/audio-gui" }
-fts-plugin-core = { path = "crates/fts-plugin-core" }
-fts-dsp = { path = "crates/fts-dsp" }
-fts-sample = { path = "crates/fts-sample" }
-fts-modulation = { path = "crates/fts-modulation" }
-fts-themes = { path = "crates/fts-themes" }
-meter-dsp = { path = "crates/fts-meter/meter-dsp" }
-meter-ui = { path = "crates/fts-meter/meter-ui" }
+# ── FTS-Audiocore ────────────────────────────────────────────────────────────
+fts-plugin-core = { git = "https://github.com/FastTrackStudios/FTS-Audiocore.git", branch = "main" }
+fts-dsp = { git = "https://github.com/FastTrackStudios/FTS-Audiocore.git", branch = "main" }
+audio-gui = { git = "https://github.com/FastTrackStudios/FTS-Audiocore.git", branch = "main" }
+fts-sample = { git = "https://github.com/FastTrackStudios/FTS-Audiocore.git", branch = "main" }
+meter-dsp = { git = "https://github.com/FastTrackStudios/FTS-Audiocore.git", branch = "main" }
+meter-ui = { git = "https://github.com/FastTrackStudios/FTS-Audiocore.git", branch = "main" }
 
-# Plugin DSP crates (used cross-plugin: e.g., comp sidechain uses eq-dsp)
-eq-dsp = { path = "crates/fts-eq/eq-dsp" }
-eq-profiles = { path = "crates/fts-eq/eq-profiles" }
-comp-dsp = { path = "crates/fts-comp/comp-dsp" }
+# ── Plugin repos (for assembly / gui-test) ───────────────────────────────────
+comp-plugin = { git = "https://github.com/FastTrackStudios/FTS-Comp.git", branch = "main" }
+eq-plugin = { git = "https://github.com/FastTrackStudios/FTS-EQ.git", branch = "main" }
+gate-plugin = { git = "https://github.com/FastTrackStudios/FTS-Gate.git", branch = "main" }
+delay-plugin = { git = "https://github.com/FastTrackStudios/FTS-Delay.git", branch = "main" }
+reverb-plugin = { git = "https://github.com/FastTrackStudios/FTS-Reverb.git", branch = "main" }
+nam-plugin = { git = "https://github.com/FastTrackStudios/FTS-NAM.git", branch = "main" }
+rider-plugin = { git = "https://github.com/FastTrackStudios/FTS-Rider.git", branch = "main" }
+trigger-plugin = { git = "https://github.com/FastTrackStudios/FTS-Trigger.git", branch = "main" }
+pitch-plugin = { git = "https://github.com/FastTrackStudios/FTS-Pitch.git", branch = "main" }
+livetune-plugin = { git = "https://github.com/FastTrackStudios/FTS-Tune.git", branch = "main" }
+midi-guitar-plugin = { git = "https://github.com/FastTrackStudios/FTS-MIDI-Guitar.git", branch = "main" }
+saturate-plugin = { git = "https://github.com/FastTrackStudios/FTS-Saturate.git", branch = "main" }
+
+# ── NIH-plug framework ───────────────────────────────────────────────────────
+nih_plug = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
+nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
+
+# ── UI ───────────────────────────────────────────────────────────────────────
 fts-ui = { git = "https://github.com/FastTrackStudios/fts-ui.git", branch = "main" }
+
+# ── DAW integration ──────────────────────────────────────────────────────────
 macromod = { git = "https://github.com/FastTrackStudios/signal.git", branch = "main" }
+daw = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 daw-control = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 daw-control-sync = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 daw-proto = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
 daw-reaper = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
+fts-audio-proto = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
+reaper-test = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
+reaper-low = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
+reaper-medium = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
+reaper-high = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
+vox = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
+vox-inprocess = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
+vox-stream = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
 
-# Dependencies shared with daw workspace
-# Use crates.io facet 0.43.x to match vox's requirement
+# ── Audio loading ─────────────────────────────────────────────────────────────
+symphonium = { version = "0.6", default-features = false, features = ["wav", "pcm", "fft-resampler"] }
+
+# ── Common utilities ─────────────────────────────────────────────────────────
+atomic_float = "1.1"
+crossbeam-channel = "0.5"
+once_cell = "1.19"
+tracing = { version = "0.1", features = ["std"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"
+anyhow = "1.0"
+eyre = "0.6"
+tokio = { version = "1", features = ["sync", "rt"] }
+
+# ── Facet serialization ───────────────────────────────────────────────────────
 facet = { version = "0.44" }
 facet-core = { version = "0.44" }
 facet-postcard = { version = "0.44" }
@@ -154,76 +88,21 @@ facet-json = { version = "0.44" }
 facet-value = { version = "0.44" }
 facet-yaml = { version = "0.44" }
 
-vox = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
-vox-inprocess = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
-vox-stream = { git = "https://github.com/Codys-Wright/vox.git", rev = "2a2f793b" }
-
-# DAW facade crate (for reaper-test)
-daw = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
-fts-audio-proto = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
-
-# REAPER integration testing
-reaper-test = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
-reaper-launcher = { git = "https://github.com/FastTrackStudios/daw.git", branch = "main" }
-
-# NIH-plug audio plugin framework (FTS fork with Dioxus UI + REAPER embed support)
-nih_plug = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
-nih_plug_dioxus = { git = "https://github.com/FastTrackStudios/nih-plug.git", branch = "reaper-embed-ui" }
-
-# Audio loading
-symphonium = { version = "0.6", default-features = false, features = ["wav", "pcm", "fft-resampler"] }
-
-# REAPER bindings (FTS fork — must match daw workspace)
-reaper-low = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
-reaper-medium = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
-reaper-high = { git = "https://github.com/FastTrackStudios/reaper-rs.git", branch = "feat/reaper-763-ruler-lanes" }
-
-# Atomics
-atomic_float = "1.1"
-
-# Async / threading
-crossbeam-channel = "0.5"
-once_cell = "1.19"
-
-# Tracing
-tracing = { version = "0.1", features = ["std"] }
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-
-# Serialization
-serde = { version = "1.0", features = ["derive"] }
-
-# Error handling
-thiserror = "2.0"
-anyhow = "1.0"
-eyre = "0.6"
-
-# Async runtime (for fts-macros)
-tokio = { version = "1", features = ["sync", "rt"] }
-
-# ── Local development overrides ──────────────────────────────────────
+# ── Local development overrides ───────────────────────────────────────────────
 # Uncomment to use local checkouts instead of GitHub.
 #
-# [patch."https://github.com/FastTrackStudios/fts-ui.git"]
-# fts-ui = { path = "../../fts-ui/crates/fts-ui" }
-#
-# [patch."https://github.com/FastTrackStudios/FastTrackStudio.git"]
-# macromod = { path = "../FastTrackStudio/crates/macromod/macromod" }
+# [patch."https://github.com/FastTrackStudios/FTS-Audiocore.git"]
+# fts-plugin-core = { path = "../FTS-Audiocore/fts-plugin-core" }
+# audio-gui = { path = "../FTS-Audiocore/audio-gui" }
+# fts-dsp = { path = "../FTS-Audiocore/fts-dsp" }
 
 [patch."https://github.com/FastTrackStudios/daw.git"]
 reaper-test = { path = "../daw/crates/reaper-test" }
-# daw = { path = "../daw/crates/daw" }
-# daw-control = { path = "../daw/crates/daw-control" }
-# daw-control-sync = { path = "../daw/crates/daw-control-sync" }
-# daw-proto = { path = "../daw/crates/daw-proto" }
-# daw-reaper = { path = "../daw/crates/daw-reaper" }
-# fts-audio-proto = { path = "../daw/crates/fts-audio-proto" }
 
 [patch."https://github.com/FastTrackStudios/nih-plug.git"]
 nih_plug = { path = "forks/nih-plug" }
 nih_plug_dioxus = { path = "forks/nih-plug/nih_plug_dioxus" }
 
-# Override blitz crates from upstream git to use our FTS fork with post-processing support
-# Fork: https://github.com/FastTrackStudios/blitz (branch: post-processing)
 [patch."https://github.com/DioxusLabs/blitz.git"]
 dioxus-native = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
 dioxus-native-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
@@ -236,7 +115,6 @@ blitz-shell = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45
 stylo_taffy = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
 
 [patch.crates-io]
-# Blitz crates - FTS fork with post-processing support
 dioxus-native = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
 dioxus-native-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
 blitz-dom = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
@@ -246,19 +124,14 @@ blitz-paint = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45
 blitz-traits = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
 blitz-shell = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
 stylo_taffy = { git = "https://github.com/FastTrackStudios/blitz.git", rev = "45bc77fb" }
-# Stylo crates - FTS fork with derive_more v1 fix
 stylo = { git = "https://github.com/FastTrackStudios/stylo.git", rev = "8bb8c3b" }
 selectors = { git = "https://github.com/FastTrackStudios/stylo.git", rev = "8bb8c3b" }
-# Anyrender crates - FTS fork with post-processing support
 anyrender = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 anyrender_vello = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 anyrender_vello_cpu = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 anyrender_vello_hybrid = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 anyrender_svg = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
 wgpu_context = { git = "https://github.com/FastTrackStudios/anyrender.git", rev = "422b5d0" }
-# moire: FTS fork — tolerates broken frame-pointer chains on NixOS glibc.
-# All moire crates must point to the same fork rev to avoid duplicate
-# moire-runtime #[ctor] registrations that crash CLAP plugin scanning.
 moire = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
 moire-macros-noop = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
 moire-runtime = { git = "https://github.com/FastTrackStudios/moire.git", rev = "6d856f2" }
